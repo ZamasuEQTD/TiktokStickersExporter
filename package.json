@@ -1,0 +1,19 @@
+{
+  "name": "tiktok-stickers-exporter",
+  "version": "1.0.0",
+  "description": "Firefox Extension for Tiktok Stickers",
+  "scripts": {
+    "build": "webpack --mode production",
+    "watch": "webpack --watch",
+    "start:firefox": "mkdir -p tmp-profile && web-ext run --source-dir dist --firefox-profile $(pwd)/tmp-profile --keep-profile-changes"
+  },
+  "devDependencies": {
+    "@types/firefox-webext-browser": "^120.0.1",
+    "copy-webpack-plugin": "^12.0.2",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5",
+    "web-ext": "^8.2.0",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  }
+}
