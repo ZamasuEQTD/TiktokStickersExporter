@@ -12,7 +12,7 @@ const translations = {
     download: "Download",
     downloadZip: "Download ZIP",
     confirmZipTitle: "Compress stickers in a ZIP?",
-    confirmSeqTitle: "Download stickers sequentially?",
+    confirmSeqTitle: "Download stickers?",
     noStickersOnScreen: "No stickers on screen!",
     errorDownload: "Error downloading:",
     errorZip: "An error occurred while creating the ZIP file.",
@@ -20,6 +20,7 @@ const translations = {
     newStickers: "New ({count})",
     oldStickers: "On device ({count})",
     noNewStickers: "No new stickers on screen.",
+    noOldStickers: "No downloaded stickers found.",
     selectAll: "Select all",
     cancelSelection: "Cancel selection",
     cancel: "Cancel",
@@ -39,7 +40,7 @@ const translations = {
     download: "Descargar",
     downloadZip: "Descargar ZIP",
     confirmZipTitle: "¿Comprimir stickers en un ZIP?",
-    confirmSeqTitle: "¿Descargar stickers secuencialmente?",
+    confirmSeqTitle: "¿Descargar stickers?",
     noStickersOnScreen: "¡No hay stickers en pantalla!",
     errorDownload: "Error al descargar:",
     errorZip: "Ocurrió un error al crear el archivo ZIP.",
@@ -47,6 +48,7 @@ const translations = {
     newStickers: "Nuevos ({count})",
     oldStickers: "En el dispositivo ({count})",
     noNewStickers: "No hay stickers nuevos en la pantalla.",
+    noOldStickers: "No hay stickers descargados aún.",
     selectAll: "Seleccionar todos",
     cancelSelection: "Cancelar selección",
     cancel: "Cancelar",
@@ -144,6 +146,35 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
     header.style.marginBottom = s(15);
     modal.appendChild(header);
 
+    const tabsContainer = document.createElement("div");
+    tabsContainer.style.display = "flex";
+    tabsContainer.style.borderBottom = "1px solid #444";
+    tabsContainer.style.marginBottom = s(15);
+
+    const tabNew = document.createElement("div");
+    tabNew.innerText = t("newStickers", { count: newStickers.length });
+    tabNew.style.flex = "1";
+    tabNew.style.textAlign = "center";
+    tabNew.style.padding = s(10);
+    tabNew.style.cursor = "pointer";
+    tabNew.style.fontWeight = "bold";
+    tabNew.style.fontSize = s(14);
+    tabNew.style.transition = "color 0.2s, border-bottom 0.2s";
+
+    const tabOld = document.createElement("div");
+    tabOld.innerText = t("oldStickers", { count: oldStickers.length });
+    tabOld.style.flex = "1";
+    tabOld.style.textAlign = "center";
+    tabOld.style.padding = s(10);
+    tabOld.style.cursor = "pointer";
+    tabOld.style.fontWeight = "bold";
+    tabOld.style.fontSize = s(14);
+    tabOld.style.transition = "color 0.2s, border-bottom 0.2s";
+
+    tabsContainer.appendChild(tabNew);
+    tabsContainer.appendChild(tabOld);
+    modal.appendChild(tabsContainer);
+
     const scrollContainer = document.createElement("div");
     scrollContainer.style.overflowY = "auto";
     scrollContainer.style.flexGrow = "1";
@@ -152,7 +183,6 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
     scrollContainer.style.scrollbarColor = "#fe2c55 #252525";
     scrollContainer.style.display = "flex";
     scrollContainer.style.flexDirection = "column";
-    scrollContainer.style.gap = s(10);
     
     const selectedUrls = new Set<string>([...newStickers]);
     const imageElements = new Map<string, HTMLImageElement>();
@@ -212,49 +242,32 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
       return grid;
     };
 
+    const contentNew = document.createElement("div");
+    contentNew.style.display = "flex";
+    contentNew.style.flexDirection = "column";
+    
     if (newStickers.length > 0) {
-      const newTitle = document.createElement("div");
-      newTitle.innerText = t("newStickers", { count: newStickers.length });
-      newTitle.style.fontWeight = "bold";
-      newTitle.style.fontSize = s(14);
-      newTitle.style.color = "#ccc";
-      scrollContainer.appendChild(newTitle);
-      scrollContainer.appendChild(createGrid(newStickers, true));
+      contentNew.appendChild(createGrid(newStickers, true));
     } else {
       const noNew = document.createElement("div");
       noNew.innerText = t("noNewStickers");
       noNew.style.textAlign = "center";
       noNew.style.color = "#888";
       noNew.style.fontSize = s(14);
-      scrollContainer.appendChild(noNew);
+      noNew.style.marginTop = s(20);
+      contentNew.appendChild(noNew);
     }
     
-    btnConfirm.style.flex = "1";
-    btnConfirm.style.padding = s(12);
-    btnConfirm.style.borderRadius = s(8);
-    btnConfirm.style.border = "none";
-    btnConfirm.style.backgroundColor = "#fe2c55";
-    btnConfirm.style.color = "white";
-    btnConfirm.style.cursor = "pointer";
-    btnConfirm.style.fontWeight = "bold";
-    btnConfirm.style.fontSize = s(15);
-    updateConfirmButton();
+    const contentOld = document.createElement("div");
+    contentOld.style.display = "none";
+    contentOld.style.flexDirection = "column";
 
     if (oldStickers.length > 0) {
       const oldHeader = document.createElement("div");
       oldHeader.style.display = "flex";
       oldHeader.style.justifyContent = "space-between";
       oldHeader.style.alignItems = "center";
-      oldHeader.style.marginTop = s(15);
-      oldHeader.style.paddingTop = s(15);
-      oldHeader.style.borderTop = "1px solid #444";
       oldHeader.style.marginBottom = s(10);
-      
-      const oldTitle = document.createElement("div");
-      oldTitle.innerText = t("oldStickers", { count: oldStickers.length });
-      oldTitle.style.fontWeight = "bold";
-      oldTitle.style.fontSize = s(14);
-      oldTitle.style.color = "#ccc";
       
       const btnToggleOld = document.createElement("button");
       btnToggleOld.innerText = t("selectAll");
@@ -266,13 +279,11 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
       btnToggleOld.style.cursor = "pointer";
       btnToggleOld.style.fontSize = s(12);
       
-      oldHeader.appendChild(oldTitle);
       oldHeader.appendChild(btnToggleOld);
-      scrollContainer.appendChild(oldHeader);
+      contentOld.appendChild(oldHeader);
 
-      // Los dibujamos siempre visibles pero como no seleccionados por defecto
       const oldGrid = createGrid(oldStickers, false);
-      scrollContainer.appendChild(oldGrid);
+      contentOld.appendChild(oldGrid);
 
       let allSelected = false;
       btnToggleOld.onclick = () => {
@@ -282,7 +293,6 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
           btnToggleOld.style.border = "1px solid #fe2c55";
           btnToggleOld.style.color = "#fe2c55";
           
-          // Agregar automáticamente a la selección
           oldStickers.forEach(url => {
             selectedUrls.add(url);
             const img = imageElements.get(url);
@@ -297,7 +307,6 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
           btnToggleOld.style.border = "1px solid #888";
           btnToggleOld.style.color = "#888";
           
-          // Quitar de la selección
           oldStickers.forEach(url => {
             selectedUrls.delete(url);
             const img = imageElements.get(url);
@@ -310,9 +319,46 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
         }
         updateConfirmButton();
       };
+    } else {
+      const noOld = document.createElement("div");
+      noOld.innerText = t("noOldStickers");
+      noOld.style.textAlign = "center";
+      noOld.style.color = "#888";
+      noOld.style.fontSize = s(14);
+      noOld.style.marginTop = s(20);
+      contentOld.appendChild(noOld);
     }
     
+    const setActiveTab = (isNew: boolean) => {
+      tabNew.style.color = isNew ? "#fe2c55" : "#888";
+      tabNew.style.borderBottom = isNew ? `2px solid #fe2c55` : `2px solid transparent`;
+      
+      tabOld.style.color = !isNew ? "#fe2c55" : "#888";
+      tabOld.style.borderBottom = !isNew ? `2px solid #fe2c55` : `2px solid transparent`;
+      
+      contentNew.style.display = isNew ? "flex" : "none";
+      contentOld.style.display = !isNew ? "flex" : "none";
+    };
+    
+    tabNew.onclick = () => setActiveTab(true);
+    tabOld.onclick = () => setActiveTab(false);
+    
+    setActiveTab(true);
+
+    scrollContainer.appendChild(contentNew);
+    scrollContainer.appendChild(contentOld);
     modal.appendChild(scrollContainer);
+
+    btnConfirm.style.flex = "1";
+    btnConfirm.style.padding = s(12);
+    btnConfirm.style.borderRadius = s(8);
+    btnConfirm.style.border = "none";
+    btnConfirm.style.backgroundColor = "#fe2c55";
+    btnConfirm.style.color = "white";
+    btnConfirm.style.cursor = "pointer";
+    btnConfirm.style.fontWeight = "bold";
+    btnConfirm.style.fontSize = s(15);
+    updateConfirmButton();
 
     const btnContainer = document.createElement("div");
     btnContainer.style.display = "flex";
