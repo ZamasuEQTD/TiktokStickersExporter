@@ -29,9 +29,5 @@
       "matches": ["*://*.tiktok.com/*"],
       "js": ["content.js"]
     }
-  ],
-  "action": {
-    "default_popup": "popup.html",
-    "default_title": "TikTok Stickers Exporter"
-  }
+  ]
 }

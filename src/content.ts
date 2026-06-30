@@ -31,6 +31,7 @@ const markAsDownloaded = (url: string) => {
 
 // Función para mostrar un diálogo modal personalizado con vista previa
 const showCustomConfirm = async (title: string, newStickers: string[], oldStickers: string[]): Promise<string[] | null> => {
+
   return new Promise((resolve) => {
     const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
     const s = (px: number) => (px * scaleFactor) + "px";
@@ -266,7 +267,171 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
   });
 };
 
-// Función para inyectar los botones "Descargar Todos" en el Header del chat
+const getDelay = () => {
+  const stored = localStorage.getItem("tiktok-stickers-exporter-delay");
+  return stored ? parseFloat(stored) : 1.5;
+};
+
+const showSettingsModal = () => {
+  const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
+  const s = (px: number) => (px * scaleFactor) + "px";
+
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.85)";
+  overlay.style.zIndex = "999999";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+
+  const modal = document.createElement("div");
+  modal.style.backgroundColor = "#252525";
+  modal.style.borderRadius = s(16);
+  modal.style.padding = s(20);
+  modal.style.width = "85%";
+  modal.style.maxWidth = s(400);
+  modal.style.display = "flex";
+  modal.style.flexDirection = "column";
+  modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
+  modal.style.color = "white";
+  modal.style.fontFamily = "sans-serif";
+  modal.style.gap = s(15);
+  modal.style.maxHeight = "85vh";
+  modal.style.overflowY = "auto";
+  
+  const header = document.createElement("h2");
+  header.innerText = "Configuración";
+  header.style.marginTop = "0";
+  header.style.textAlign = "center";
+  header.style.fontSize = s(18);
+  header.style.marginBottom = "0";
+  modal.appendChild(header);
+
+  // Delay setting
+  const delayContainer = document.createElement("div");
+  delayContainer.style.display = "flex";
+  delayContainer.style.flexDirection = "column";
+  delayContainer.style.gap = s(5);
+  
+  const delayLabel = document.createElement("label");
+  delayLabel.innerText = "Retraso entre descargas (segundos):";
+  delayLabel.style.fontSize = s(14);
+  delayLabel.style.color = "#ccc";
+  
+  const delayInput = document.createElement("div");
+  delayInput.style.display = "flex";
+  delayInput.style.flexWrap = "wrap";
+  delayInput.style.gap = s(8);
+  
+  const options = ["0.5", "1.0", "1.5", "2.0", "3.0", "5.0"];
+  let storedDelay = localStorage.getItem("tiktok-stickers-exporter-delay") || "1.5";
+  const optionBtns: HTMLButtonElement[] = [];
+  
+  options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.innerText = `${opt}s`;
+    btn.style.padding = `${s(6)} ${s(12)}`;
+    btn.style.borderRadius = s(8);
+    btn.style.fontWeight = "bold";
+    btn.style.fontSize = s(13);
+    btn.style.cursor = "pointer";
+    btn.style.transition = "all 0.2s";
+    
+    const isSelected = parseFloat(opt) === parseFloat(storedDelay);
+    
+    if (isSelected) {
+      btn.style.backgroundColor = "#fe2c55";
+      btn.style.border = "1px solid #fe2c55";
+      btn.style.color = "white";
+    } else {
+      btn.style.backgroundColor = "transparent";
+      btn.style.border = "1px solid #fe2c55";
+      btn.style.color = "#fe2c55";
+    }
+    
+    btn.onclick = () => {
+      localStorage.setItem("tiktok-stickers-exporter-delay", opt);
+      storedDelay = opt;
+      optionBtns.forEach(b => {
+        if (b === btn) {
+          b.style.backgroundColor = "#fe2c55";
+          b.style.color = "white";
+        } else {
+          b.style.backgroundColor = "transparent";
+          b.style.color = "#fe2c55";
+        }
+      });
+    };
+    
+    btn.addEventListener("mouseenter", () => {
+      btn.style.transform = "scale(1.05)";
+      if (parseFloat(opt) !== parseFloat(storedDelay)) {
+        btn.style.backgroundColor = "rgba(254, 44, 85, 0.1)";
+      }
+    });
+    
+    btn.addEventListener("mouseleave", () => {
+      btn.style.transform = "scale(1)";
+      if (parseFloat(opt) !== parseFloat(storedDelay)) {
+        btn.style.backgroundColor = "transparent";
+      }
+    });
+    
+    optionBtns.push(btn);
+    delayInput.appendChild(btn);
+  });
+  
+  delayContainer.appendChild(delayLabel);
+  delayContainer.appendChild(delayInput);
+  modal.appendChild(delayContainer);
+
+  // Clear history button
+  const btnClear = document.createElement("button");
+  btnClear.innerText = "Limpiar Historial de Descargas";
+  btnClear.style.padding = s(12);
+  btnClear.style.borderRadius = s(8);
+  btnClear.style.border = "1px solid #fe2c55";
+  btnClear.style.backgroundColor = "transparent";
+  btnClear.style.color = "#fe2c55";
+  btnClear.style.cursor = "pointer";
+  btnClear.style.fontWeight = "bold";
+  btnClear.style.fontSize = s(14);
+  
+  btnClear.onclick = () => {
+    if (confirm("¿Estás seguro de borrar el historial? Todos los stickers volverán a aparecer como 'Nuevos'.")) {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("tiktok-sticker-downloaded-")) {
+          localStorage.removeItem(key);
+        }
+      });
+      alert("Historial borrado. Recarga la página para ver los cambios.");
+    }
+  };
+  modal.appendChild(btnClear);
+
+  const btnClose = document.createElement("button");
+  btnClose.innerText = "Cerrar";
+  btnClose.style.padding = s(12);
+  btnClose.style.borderRadius = s(8);
+  btnClose.style.border = "none";
+  btnClose.style.backgroundColor = "#444";
+  btnClose.style.color = "white";
+  btnClose.style.cursor = "pointer";
+  btnClose.style.fontWeight = "bold";
+  btnClose.style.fontSize = s(15);
+  btnClose.style.marginTop = s(5);
+  
+  btnClose.onclick = () => { document.body.removeChild(overlay); };
+  
+  modal.appendChild(btnClose);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+};
+
 // Función para inyectar los botones "Descargar Todos" en el Header del chat
 const addDownloadAllButton = () => {
   // Ubicamos el contenedor del Header del Chat
@@ -398,7 +563,8 @@ const addDownloadAllButton = () => {
             
             markAsDownloaded(stickerUrl);
             
-            await new Promise(r => setTimeout(r, 1500)); 
+            const delayMs = getDelay() * 1000;
+            await new Promise(r => setTimeout(r, delayMs));
             index++;
           } catch (err) {
             console.error("Error al descargar:", stickerUrl);
@@ -534,6 +700,49 @@ const addIndividualDownloadButtons = () => {
   });
 };
 
+
+const addSettingsButton = () => {
+  if (document.getElementById('tiktok-stickers-exporter-settings-btn')) return;
+
+  const h2s = Array.from(document.querySelectorAll('h2'));
+  const messagesH2 = h2s.find(h2 => h2.innerText.includes("Messages") || h2.innerText.includes("Mensajes") || (h2.className && h2.className.includes("H2Semibold")));
+  
+  if (!messagesH2) return;
+  const targetContainer = messagesH2.parentElement;
+  if (!targetContainer) return;
+
+  const btn = document.createElement("button");
+  btn.id = "tiktok-stickers-exporter-settings-btn";
+  btn.innerText = "Configuración";
+  btn.style.cursor = "pointer";
+  btn.style.marginLeft = "12px";
+  btn.style.display = "inline-flex";
+  btn.style.alignItems = "center";
+  btn.style.justifyContent = "center";
+  btn.style.backgroundColor = "#fe2c55";
+  btn.style.border = "1px solid #fe2c55";
+  btn.style.color = "white";
+  btn.style.padding = "6px 12px";
+  btn.style.borderRadius = "8px";
+  btn.style.fontWeight = "bold";
+  btn.style.fontSize = "13px";
+  btn.style.transition = "transform 0.2s, background-color 0.2s";
+  btn.style.zIndex = "50";
+
+  btn.addEventListener("mouseenter", () => {
+    btn.style.transform = "scale(1.05)";
+  });
+  btn.addEventListener("mouseleave", () => {
+    btn.style.transform = "scale(1)";
+  });
+  btn.onclick = () => showSettingsModal();
+  
+  targetContainer.style.display = "flex";
+  targetContainer.style.alignItems = "center";
+  targetContainer.style.justifyContent = "space-between";
+  targetContainer.appendChild(btn);
+};
+
 // Set up MutationObserver con "debounce" para no saturar la página
 let isProcessing = false;
 const observer = new MutationObserver(() => {
@@ -543,6 +752,7 @@ const observer = new MutationObserver(() => {
   setTimeout(() => {
     addDownloadAllButton();
     addIndividualDownloadButtons();
+    addSettingsButton();
     isProcessing = false;
   }, 500);
 });

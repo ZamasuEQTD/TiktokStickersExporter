@@ -6,8 +6,7 @@ module.exports = {
   devtool: 'source-map',
   entry: {
     background: './src/background.ts',
-    content: './src/content.ts',
-    popup: './src/popup.ts'
+    content: './src/content.ts'
   },
   module: {
     rules: [
@@ -28,8 +27,7 @@ module.exports = {
   plugins: [
     new CopyPlugin({
       patterns: [
-        { from: 'src/manifest.json', to: 'manifest.json' },
-        { from: 'src/popup.html', to: 'popup.html' }
+        { from: 'src/manifest.json', to: 'manifest.json' }
       ],
     }),
   ],
