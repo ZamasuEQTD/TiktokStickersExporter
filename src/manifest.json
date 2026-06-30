@@ -15,7 +15,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "downloads"
   ],
   "host_permissions": [
     "*://*.tiktok.com/*"
