@@ -1,6 +1,81 @@
 import JSZip from 'jszip';
 import browser from 'webextension-polyfill';
 
+const translations = {
+  en: {
+    settings: "Settings",
+    delayLabel: "Delay between downloads (seconds):",
+    clearHistory: "Clear Download History",
+    historyCleared: "History cleared. Reload the page to see changes.",
+    confirmClear: "Are you sure you want to clear the history? All stickers will appear as 'New'.",
+    close: "Close",
+    download: "Download",
+    downloadZip: "Download ZIP",
+    confirmZipTitle: "Compress stickers in a ZIP?",
+    confirmSeqTitle: "Download stickers sequentially?",
+    noStickersOnScreen: "No stickers on screen!",
+    errorDownload: "Error downloading:",
+    errorZip: "An error occurred while creating the ZIP file.",
+    downloadCount: "Download ({count})",
+    newStickers: "New ({count})",
+    oldStickers: "On device ({count})",
+    noNewStickers: "No new stickers on screen.",
+    selectAll: "Select all",
+    cancelSelection: "Cancel selection",
+    cancel: "Cancel",
+    downloadThis: "Download this sticker",
+    languageLabel: "Language / Idioma:",
+    langAuto: "Auto",
+    langEn: "English",
+    langEs: "Español"
+  },
+  es: {
+    settings: "Configuración",
+    delayLabel: "Retraso entre descargas (segundos):",
+    clearHistory: "Limpiar Historial de Descargas",
+    historyCleared: "Historial borrado. Recarga la página para ver los cambios.",
+    confirmClear: "¿Estás seguro de borrar el historial? Todos los stickers volverán a aparecer como 'Nuevos'.",
+    close: "Cerrar",
+    download: "Descargar",
+    downloadZip: "Descargar ZIP",
+    confirmZipTitle: "¿Comprimir stickers en un ZIP?",
+    confirmSeqTitle: "¿Descargar stickers secuencialmente?",
+    noStickersOnScreen: "¡No hay stickers en pantalla!",
+    errorDownload: "Error al descargar:",
+    errorZip: "Ocurrió un error al crear el archivo ZIP.",
+    downloadCount: "Descargar ({count})",
+    newStickers: "Nuevos ({count})",
+    oldStickers: "En el dispositivo ({count})",
+    noNewStickers: "No hay stickers nuevos en la pantalla.",
+    selectAll: "Seleccionar todos",
+    cancelSelection: "Cancelar selección",
+    cancel: "Cancelar",
+    downloadThis: "Descargar este sticker",
+    languageLabel: "Idioma / Language:",
+    langAuto: "Automático",
+    langEn: "English",
+    langEs: "Español"
+  }
+};
+
+const getLang = (): 'en' | 'es' => {
+  const forced = localStorage.getItem("tiktok-stickers-exporter-lang");
+  if (forced === "es" || forced === "en") return forced;
+  const lang = navigator.language.toLowerCase();
+  return lang.startsWith("es") ? "es" : "en";
+};
+
+const t = (key: keyof typeof translations['en'], params?: Record<string, string | number>) => {
+  const lang = getLang();
+  let text = translations[lang][key] || translations['en'][key] || key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      text = text.replace(`{${k}}`, String(v));
+    }
+  }
+  return text;
+};
+
 console.log("TikTok Stickers Exporter content script loaded!");
 
 const getExtension = (res: Response): string => {
@@ -84,7 +159,7 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
     
     const btnConfirm = document.createElement("button");
     const updateConfirmButton = () => {
-      btnConfirm.innerText = `Descargar (${selectedUrls.size})`;
+      btnConfirm.innerText = t("downloadCount", { count: selectedUrls.size });
       btnConfirm.disabled = selectedUrls.size === 0;
       btnConfirm.style.opacity = btnConfirm.disabled ? "0.5" : "1";
     };
@@ -139,7 +214,7 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
 
     if (newStickers.length > 0) {
       const newTitle = document.createElement("div");
-      newTitle.innerText = `Nuevos (${newStickers.length})`;
+      newTitle.innerText = t("newStickers", { count: newStickers.length });
       newTitle.style.fontWeight = "bold";
       newTitle.style.fontSize = s(14);
       newTitle.style.color = "#ccc";
@@ -147,7 +222,7 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
       scrollContainer.appendChild(createGrid(newStickers, true));
     } else {
       const noNew = document.createElement("div");
-      noNew.innerText = "No hay stickers nuevos en la pantalla.";
+      noNew.innerText = t("noNewStickers");
       noNew.style.textAlign = "center";
       noNew.style.color = "#888";
       noNew.style.fontSize = s(14);
@@ -176,13 +251,13 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
       oldHeader.style.marginBottom = s(10);
       
       const oldTitle = document.createElement("div");
-      oldTitle.innerText = `En el dispositivo (${oldStickers.length})`;
+      oldTitle.innerText = t("oldStickers", { count: oldStickers.length });
       oldTitle.style.fontWeight = "bold";
       oldTitle.style.fontSize = s(14);
       oldTitle.style.color = "#ccc";
       
       const btnToggleOld = document.createElement("button");
-      btnToggleOld.innerText = "Seleccionar todos";
+      btnToggleOld.innerText = t("selectAll");
       btnToggleOld.style.padding = `${s(4)} ${s(8)}`;
       btnToggleOld.style.borderRadius = s(6);
       btnToggleOld.style.border = "1px solid #888";
@@ -203,7 +278,7 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
       btnToggleOld.onclick = () => {
         allSelected = !allSelected;
         if (allSelected) {
-          btnToggleOld.innerText = "Cancelar selección";
+          btnToggleOld.innerText = t("cancelSelection");
           btnToggleOld.style.border = "1px solid #fe2c55";
           btnToggleOld.style.color = "#fe2c55";
           
@@ -218,7 +293,7 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
             }
           });
         } else {
-          btnToggleOld.innerText = "Seleccionar todos";
+          btnToggleOld.innerText = t("selectAll");
           btnToggleOld.style.border = "1px solid #888";
           btnToggleOld.style.color = "#888";
           
@@ -244,7 +319,7 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
     btnContainer.style.gap = s(12);
 
     const btnCancel = document.createElement("button");
-    btnCancel.innerText = "Cancelar";
+    btnCancel.innerText = t("cancel");
     btnCancel.style.flex = "1";
     btnCancel.style.padding = s(12);
     btnCancel.style.borderRadius = s(8);
@@ -304,12 +379,89 @@ const showSettingsModal = () => {
   modal.style.overflowY = "auto";
   
   const header = document.createElement("h2");
-  header.innerText = "Configuración";
+  header.innerText = t("settings");
   header.style.marginTop = "0";
   header.style.textAlign = "center";
   header.style.fontSize = s(18);
   header.style.marginBottom = "0";
   modal.appendChild(header);
+
+  // Language setting
+  const langContainer = document.createElement("div");
+  langContainer.style.display = "flex";
+  langContainer.style.flexDirection = "column";
+  langContainer.style.gap = s(5);
+  
+  const langLabel = document.createElement("label");
+  langLabel.innerText = t("languageLabel");
+  langLabel.style.fontSize = s(14);
+  langLabel.style.color = "#ccc";
+  
+  const langInput = document.createElement("div");
+  langInput.style.display = "flex";
+  langInput.style.flexWrap = "wrap";
+  langInput.style.gap = s(8);
+  
+  const langOptions = [
+    { id: "auto", text: t("langAuto") },
+    { id: "en", text: t("langEn") },
+    { id: "es", text: t("langEs") }
+  ];
+  let storedLang = localStorage.getItem("tiktok-stickers-exporter-lang") || "auto";
+  const langBtns: HTMLButtonElement[] = [];
+  
+  langOptions.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.innerText = opt.text;
+    btn.style.padding = `${s(6)} ${s(12)}`;
+    btn.style.borderRadius = s(8);
+    btn.style.fontWeight = "bold";
+    btn.style.fontSize = s(13);
+    btn.style.cursor = "pointer";
+    btn.style.transition = "all 0.2s";
+    
+    const isSelected = opt.id === storedLang;
+    
+    if (isSelected) {
+      btn.style.backgroundColor = "#fe2c55";
+      btn.style.border = "1px solid #fe2c55";
+      btn.style.color = "white";
+    } else {
+      btn.style.backgroundColor = "transparent";
+      btn.style.border = "1px solid #fe2c55";
+      btn.style.color = "#fe2c55";
+    }
+    
+    btn.onclick = () => {
+      if (opt.id === "auto") {
+        localStorage.removeItem("tiktok-stickers-exporter-lang");
+      } else {
+        localStorage.setItem("tiktok-stickers-exporter-lang", opt.id);
+      }
+      location.reload(); // Recargar para aplicar el nuevo idioma instantáneamente
+    };
+    
+    btn.addEventListener("mouseenter", () => {
+      btn.style.transform = "scale(1.05)";
+      if (opt.id !== storedLang) {
+        btn.style.backgroundColor = "rgba(254, 44, 85, 0.1)";
+      }
+    });
+    
+    btn.addEventListener("mouseleave", () => {
+      btn.style.transform = "scale(1)";
+      if (opt.id !== storedLang) {
+        btn.style.backgroundColor = "transparent";
+      }
+    });
+    
+    langBtns.push(btn);
+    langInput.appendChild(btn);
+  });
+  
+  langContainer.appendChild(langLabel);
+  langContainer.appendChild(langInput);
+  modal.appendChild(langContainer);
 
   // Delay setting
   const delayContainer = document.createElement("div");
@@ -318,7 +470,7 @@ const showSettingsModal = () => {
   delayContainer.style.gap = s(5);
   
   const delayLabel = document.createElement("label");
-  delayLabel.innerText = "Retraso entre descargas (segundos):";
+  delayLabel.innerText = t("delayLabel");
   delayLabel.style.fontSize = s(14);
   delayLabel.style.color = "#ccc";
   
@@ -391,7 +543,7 @@ const showSettingsModal = () => {
 
   // Clear history button
   const btnClear = document.createElement("button");
-  btnClear.innerText = "Limpiar Historial de Descargas";
+  btnClear.innerText = t("clearHistory");
   btnClear.style.padding = s(12);
   btnClear.style.borderRadius = s(8);
   btnClear.style.border = "1px solid #fe2c55";
@@ -402,19 +554,19 @@ const showSettingsModal = () => {
   btnClear.style.fontSize = s(14);
   
   btnClear.onclick = () => {
-    if (confirm("¿Estás seguro de borrar el historial? Todos los stickers volverán a aparecer como 'Nuevos'.")) {
+    if (confirm(t("confirmClear"))) {
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith("tiktok-sticker-downloaded-")) {
           localStorage.removeItem(key);
         }
       });
-      alert("Historial borrado. Recarga la página para ver los cambios.");
+      alert(t("historyCleared"));
     }
   };
   modal.appendChild(btnClear);
 
   const btnClose = document.createElement("button");
-  btnClose.innerText = "Cerrar";
+  btnClose.innerText = t("close");
   btnClose.style.padding = s(12);
   btnClose.style.borderRadius = s(8);
   btnClose.style.border = "none";
@@ -478,11 +630,11 @@ const addDownloadAllButton = () => {
       return btn;
     };
 
-    const btnSeq = createTextBtn(`Descargar (${newStickerCount})`, true);
+    const btnSeq = createTextBtn(t("downloadCount", { count: newStickerCount }), true);
     btnSeq.className = "btn-seq";
-    btnSeq.title = "Descargar los stickers de la pantalla";
+    btnSeq.title = t("download");
     
-    const btnZip = createTextBtn("Descargar ZIP", false);
+    const btnZip = createTextBtn(t("downloadZip"), false);
     btnZip.className = "btn-zip";
     
     const downloadLogic = async (isZip: boolean) => {
@@ -492,15 +644,14 @@ const addDownloadAllButton = () => {
       const freshOld = currentImages.filter(img => isDownloaded(img.src)).map(img => img.src);
 
       if (freshNew.length === 0 && freshOld.length === 0) {
-        alert("¡No hay stickers en pantalla!");
+        alert(t("noStickersOnScreen"));
         return;
       }
       
-      const actionText = isZip ? "Comprimir" : "Descargar";
-      const formatText = isZip ? "en un ZIP" : "secuencialmente";
+      const title = isZip ? t("confirmZipTitle") : t("confirmSeqTitle");
       
       // Mostrar el modal y obtener las URLs seleccionadas
-      const selectedUrls = await showCustomConfirm(`¿${actionText} stickers ${formatText}?`, freshNew, freshOld);
+      const selectedUrls = await showCustomConfirm(title, freshNew, freshOld);
       if (!selectedUrls || selectedUrls.length === 0) return;
 
       if (isZip) {
@@ -524,7 +675,7 @@ const addDownloadAllButton = () => {
             successCount++;
             index++;
           } catch (err) {
-            console.error("Error al descargar:", stickerUrl);
+            console.error(t("errorDownload"), stickerUrl);
           }
         }
 
@@ -543,7 +694,7 @@ const addDownloadAllButton = () => {
             addIndividualDownloadButtons();
           } catch (err) {
             console.error("Error al generar el ZIP:", err);
-            alert("Ocurrió un error al crear el archivo ZIP.");
+            alert(t("errorZip"));
           }
         }
       } else {
@@ -567,7 +718,7 @@ const addDownloadAllButton = () => {
             await new Promise(r => setTimeout(r, delayMs));
             index++;
           } catch (err) {
-            console.error("Error al descargar:", stickerUrl);
+            console.error(t("errorDownload"), stickerUrl);
           }
         }
         addDownloadAllButton();
@@ -591,7 +742,7 @@ const addDownloadAllButton = () => {
     // Si los botones ya existen, simplemente actualizamos el contador de stickers
     const btnSeq = btnContainer.querySelector(".btn-seq") as HTMLButtonElement;
     if (btnSeq) {
-      btnSeq.innerText = `Descargar (${newStickerCount})`;
+      btnSeq.innerText = t("downloadCount", { count: newStickerCount });
     }
   }
 };
@@ -630,7 +781,7 @@ const addIndividualDownloadButtons = () => {
     const btn = document.createElement("div");
     btn.role = "button";
     btn.className = "tiktok-sticker-indiv-btn";
-    btn.title = "Descargar este sticker";
+    btn.title = t("downloadThis");
     btn.style.position = "absolute";
     // Centrar verticalmente y poner afuera a la izquierda con más espacio
     btn.style.top = "calc(50% - 18px)";
@@ -713,7 +864,7 @@ const addSettingsButton = () => {
 
   const btn = document.createElement("button");
   btn.id = "tiktok-stickers-exporter-settings-btn";
-  btn.innerText = "Configuración";
+  btn.innerText = t("settings");
   btn.style.cursor = "pointer";
   btn.style.marginLeft = "12px";
   btn.style.display = "inline-flex";
