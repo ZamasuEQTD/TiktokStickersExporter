@@ -3,11 +3,17 @@
   "version": "1.2.0",
   "description": "Firefox Extension for Tiktok Stickers",
   "scripts": {
-    "build": "webpack --mode production",
-    "watch": "webpack --watch",
-    "start:firefox": "mkdir -p tmp-profile && web-ext run --source-dir dist --firefox-profile $(pwd)/tmp-profile --keep-profile-changes"
+    "build": "npm run build:all",
+    "build:chrome": "webpack --mode production --env production --env browser=chrome",
+    "build:firefox": "webpack --mode production --env production --env browser=firefox",
+    "build:all": "npm run build:chrome && npm run build:firefox",
+    "watch:chrome": "webpack --watch --env browser=chrome",
+    "watch:firefox": "webpack --watch --env browser=firefox",
+    "start:chrome": "web-ext run --source-dir dist/chrome -t chromium",
+    "start:firefox": "web-ext run --source-dir dist/firefox"
   },
   "devDependencies": {
+    "@types/dom-webcodecs": "^0.1.19",
     "@types/firefox-webext-browser": "^120.0.1",
     "@types/webextension-polyfill": "^0.12.5",
     "copy-webpack-plugin": "^12.0.2",
@@ -18,6 +24,8 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "webextension-polyfill": "^0.12.0"
+    "gifenc": "^1.0.3",
+    "webextension-polyfill": "^0.12.0",
+    "webm-muxer": "^5.1.4"
   }
 }

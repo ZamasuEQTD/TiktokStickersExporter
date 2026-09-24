@@ -25,10 +25,19 @@ const translations = {
     cancelSelection: "Cancel selection",
     cancel: "Cancel",
     downloadThis: "Download this sticker",
+    alreadyDownloadedTooltip: "Already downloaded (click to re-download)",
     languageLabel: "Language / Idioma:",
     langAuto: "Auto",
     langEn: "English",
-    langEs: "Español"
+    langEs: "Español",
+    compressingTitle: "Compressing stickers...",
+    compressingProgress: "Processing sticker {current} of {total}...",
+    generatingZip: "Generating ZIP file...",
+    downloadingTitle: "Downloading stickers...",
+    downloadingProgress: "Downloading sticker {current} of {total}...",
+    completedTitle: "Completed!",
+    completedZip: "ZIP file generated and downloaded successfully.",
+    completedSeq: "Stickers downloaded successfully."
   },
   es: {
     settings: "Configuración",
@@ -53,10 +62,19 @@ const translations = {
     cancelSelection: "Cancelar selección",
     cancel: "Cancelar",
     downloadThis: "Descargar este sticker",
+    alreadyDownloadedTooltip: "Ya descargado (clic para volver a descargar)",
     languageLabel: "Idioma / Language:",
     langAuto: "Automático",
     langEn: "English",
-    langEs: "Español"
+    langEs: "Español",
+    compressingTitle: "Comprimiendo stickers...",
+    compressingProgress: "Procesando sticker {current} de {total}...",
+    generatingZip: "Generando archivo ZIP...",
+    downloadingTitle: "Descargando stickers...",
+    downloadingProgress: "Descargando sticker {current} de {total}...",
+    completedTitle: "¡Completado!",
+    completedZip: "Archivo ZIP generado y descargado con éxito.",
+    completedSeq: "Stickers descargados con éxito."
   }
 };
 
@@ -126,6 +144,7 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
     overlay.style.justifyContent = "center";
 
     const modal = document.createElement("div");
+    modal.style.position = "relative";
     modal.style.backgroundColor = "#252525";
     modal.style.borderRadius = s(16);
     modal.style.padding = s(20);
@@ -137,6 +156,43 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
     modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
     modal.style.color = "white";
     modal.style.fontFamily = "sans-serif";
+
+    // Botón X grande y visible para cerrar
+    const btnX = document.createElement("button");
+    btnX.title = t("close");
+    btnX.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>`;
+    btnX.style.position = "absolute";
+    btnX.style.top = s(12);
+    btnX.style.right = s(12);
+    btnX.style.width = s(36);
+    btnX.style.height = s(36);
+    btnX.style.display = "flex";
+    btnX.style.alignItems = "center";
+    btnX.style.justifyContent = "center";
+    btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+    btnX.style.borderRadius = "50%";
+    btnX.style.border = "none";
+    btnX.style.color = "#ffffff";
+    btnX.style.cursor = "pointer";
+    btnX.style.zIndex = "1000";
+    btnX.style.transition = "background-color 0.2s, transform 0.2s";
+
+    btnX.addEventListener("mouseenter", () => {
+      btnX.style.backgroundColor = "rgba(254, 44, 85, 0.9)";
+      btnX.style.transform = "scale(1.1)";
+    });
+    btnX.addEventListener("mouseleave", () => {
+      btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+      btnX.style.transform = "scale(1)";
+    });
+    btnX.onclick = () => {
+      document.body.removeChild(overlay);
+      resolve(null);
+    };
+    modal.appendChild(btnX);
     
     const header = document.createElement("h2");
     header.innerText = title;
@@ -683,7 +739,198 @@ const addDownloadAllButton = () => {
     const btnZip = createTextBtn(t("downloadZip"), false);
     btnZip.className = "btn-zip";
     
+    interface ProgressModalController {
+      update: (current: number, total: number) => void;
+      setStatus: (statusText: string) => void;
+      complete: (message: string) => void;
+      close: () => void;
+    }
+
+    const showProgressModal = (title: string, total: number): ProgressModalController => {
+      const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
+      const s = (px: number) => (px * scaleFactor) + "px";
+
+      const overlay = document.createElement("div");
+      overlay.style.position = "fixed";
+      overlay.style.top = "0";
+      overlay.style.left = "0";
+      overlay.style.width = "100vw";
+      overlay.style.height = "100vh";
+      overlay.style.backgroundColor = "rgba(0, 0, 0, 0.85)";
+      overlay.style.zIndex = "9999999";
+      overlay.style.display = "flex";
+      overlay.style.alignItems = "center";
+      overlay.style.justifyContent = "center";
+
+      const modal = document.createElement("div");
+      modal.style.position = "relative";
+      modal.style.backgroundColor = "#252525";
+      modal.style.borderRadius = s(16);
+      modal.style.padding = `${s(30)} ${s(26)} ${s(26)} ${s(26)}`;
+      modal.style.width = "85%";
+      modal.style.maxWidth = s(460);
+      modal.style.display = "flex";
+      modal.style.flexDirection = "column";
+      modal.style.alignItems = "center";
+      modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
+      modal.style.color = "white";
+      modal.style.fontFamily = "sans-serif";
+      modal.style.gap = s(16);
+
+      let isClosed = false;
+      let countdownTimer: any = null;
+
+      const close = () => {
+        if (isClosed) return;
+        isClosed = true;
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+        }
+        if (overlay.parentElement) {
+          overlay.parentElement.removeChild(overlay);
+        }
+      };
+
+      // Botón "X" grande y cómodo en la esquina superior derecha
+      const btnX = document.createElement("button");
+      btnX.title = t("close");
+      btnX.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>`;
+      btnX.style.position = "absolute";
+      btnX.style.top = s(12);
+      btnX.style.right = s(12);
+      btnX.style.width = s(36);
+      btnX.style.height = s(36);
+      btnX.style.display = "flex";
+      btnX.style.alignItems = "center";
+      btnX.style.justifyContent = "center";
+      btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+      btnX.style.borderRadius = "50%";
+      btnX.style.border = "none";
+      btnX.style.color = "#ffffff";
+      btnX.style.cursor = "pointer";
+      btnX.style.zIndex = "1000";
+      btnX.style.transition = "background-color 0.2s, transform 0.2s";
+
+      btnX.addEventListener("mouseenter", () => {
+        btnX.style.backgroundColor = "rgba(254, 44, 85, 0.9)";
+        btnX.style.transform = "scale(1.1)";
+      });
+      btnX.addEventListener("mouseleave", () => {
+        btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+        btnX.style.transform = "scale(1)";
+      });
+      btnX.onclick = close;
+      modal.appendChild(btnX);
+
+      const header = document.createElement("h3");
+      header.innerText = title;
+      header.style.margin = "0";
+      header.style.fontSize = s(18);
+      header.style.fontWeight = "bold";
+      header.style.textAlign = "center";
+
+      const isZipMode = title.includes("ZIP") || title.includes("omprim");
+      const statusEl = document.createElement("div");
+      statusEl.innerText = isZipMode
+        ? t("compressingProgress", { current: 1, total })
+        : t("downloadingProgress", { current: 1, total });
+      statusEl.style.fontSize = s(14);
+      statusEl.style.color = "#ccc";
+      statusEl.style.textAlign = "center";
+
+      const barContainer = document.createElement("div");
+      barContainer.style.width = "100%";
+      barContainer.style.height = s(10);
+      barContainer.style.backgroundColor = "#444";
+      barContainer.style.borderRadius = s(5);
+      barContainer.style.overflow = "hidden";
+
+      const barFill = document.createElement("div");
+      barFill.style.width = "0%";
+      barFill.style.height = "100%";
+      barFill.style.backgroundColor = "#fe2c55";
+      barFill.style.borderRadius = s(5);
+      barFill.style.transition = "width 0.2s ease";
+      barContainer.appendChild(barFill);
+
+      const percentEl = document.createElement("div");
+      percentEl.innerText = "0%";
+      percentEl.style.fontSize = s(13);
+      percentEl.style.fontWeight = "bold";
+      percentEl.style.color = "#fe2c55";
+
+      const btnClose = document.createElement("button");
+      btnClose.innerText = t("close");
+      btnClose.style.marginTop = s(6);
+      btnClose.style.padding = `${s(8)} ${s(24)}`;
+      btnClose.style.borderRadius = s(8);
+      btnClose.style.border = "none";
+      btnClose.style.backgroundColor = "#fe2c55";
+      btnClose.style.color = "white";
+      btnClose.style.fontWeight = "bold";
+      btnClose.style.fontSize = s(14);
+      btnClose.style.cursor = "pointer";
+      btnClose.style.display = "none";
+      btnClose.style.transition = "transform 0.2s, background-color 0.2s";
+
+      btnClose.onclick = close;
+
+      modal.appendChild(header);
+      modal.appendChild(statusEl);
+      modal.appendChild(barContainer);
+      modal.appendChild(percentEl);
+      modal.appendChild(btnClose);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      return {
+        update: (current: number, totalCount: number) => {
+          if (isClosed) return;
+          const pct = Math.round((current / totalCount) * 100);
+          barFill.style.width = `${pct}%`;
+          percentEl.innerText = `${pct}%`;
+          statusEl.innerText = isZipMode
+            ? t("compressingProgress", { current, total: totalCount })
+            : t("downloadingProgress", { current, total: totalCount });
+        },
+        setStatus: (statusText: string) => {
+          if (isClosed) return;
+          statusEl.innerText = statusText;
+        },
+        complete: (message: string) => {
+          if (isClosed) return;
+          barFill.style.width = "100%";
+          percentEl.innerText = "100%";
+          header.innerText = t("completedTitle");
+          statusEl.innerText = message;
+          statusEl.style.color = "#ffffff"; // Blanco limpio y estético
+
+          let secondsLeft = 3;
+          btnClose.innerText = `${t("close")} (${secondsLeft}s)`;
+          btnClose.style.display = "block";
+
+          countdownTimer = setInterval(() => {
+            secondsLeft--;
+            if (secondsLeft > 0) {
+              btnClose.innerText = `${t("close")} (${secondsLeft}s)`;
+            } else {
+              close();
+            }
+          }, 1000);
+        },
+        close
+      };
+    };
+
+    let isProcessingBatch = false;
+
     const downloadLogic = async (isZip: boolean) => {
+      if (isProcessingBatch) return;
+
       // Volvemos a calcular al momento del clic
       const currentImages = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
       const freshNew = currentImages.filter(img => !isDownloaded(img.src)).map(img => img.src);
@@ -700,75 +947,92 @@ const addDownloadAllButton = () => {
       const selectedUrls = await showCustomConfirm(title, freshNew, freshOld);
       if (!selectedUrls || selectedUrls.length === 0) return;
 
-      if (isZip) {
-        const zip = new JSZip();
-        let index = 1;
-        let successCount = 0;
+      isProcessingBatch = true;
+      const progressModal = showProgressModal(
+        isZip ? t("compressingTitle") : t("downloadingTitle"),
+        selectedUrls.length
+      );
 
-        for (const stickerUrl of selectedUrls) {
-          try {
-            const res = await fetch(stickerUrl);
-            const ext = getExtension(res);
-            const buffer = await res.arrayBuffer();
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
+      try {
+        if (isZip) {
+          const zip = new JSZip();
+          let index = 1;
+          let successCount = 0;
+
+          for (const stickerUrl of selectedUrls) {
+            try {
+              progressModal.update(index, selectedUrls.length);
+              const res = await fetch(stickerUrl);
+              const ext = getExtension(res);
+              const buffer = await res.arrayBuffer();
+              const bytes = new Uint8Array(buffer);
+              let binary = '';
+              for (let i = 0; i < bytes.byteLength; i++) {
+                  binary += String.fromCharCode(bytes[i]);
+              }
+              const base64 = window.btoa(binary);
+              zip.file(`tiktok-sticker-${index}.${ext}`, base64, { base64: true });
+              markAsDownloaded(stickerUrl);
+              successCount++;
+            } catch (err) {
+              console.error(t("errorDownload"), stickerUrl);
             }
-            const base64 = window.btoa(binary);
-            zip.file(`tiktok-sticker-${index}.${ext}`, base64, { base64: true });
-            markAsDownloaded(stickerUrl);
-            successCount++;
             index++;
-          } catch (err) {
-            console.error(t("errorDownload"), stickerUrl);
           }
-        }
 
-        if (successCount > 0) {
-          try {
-            const content = await zip.generateAsync({ type: "arraybuffer" });
-            const blob = new Blob([content], { type: "application/zip" });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `tiktok-stickers-${Date.now()}.zip`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            addDownloadAllButton();
-            addIndividualDownloadButtons();
-          } catch (err) {
-            console.error("Error al generar el ZIP:", err);
-            alert(t("errorZip"));
+          if (successCount > 0) {
+            try {
+              progressModal.setStatus(t("generatingZip"));
+              const content = await zip.generateAsync({ type: "arraybuffer" });
+              const blob = new Blob([content], { type: "application/zip" });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `tiktok-stickers-${Date.now()}.zip`;
+              a.click();
+              window.URL.revokeObjectURL(url);
+              
+              addDownloadAllButton();
+              addIndividualDownloadButtons();
+              progressModal.complete(t("completedZip"));
+            } catch (err) {
+              console.error("Error al generar el ZIP:", err);
+              progressModal.close();
+              alert(t("errorZip"));
+            }
+          } else {
+            progressModal.close();
           }
-        }
-      } else {
-        let index = 1;
-        for (const stickerUrl of selectedUrls) {
-          try {
-            const res = await fetch(stickerUrl, { method: 'HEAD' }).catch(() => fetch(stickerUrl));
-            const ext = getExtension(res);
-            const blobRes = await fetch(stickerUrl);
-            const blob = await blobRes.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `tiktok-sticker-${Date.now()}-${index}.${ext}`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            markAsDownloaded(stickerUrl);
-            
-            const delayMs = getDelay() * 1000;
-            await new Promise(r => setTimeout(r, delayMs));
+        } else {
+          let index = 1;
+          for (const stickerUrl of selectedUrls) {
+            try {
+              progressModal.update(index, selectedUrls.length);
+              const res = await fetch(stickerUrl);
+              const ext = getExtension(res);
+              const blob = await res.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `tiktok-sticker-${Date.now()}-${index}.${ext}`;
+              a.click();
+              window.URL.revokeObjectURL(url);
+              
+              markAsDownloaded(stickerUrl);
+              
+              const delayMs = getDelay() * 1000;
+              await new Promise(r => setTimeout(r, delayMs));
+            } catch (err) {
+              console.error(t("errorDownload"), stickerUrl);
+            }
             index++;
-          } catch (err) {
-            console.error(t("errorDownload"), stickerUrl);
           }
+          addDownloadAllButton();
+          addIndividualDownloadButtons();
+          progressModal.complete(t("completedSeq"));
         }
-        addDownloadAllButton();
-        addIndividualDownloadButtons();
+      } finally {
+        isProcessingBatch = false;
       }
     };
 
@@ -793,7 +1057,42 @@ const addDownloadAllButton = () => {
   }
 };
 
+// Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS o pantalla táctil)
+const isMobileDevice = (): boolean => {
+  const ua = navigator.userAgent || '';
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+  const hasCoarsePointer = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
+  const isSmallScreen = typeof window !== 'undefined' && window.innerWidth <= 768;
+  return isMobileUA || (hasCoarsePointer && isSmallScreen);
+};
+
 // Función para inyectar un botón de descarga individual en cada sticker
+// Helper para actualizar el aspecto visual del botón individual sobre el sticker
+const updateIndivButtonVisual = (btn: HTMLElement, isDone: boolean) => {
+  const isMobile = isMobileDevice();
+  const iconSize = isMobile ? 18 : 14;
+  const strokeWidth = isMobile ? 2.8 : 2.5;
+
+  btn.style.backgroundColor = isDone ? "rgba(18, 18, 18, 0.78)" : "rgba(18, 18, 18, 0.72)";
+  btn.style.border = isDone ? "1.5px solid #2ed573" : "1.5px solid rgba(255, 255, 255, 0.35)";
+  btn.title = isDone ? t("alreadyDownloadedTooltip") : t("downloadThis");
+  
+  if (isDone) {
+    // Checkmark sutil y nítido
+    btn.innerHTML = `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="#2ed573" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>`;
+  } else {
+    // Flecha de descarga blanca
+    btn.innerHTML = `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>`;
+  }
+};
+
+// Función para inyectar un botón de descarga individual SOBRE cada sticker
 const addIndividualDownloadButtons = () => {
   const stickerImages = document.querySelectorAll('img[alt="sticker"]');
   
@@ -804,78 +1103,89 @@ const addIndividualDownloadButtons = () => {
     
     // Evitar procesar el mismo sticker múltiples veces
     if (htmlImg.dataset.exporterAdded === "true") {
-      // Si ya está añadido el botón, actualizamos su color si fue descargado recientemente
       const existingBtn = parent.querySelector('.tiktok-sticker-indiv-btn') as HTMLElement;
-      if (existingBtn && isDownloaded(htmlImg.src)) {
-        existingBtn.style.backgroundColor = "rgba(40, 167, 69, 0.9)"; // Verde éxito
+      if (existingBtn) {
+        updateIndivButtonVisual(existingBtn, isDownloaded(htmlImg.src));
+        const isMob = isMobileDevice();
+        const curSize = `${isMob ? 38 : 28}px`;
+        if (existingBtn.style.width !== curSize) {
+          existingBtn.style.width = curSize;
+          existingBtn.style.height = curSize;
+          existingBtn.style.bottom = isMob ? "8px" : "6px";
+          existingBtn.style.right = isMob ? "8px" : "6px";
+        }
       }
       return;
     }
     htmlImg.dataset.exporterAdded = "true";
     
-    // Asegurar que el padre tenga position para poder anclar el botón de forma absoluta
+    // Asegurar que el padre tenga position relative para anclar el botón encima del sticker
     const parentStyle = window.getComputedStyle(parent);
     if (parentStyle.position === "static") {
       parent.style.position = "relative";
     }
-    // Forzar que no se recorte el contenido que sobresale
-    parent.style.overflow = "visible";
-    if (parent.parentElement) {
-      parent.parentElement.style.overflow = "visible";
-    }
     
+    const isMobile = isMobileDevice();
+    const btnSize = isMobile ? 38 : 28;
+    const iconSize = isMobile ? 18 : 14;
+    const strokeWidth = isMobile ? 2.8 : 2.5;
+
     const btn = document.createElement("div");
     btn.role = "button";
     btn.className = "tiktok-sticker-indiv-btn";
-    btn.title = t("downloadThis");
     btn.style.position = "absolute";
-    // Centrar verticalmente y poner afuera a la izquierda con más espacio
-    btn.style.top = "calc(50% - 18px)";
-    btn.style.left = "-48px";
+    // Posicionar en la esquina inferior derecha del sticker (más amplio en móvil)
+    btn.style.bottom = isMobile ? "8px" : "6px";
+    btn.style.right = isMobile ? "8px" : "6px";
     btn.style.cursor = "pointer";
-    
-    // Color verde si ya se descargó, rojo si es nuevo
-    const alreadyDownloaded = isDownloaded(htmlImg.src);
-    const baseColor = alreadyDownloaded ? "rgba(40, 167, 69, 0.9)" : "rgba(254, 44, 85, 0.8)";
-    const hoverColor = alreadyDownloaded ? "rgba(40, 167, 69, 1)" : "rgba(254, 44, 85, 1)";
-    
-    btn.style.backgroundColor = baseColor;
-    btn.style.color = "white";
+    btn.style.width = `${btnSize}px`;
+    btn.style.height = `${btnSize}px`;
     btn.style.borderRadius = "50%";
-    btn.style.width = "36px";
-    btn.style.height = "36px";
     btn.style.display = "flex";
     btn.style.alignItems = "center";
     btn.style.justifyContent = "center";
-    btn.style.zIndex = "10"; // Asegurar que esté por encima del sticker
-    btn.style.transition = "transform 0.2s, background-color 0.2s";
+    btn.style.backdropFilter = "blur(4px)";
+    btn.style.boxShadow = "0 2px 6px rgba(0,0,0,0.5)";
+    btn.style.zIndex = "25"; // Por encima del sticker
+    btn.style.transition = "transform 0.2s, background-color 0.2s, border-color 0.2s";
+    btn.style.touchAction = "manipulation";
+    (btn.style as any).webkitTapHighlightColor = "transparent";
     
-    // Icono de descarga más grande
-    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-      <polyline points="7 10 12 15 17 10"></polyline>
-      <line x1="12" y1="15" x2="12" y2="3"></line>
-    </svg>`;
+    const alreadyDownloaded = isDownloaded(htmlImg.src);
+    updateIndivButtonVisual(btn, alreadyDownloaded);
     
     btn.addEventListener("mouseenter", () => {
       btn.style.transform = "scale(1.15)";
-      btn.style.backgroundColor = hoverColor;
+      btn.style.backgroundColor = "#fe2c55";
+      btn.style.borderColor = "#fe2c55";
+      btn.innerHTML = `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>`;
     });
     btn.addEventListener("mouseleave", () => {
       btn.style.transform = "scale(1)";
-      btn.style.backgroundColor = btn.style.backgroundColor === hoverColor ? hoverColor : baseColor;
+      updateIndivButtonVisual(btn, isDownloaded(htmlImg.src));
     });
+
+    // Feedback táctil suave para móvil
+    btn.addEventListener("touchstart", () => {
+      btn.style.transform = "scale(0.92)";
+    }, { passive: true });
+    btn.addEventListener("touchend", () => {
+      btn.style.transform = "scale(1)";
+    }, { passive: true });
     
     btn.addEventListener("click", async (e) => {
-      e.stopPropagation(); // Evitar que el clic se propague y abra algo en Tiktok
+      e.stopPropagation(); // Evitar que el clic se propague
       e.preventDefault();
       
       const stickerUrl = htmlImg.src;
       try {
-        const res = await fetch(stickerUrl, { method: 'HEAD' }).catch(() => fetch(stickerUrl));
+        const res = await fetch(stickerUrl);
         const ext = getExtension(res);
-        const blobRes = await fetch(stickerUrl);
-        const blob = await blobRes.blob();
+        const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -884,7 +1194,7 @@ const addIndividualDownloadButtons = () => {
         window.URL.revokeObjectURL(url);
         
         markAsDownloaded(stickerUrl);
-        btn.style.backgroundColor = "rgba(40, 167, 69, 0.9)"; // Cambiar a verde
+        updateIndivButtonVisual(btn, true);
         
         // Actualizar los botones globales
         addDownloadAllButton();

@@ -12,13 +12,40 @@
    ```bash
    npm install
    ```
-4. Build the extension (compiles TypeScript and bundles files via Webpack):
+## Build Instructions
+1. Install all required dependencies:
    ```bash
-   npm run build
-   ```
-5. Package the extension (optional, generates the final .zip):
-   ```bash
-   npx web-ext build --source-dir dist
+   npm install
    ```
 
-The compiled and minified extension ready for Firefox is located in the `dist/` directory. The packaged zip file is generated in the `web-ext-artifacts/` directory.
+2. Build options:
+   - **Build for both browsers (Chrome & Firefox):**
+     ```bash
+     npm run build
+     # or: npm run build:all
+     ```
+   - **Build specifically for Google Chrome:**
+     ```bash
+     npm run build:chrome
+     ```
+     Output directory: `dist/chrome/`
+   - **Build specifically for Firefox / Firefox Android:**
+     ```bash
+     npm run build:firefox
+     ```
+     Output directory: `dist/firefox/`
+
+3. Development & Testing:
+   - **Launch with Chrome:**
+     ```bash
+     npm run start:chrome
+     ```
+   - **Launch with Firefox:**
+     ```bash
+     npm run start:firefox
+     ```
+
+## Output Directories
+- `dist/chrome/`: Fully compatible Manifest V3 extension ready for Chrome Web Store / `chrome://extensions`.
+- `dist/firefox/`: Fully compatible Manifest V3 extension ready for Firefox Desktop & Android / Mozilla Add-ons (AMO).
+
