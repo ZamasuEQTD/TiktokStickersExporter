@@ -124,8 +124,23 @@ const markAsDownloaded = (url: string) => {
   localStorage.setItem(`tiktok-sticker-downloaded-${getStickerId(url)}`, "true");
 };
 
+const deduplicateStickerUrls = (urls: string[]): string[] => {
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const url of urls) {
+    const id = getStickerId(url);
+    if (!seen.has(id)) {
+      seen.add(id);
+      unique.push(url);
+    }
+  }
+  return unique;
+};
+
 // Función para mostrar un diálogo modal personalizado con vista previa
-const showCustomConfirm = async (title: string, newStickers: string[], oldStickers: string[]): Promise<string[] | null> => {
+const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOldStickers: string[]): Promise<string[] | null> => {
+  const newStickers = deduplicateStickerUrls(rawNewStickers);
+  const oldStickers = deduplicateStickerUrls(rawOldStickers);
 
   return new Promise((resolve) => {
     const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
@@ -241,7 +256,16 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
     scrollContainer.style.flexDirection = "column";
     
     const selectedUrls = new Set<string>([...newStickers]);
-    const imageElements = new Map<string, HTMLImageElement>();
+    const imageElements = new Map<string, HTMLImageElement[]>();
+
+    const setUrlVisualState = (url: string, isSelected: boolean) => {
+      const imgs = imageElements.get(url) || [];
+      imgs.forEach(img => {
+        img.style.opacity = isSelected ? "1" : "0.3";
+        img.style.transform = isSelected ? "scale(1)" : "scale(0.9)";
+        img.style.filter = isSelected ? "none" : "grayscale(100%)";
+      });
+    };
     
     const btnConfirm = document.createElement("button");
     const updateConfirmButton = () => {
@@ -250,17 +274,75 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
       btnConfirm.style.opacity = btnConfirm.disabled ? "0.5" : "1";
     };
     
-    const createGrid = (urls: string[], initiallySelected: boolean) => {
+    const createSectionWithGrid = (urls: string[], initiallySelected: boolean, emptyText: string) => {
+      const section = document.createElement("div");
+      section.style.display = "flex";
+      section.style.flexDirection = "column";
+
+      if (urls.length === 0) {
+        const emptyEl = document.createElement("div");
+        emptyEl.innerText = emptyText;
+        emptyEl.style.textAlign = "center";
+        emptyEl.style.color = "#888";
+        emptyEl.style.fontSize = s(14);
+        emptyEl.style.marginTop = s(20);
+        section.appendChild(emptyEl);
+        return section;
+      }
+
+      const sectionHeader = document.createElement("div");
+      sectionHeader.style.display = "flex";
+      sectionHeader.style.justifyContent = "space-between";
+      sectionHeader.style.alignItems = "center";
+      sectionHeader.style.marginBottom = s(10);
+
+      const btnToggle = document.createElement("button");
+      btnToggle.style.padding = `${s(5)} ${s(10)}`;
+      btnToggle.style.borderRadius = s(6);
+      btnToggle.style.cursor = "pointer";
+      btnToggle.style.fontSize = s(12);
+      btnToggle.style.fontWeight = "bold";
+      btnToggle.style.transition = "all 0.2s";
+
+      const isAllSelected = () => urls.every(u => selectedUrls.has(u));
+
+      const updateToggleBtn = () => {
+        const allSel = isAllSelected();
+        btnToggle.innerText = allSel ? t("cancelSelection") : t("selectAll");
+        btnToggle.style.border = allSel ? "1px solid #fe2c55" : "1px solid #888";
+        btnToggle.style.color = allSel ? "#fe2c55" : "#ccc";
+        btnToggle.style.backgroundColor = allSel ? "rgba(254, 44, 85, 0.1)" : "transparent";
+      };
+
+      updateToggleBtn();
+
+      btnToggle.onclick = () => {
+        const shouldSelectAll = !isAllSelected();
+        urls.forEach(url => {
+          if (shouldSelectAll) {
+            selectedUrls.add(url);
+          } else {
+            selectedUrls.delete(url);
+          }
+          setUrlVisualState(url, shouldSelectAll);
+        });
+        updateToggleBtn();
+        updateConfirmButton();
+      };
+
+      sectionHeader.appendChild(btnToggle);
+      section.appendChild(sectionHeader);
+
       const grid = document.createElement("div");
       grid.style.display = "grid";
       grid.style.gridTemplateColumns = `repeat(auto-fill, minmax(${s(70)}, 1fr))`;
       grid.style.gap = s(8);
-      
+
       urls.forEach(url => {
         const container = document.createElement("div");
         container.style.position = "relative";
         container.style.cursor = "pointer";
-        
+
         const img = document.createElement("img");
         img.src = url;
         img.style.width = "100%";
@@ -269,121 +351,39 @@ const showCustomConfirm = async (title: string, newStickers: string[], oldSticke
         img.style.borderRadius = s(8);
         img.style.backgroundColor = "#111";
         img.style.transition = "all 0.2s";
-        
+
         if (!initiallySelected) {
           img.style.opacity = "0.3";
           img.style.transform = "scale(0.9)";
           img.style.filter = "grayscale(100%)";
         }
-        
+
         container.appendChild(img);
         grid.appendChild(container);
-        imageElements.set(url, img);
-        
+        const existing = imageElements.get(url) || [];
+        existing.push(img);
+        imageElements.set(url, existing);
+
         container.onclick = () => {
-          if (selectedUrls.has(url)) {
-            selectedUrls.delete(url);
-            img.style.opacity = "0.3";
-            img.style.transform = "scale(0.9)";
-            img.style.filter = "grayscale(100%)";
-          } else {
+          const nextSelected = !selectedUrls.has(url);
+          if (nextSelected) {
             selectedUrls.add(url);
-            img.style.opacity = "1";
-            img.style.transform = "scale(1)";
-            img.style.filter = "none";
+          } else {
+            selectedUrls.delete(url);
           }
+          setUrlVisualState(url, nextSelected);
+          updateToggleBtn();
           updateConfirmButton();
         };
       });
-      return grid;
+
+      section.appendChild(grid);
+      return section;
     };
 
-    const contentNew = document.createElement("div");
-    contentNew.style.display = "flex";
-    contentNew.style.flexDirection = "column";
-    
-    if (newStickers.length > 0) {
-      contentNew.appendChild(createGrid(newStickers, true));
-    } else {
-      const noNew = document.createElement("div");
-      noNew.innerText = t("noNewStickers");
-      noNew.style.textAlign = "center";
-      noNew.style.color = "#888";
-      noNew.style.fontSize = s(14);
-      noNew.style.marginTop = s(20);
-      contentNew.appendChild(noNew);
-    }
-    
-    const contentOld = document.createElement("div");
+    const contentNew = createSectionWithGrid(newStickers, true, t("noNewStickers"));
+    const contentOld = createSectionWithGrid(oldStickers, false, t("noOldStickers"));
     contentOld.style.display = "none";
-    contentOld.style.flexDirection = "column";
-
-    if (oldStickers.length > 0) {
-      const oldHeader = document.createElement("div");
-      oldHeader.style.display = "flex";
-      oldHeader.style.justifyContent = "space-between";
-      oldHeader.style.alignItems = "center";
-      oldHeader.style.marginBottom = s(10);
-      
-      const btnToggleOld = document.createElement("button");
-      btnToggleOld.innerText = t("selectAll");
-      btnToggleOld.style.padding = `${s(4)} ${s(8)}`;
-      btnToggleOld.style.borderRadius = s(6);
-      btnToggleOld.style.border = "1px solid #888";
-      btnToggleOld.style.backgroundColor = "transparent";
-      btnToggleOld.style.color = "#888";
-      btnToggleOld.style.cursor = "pointer";
-      btnToggleOld.style.fontSize = s(12);
-      
-      oldHeader.appendChild(btnToggleOld);
-      contentOld.appendChild(oldHeader);
-
-      const oldGrid = createGrid(oldStickers, false);
-      contentOld.appendChild(oldGrid);
-
-      let allSelected = false;
-      btnToggleOld.onclick = () => {
-        allSelected = !allSelected;
-        if (allSelected) {
-          btnToggleOld.innerText = t("cancelSelection");
-          btnToggleOld.style.border = "1px solid #fe2c55";
-          btnToggleOld.style.color = "#fe2c55";
-          
-          oldStickers.forEach(url => {
-            selectedUrls.add(url);
-            const img = imageElements.get(url);
-            if (img) {
-              img.style.opacity = "1";
-              img.style.transform = "scale(1)";
-              img.style.filter = "none";
-            }
-          });
-        } else {
-          btnToggleOld.innerText = t("selectAll");
-          btnToggleOld.style.border = "1px solid #888";
-          btnToggleOld.style.color = "#888";
-          
-          oldStickers.forEach(url => {
-            selectedUrls.delete(url);
-            const img = imageElements.get(url);
-            if (img) {
-              img.style.opacity = "0.3";
-              img.style.transform = "scale(0.9)";
-              img.style.filter = "grayscale(100%)";
-            }
-          });
-        }
-        updateConfirmButton();
-      };
-    } else {
-      const noOld = document.createElement("div");
-      noOld.innerText = t("noOldStickers");
-      noOld.style.textAlign = "center";
-      noOld.style.color = "#888";
-      noOld.style.fontSize = s(14);
-      noOld.style.marginTop = s(20);
-      contentOld.appendChild(noOld);
-    }
     
     const setActiveTab = (isNew: boolean) => {
       tabNew.style.color = isNew ? "#fe2c55" : "#888";
@@ -693,8 +693,8 @@ const addDownloadAllButton = () => {
   if (!headerContainer) return;
 
   const stickerImages = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
-  const newStickers = stickerImages.filter(img => !isDownloaded(img.src)).map(img => img.src);
-  const oldStickers = stickerImages.filter(img => isDownloaded(img.src)).map(img => img.src);
+  const newStickers = deduplicateStickerUrls(stickerImages.filter(img => !isDownloaded(img.src)).map(img => img.src));
+  const oldStickers = deduplicateStickerUrls(stickerImages.filter(img => isDownloaded(img.src)).map(img => img.src));
   const newStickerCount = newStickers.length;
 
   let btnContainer = document.getElementById("tiktok-stickers-exporter-header-btns");

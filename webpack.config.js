@@ -36,6 +36,10 @@ module.exports = (env = {}) => {
           {
             from: path.resolve(__dirname, `src/manifest.${browser}.json`),
             to: 'manifest.json'
+          },
+          {
+            from: path.resolve(__dirname, 'src/icons'),
+            to: 'icons'
           }
         ],
       }),
