@@ -1124,17 +1124,24 @@ const getAllDateDividers = (): { element: Element; date: string }[] => {
 const findStickerDateInDOM = (img: HTMLImageElement, dateDividers: { element: Element; date: string }[]): string => {
   let matchedDate = "";
 
-  // Buscamos el último divisor de fecha que precede a la imagen en el documento
+  // Buscamos el último divisor de fecha que precede a la imagen en el orden del documento.
+  // img.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_PRECEDING (2) indica que divider está ANTES de img
   for (const divider of dateDividers) {
-    if (divider.element.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_PRECEDING) {
+    if (img.compareDocumentPosition(divider.element) & Node.DOCUMENT_POSITION_PRECEDING) {
       matchedDate = divider.date;
     }
   }
 
   if (matchedDate) return matchedDate;
 
-  // Si no hay divisor previo en el documento pero hay divisores en la pantalla del chat,
-  // asignamos el primer divisor del grupo
+  // Si no hay divisor previo a la imagen en la vista actual pero hay divisores en pantalla,
+  // asignamos el divisor siguiente más cercano
+  for (const divider of dateDividers) {
+    if (img.compareDocumentPosition(divider.element) & Node.DOCUMENT_POSITION_FOLLOWING) {
+      return divider.date;
+    }
+  }
+
   if (dateDividers.length > 0) {
     return dateDividers[0].date;
   }
