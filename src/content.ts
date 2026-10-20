@@ -187,7 +187,7 @@ interface CustomConfirmResult {
   urls: string[];
 }
 
-// Iconos vectoriales SVG limpios y nítidos
+// Iconos vectoriales SVG limpios y nítidos (adiós emojis)
 const svgDownload = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;">
   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
   <polyline points="7 10 12 15 17 10"></polyline>
@@ -214,26 +214,60 @@ const svgGrid = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" str
   <rect x="3" y="14" width="7" height="7"></rect>
 </svg>`;
 
+// Comprueba si un texto corresponde a una fecha o separador de tiempo en el chat
+const isDateString = (text: string): boolean => {
+  if (!text) return false;
+  const t = text.trim();
+  if (t.length === 0 || t.length > 55) return false;
+
+  // Español: "15 de octubre de 2026 12:26", "15 de octubre 12:26", "15 de octubre", "15 oct"
+  if (/^\s*\d{1,2}\s+de\s+[a-z\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1]+(\s+de\s+\d{2,4})?(\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  if (/^\s*\d{1,2}\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)[a-z]*(\s+de\s+\d{2,4})?(\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+
+  // Inglés: "October 15, 2026 12:26 PM", "Oct 15 12:26", "15 Oct 2026"
+  if (/^\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(,?\s+\d{4})?(\s+(at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  if (/^\s*\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(,?\s+\d{4})?(\s+(at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+
+  // Hoy / Ayer / Today / Yesterday
+  if (/^\s*(hoy|ayer|today|yesterday)(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+
+  // Fechas numéricas: 15/10/2026, 2026-10-15, 10/15/2026
+  if (/^\s*\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4}(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  if (/^\s*\d{4}[\/\.-]\d{1,2}[\/\.-]\d{1,2}(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+
+  return false;
+};
+
+// Limpia el texto de fecha para extraer únicamente la fecha (removiendo horas)
+const cleanDateLabel = (rawText: string): string => {
+  if (!rawText) return "";
+  let s = rawText.trim();
+
+  // Eliminar la porción horaria: " 12:26", " 12:26:00", " 12:26 PM", " at 12:26", " a las 12:26"
+  s = s.replace(/\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?/i, '');
+  s = s.replace(/\s+at\s+\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?/i, '');
+  s = s.replace(/,\s*\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?/i, '');
+  s = s.trim();
+
+  // Si queda algo como "Hoy" o "Today" o la fecha completa
+  if (s.length > 0) {
+    s = s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  return s;
+};
+
 // Helper para dar formato legible a la fecha de un sticker
 const formatStickerDate = (timeStr?: string, timestamp?: number): string => {
   const lang = getLang();
   if (timeStr && timeStr.trim()) {
-    const cleaned = timeStr.trim();
-    if (/^(today|hoy)/i.test(cleaned)) return t("today");
-    if (/^(yesterday|ayer)/i.test(cleaned)) return t("yesterday");
-    return cleaned;
+    const cleaned = cleanDateLabel(timeStr);
+    if (cleaned) {
+      if (/^(today|hoy)$/i.test(cleaned)) return t("today");
+      if (/^(yesterday|ayer)$/i.test(cleaned)) return t("yesterday");
+      return cleaned;
+    }
   }
-  if (timestamp && timestamp > 0) {
-    const d = new Date(timestamp);
-    const now = new Date();
-    if (d.toDateString() === now.toDateString()) return t("today");
-    const yest = new Date();
-    yest.setDate(now.getDate() - 1);
-    if (d.toDateString() === yest.toDateString()) return t("yesterday");
-
-    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
-    return d.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', options);
-  }
+  // Si no se detectó la fecha real en el chat, evitamos usar la fecha del escaneo como 'Hoy'
   return t("earlierHistory");
 };
 
@@ -556,7 +590,7 @@ const showCustomConfirm = async (
           urls.forEach(url => renderStickerItem(url, grid));
           gridContainer.appendChild(grid);
         } else {
-          // Vista agrupada por fecha
+          // Vista agrupada por fecha tipo galería (alineado a la izquierda, sin chip, sin cantidad)
           const groups = new Map<string, string[]>();
           urls.forEach(url => {
             const dateLabel = urlToDateMap.get(url) || urlToDateMap.get(getStickerId(url)) || t("earlierHistory");
@@ -568,41 +602,19 @@ const showCustomConfirm = async (
 
           groups.forEach((groupUrls, dateLabel) => {
             const groupWrapper = document.createElement("div");
-            groupWrapper.style.marginBottom = "20px";
+            groupWrapper.style.marginBottom = "24px";
 
-            // Encabezado de fecha estilizado con cápsula elegante
-            const dateHeader = document.createElement("div");
-            dateHeader.style.display = "flex";
-            dateHeader.style.alignItems = "center";
-            dateHeader.style.gap = "10px";
-            dateHeader.style.margin = "14px 0 10px 0";
-
-            const lineLeft = document.createElement("div");
-            lineLeft.style.height = "1px";
-            lineLeft.style.flex = "1";
-            lineLeft.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
-
-            const badge = document.createElement("div");
-            badge.style.display = "inline-flex";
-            badge.style.alignItems = "center";
-            badge.style.backgroundColor = "#1f1f1f";
-            badge.style.border = "1px solid rgba(254, 44, 85, 0.35)";
-            badge.style.color = "#fe2c55";
-            badge.style.padding = "4px 12px";
-            badge.style.borderRadius = "14px";
-            badge.style.fontSize = "12px";
-            badge.style.fontWeight = "bold";
-            badge.innerHTML = `${svgCalendar} <span>${dateLabel} (${groupUrls.length})</span>`;
-
-            const lineRight = document.createElement("div");
-            lineRight.style.height = "1px";
-            lineRight.style.flex = "1";
-            lineRight.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
-
-            dateHeader.appendChild(lineLeft);
-            dateHeader.appendChild(badge);
-            dateHeader.appendChild(lineRight);
-            groupWrapper.appendChild(dateHeader);
+            // Encabezado tipo Galería: a la izquierda, limpio, sin chip ni números entre paréntesis
+            const dateTitle = document.createElement("div");
+            dateTitle.innerText = dateLabel;
+            dateTitle.style.textAlign = "left";
+            dateTitle.style.fontSize = isMobile ? s(15) : "16px";
+            dateTitle.style.fontWeight = "bold";
+            dateTitle.style.color = "#ffffff";
+            dateTitle.style.letterSpacing = "-0.2px";
+            dateTitle.style.margin = "16px 0 10px 0";
+            dateTitle.style.paddingLeft = "2px";
+            groupWrapper.appendChild(dateTitle);
 
             const grid = document.createElement("div");
             grid.style.display = "grid";
@@ -1029,7 +1041,7 @@ interface ScannedStickerRecord {
   id: string;          // getStickerId(url)
   url: string;         // URL completa del sticker (con token firmado más reciente)
   text?: string;       // Texto o comentario que acompaña al sticker si existe
-  time?: string;       // Hora o fecha del mensaje si se muestra en el DOM
+  time?: string;       // Fecha real del mensaje en el chat
   discoveredAt: number;// Timestamp de cuándo se descubrió
 }
 
@@ -1072,17 +1084,76 @@ const saveConversationScanState = (state: ConversationScanState) => {
   }
 };
 
+// Encuentra la fecha real del mensaje en el chat de TikTok para un sticker
+const findStickerDateInDOM = (img: HTMLImageElement, scrollContainer: HTMLElement | null): string => {
+  // 1. Revisar dentro del contenedor inmediato del mensaje
+  let el: HTMLElement | null = img.parentElement;
+  let depth = 0;
+  while (el && el !== document.body && el !== scrollContainer && depth < 6) {
+    const timeEl = el.querySelector('time, [class*="Time"], [class*="Date"], [data-e2e*="time"]');
+    if (timeEl && timeEl.textContent && isDateString(timeEl.textContent)) {
+      return cleanDateLabel(timeEl.textContent);
+    }
+    const aria = el.getAttribute('aria-label') || el.getAttribute('title');
+    if (aria && isDateString(aria)) {
+      return cleanDateLabel(aria);
+    }
+    el = el.parentElement;
+    depth++;
+  }
+
+  // 2. Buscar hacia atrás en los elementos hermanos anteriores (el separador de fecha de TikTok)
+  let msgBlock: HTMLElement | null = img;
+  if (scrollContainer) {
+    while (msgBlock && msgBlock.parentElement && msgBlock.parentElement !== scrollContainer && msgBlock.parentElement !== document.body) {
+      msgBlock = msgBlock.parentElement;
+    }
+  } else {
+    msgBlock = img.closest('div[class*="Message"], div[class*="Chat"], div[data-e2e*="chat"]') || img.parentElement;
+  }
+
+  let prev = msgBlock ? (msgBlock.previousElementSibling as HTMLElement | null) : null;
+  let steps = 0;
+  while (prev && steps < 80) {
+    const text = prev.innerText || prev.textContent || "";
+    if (isDateString(text)) {
+      return cleanDateLabel(text);
+    }
+    const childWithDate = prev.querySelector('time, [class*="Time"], [class*="Date"], span, p, div');
+    if (childWithDate && childWithDate.textContent && isDateString(childWithDate.textContent)) {
+      return cleanDateLabel(childWithDate.textContent);
+    }
+    prev = prev.previousElementSibling as HTMLElement | null;
+    steps++;
+  }
+
+  // 3. Fallback: buscar el separador de fecha más cercano que precede al sticker en el contenedor
+  if (scrollContainer) {
+    const allDivs = scrollContainer.querySelectorAll('div, p, span, time');
+    let lastFoundDate = "";
+    for (const node of Array.from(allDivs)) {
+      if (node.contains(img)) continue;
+      // Comprobar si el nodo precede al sticker en orden de documento
+      if (node.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_PRECEDING) {
+        const txt = node.textContent ? node.textContent.trim() : "";
+        if (isDateString(txt)) {
+          lastFoundDate = cleanDateLabel(txt);
+        }
+      } else {
+        break;
+      }
+    }
+    if (lastFoundDate) return lastFoundDate;
+  }
+
+  return "";
+};
+
 const getStickerMessageContext = (img: HTMLImageElement): { text?: string; time?: string } => {
   const context: { text?: string; time?: string } = {};
   let el: HTMLElement | null = img.parentElement;
   let depth = 0;
   while (el && el !== document.body && depth < 6) {
-    if (!context.time) {
-      const timeEl = el.querySelector('time, [class*="Time"], [class*="Date"], [data-e2e*="time"]');
-      if (timeEl && timeEl.textContent) {
-        context.time = timeEl.textContent.trim();
-      }
-    }
     if (!context.text) {
       const textEl = el.querySelector('p, span[class*="Text"], div[class*="Text"]');
       if (textEl && textEl.textContent && textEl.textContent.trim()) {
@@ -1092,29 +1163,6 @@ const getStickerMessageContext = (img: HTMLImageElement): { text?: string; time?
     el = el.parentElement;
     depth++;
   }
-
-  // Si no se encontró fecha dentro del bubble, buscar hacia atrás divisores de fecha en el chat
-  if (!context.time) {
-    let msgItem = img.closest('div[class*="Message"], div[class*="Chat"], div[data-e2e*="chat"]') as HTMLElement | null;
-    if (!msgItem) msgItem = img.parentElement;
-    let prev = msgItem ? msgItem.previousElementSibling as HTMLElement | null : null;
-    let steps = 0;
-    while (prev && steps < 15) {
-      const txt = prev.textContent ? prev.textContent.trim() : "";
-      if (txt.length > 0 && txt.length < 35) {
-        const isDivider = prev.matches('[class*="Divider"], [class*="Time"], [class*="Date"]') ||
-          /^(today|yesterday|hoy|ayer|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|jan|aug)/i.test(txt) ||
-          /\d{1,2}:\d{2}/.test(txt);
-        if (isDivider) {
-          context.time = txt;
-          break;
-        }
-      }
-      prev = prev.previousElementSibling as HTMLElement | null;
-      steps++;
-    }
-  }
-
   return context;
 };
 
@@ -1126,24 +1174,33 @@ const registerStickersFromDOM = (convId: string): ConversationScanState => {
     existingMap.set(s.id, s);
   }
 
+  const scrollContainer = findChatScrollable();
   const imgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
   let changed = false;
 
   for (const img of imgs) {
     const id = getStickerId(img.src);
     const existing = existingMap.get(id);
+    const detectedDate = findStickerDateInDOM(img, scrollContainer);
+
     if (existing) {
       if (existing.url !== img.src) {
         existing.url = img.src;
         changed = true;
       }
+      // Si detectamos la fecha real del mensaje en el DOM, actualizar el registro
+      if (detectedDate && existing.time !== detectedDate) {
+        existing.time = detectedDate;
+        changed = true;
+      }
     } else {
       const ctx = getStickerMessageContext(img);
+      const dateStr = detectedDate || ctx.time || "";
       const record: ScannedStickerRecord = {
         id,
         url: img.src,
         text: ctx.text,
-        time: ctx.time,
+        time: dateStr,
         discoveredAt: Date.now()
       };
       state.stickers.push(record);
@@ -1562,7 +1619,7 @@ const addDownloadAllButton = () => {
       return btn;
     };
 
-    // Botón único "Ver stickers" sin emoji
+    // Botón único "Ver stickers" sin ningún emoji
     const viewText = newStickerCount > 0 
       ? t("viewStickers", { count: newStickerCount }) 
       : t("viewStickersNoCount");

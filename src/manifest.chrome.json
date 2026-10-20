@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TikTok Stickers Exporter",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Export TikTok Stickers easily",
   "minimum_chrome_version": "94",
   "permissions": [
@@ -18,14 +18,22 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.tiktok.com/*"],
-      "js": ["content.js"]
+      "matches": [
+        "*://*.tiktok.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["converter.worker.js"],
-      "matches": ["*://*.tiktok.com/*"]
+      "resources": [
+        "converter.worker.js"
+      ],
+      "matches": [
+        "*://*.tiktok.com/*"
+      ]
     }
   ],
   "icons": {
