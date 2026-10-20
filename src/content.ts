@@ -47,6 +47,11 @@ const translations = {
     viewStickers: "View stickers ({count})",
     viewStickersNoCount: "View stickers",
     viewStickersTitle: "TikTok Stickers",
+    groupByDate: "Group by date",
+    flatView: "Grid view",
+    today: "Today",
+    yesterday: "Yesterday",
+    earlierHistory: "Earlier history",
     downloadSeqBtn: "Download ({count})",
     downloadZipBtn: "Download ZIP ({count})",
     downloadSeqTooltip: "Download selected stickers one by one",
@@ -97,6 +102,11 @@ const translations = {
     viewStickers: "Ver stickers ({count})",
     viewStickersNoCount: "Ver stickers",
     viewStickersTitle: "Stickers de TikTok",
+    groupByDate: "Separar por fecha",
+    flatView: "Vista cuadrícula",
+    today: "Hoy",
+    yesterday: "Ayer",
+    earlierHistory: "Historial anterior",
     downloadSeqBtn: "Descargar ({count})",
     downloadZipBtn: "Descargar ZIP ({count})",
     downloadSeqTooltip: "Descargar los stickers seleccionados uno por uno",
@@ -177,10 +187,73 @@ interface CustomConfirmResult {
   urls: string[];
 }
 
-// Función para mostrar un diálogo modal personalizado con vista previa amplia en PC
-const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: string[]): Promise<CustomConfirmResult | null> => {
+// Iconos vectoriales SVG limpios y nítidos
+const svgDownload = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;">
+  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+  <polyline points="7 10 12 15 17 10"></polyline>
+  <line x1="12" y1="15" x2="12" y2="3"></line>
+</svg>`;
+
+const svgArchive = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;">
+  <polyline points="21 8 21 21 3 21 3 8"></polyline>
+  <rect x="1" y="3" width="22" height="5" rx="1"></rect>
+  <line x1="10" y1="12" x2="14" y2="12"></line>
+</svg>`;
+
+const svgCalendar = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;flex-shrink:0;">
+  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+  <line x1="16" y1="2" x2="16" y2="6"></line>
+  <line x1="8" y1="2" x2="8" y2="6"></line>
+  <line x1="3" y1="10" x2="21" y2="10"></line>
+</svg>`;
+
+const svgGrid = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;flex-shrink:0;">
+  <rect x="3" y="3" width="7" height="7"></rect>
+  <rect x="14" y="3" width="7" height="7"></rect>
+  <rect x="14" y="14" width="7" height="7"></rect>
+  <rect x="3" y="14" width="7" height="7"></rect>
+</svg>`;
+
+// Helper para dar formato legible a la fecha de un sticker
+const formatStickerDate = (timeStr?: string, timestamp?: number): string => {
+  const lang = getLang();
+  if (timeStr && timeStr.trim()) {
+    const cleaned = timeStr.trim();
+    if (/^(today|hoy)/i.test(cleaned)) return t("today");
+    if (/^(yesterday|ayer)/i.test(cleaned)) return t("yesterday");
+    return cleaned;
+  }
+  if (timestamp && timestamp > 0) {
+    const d = new Date(timestamp);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return t("today");
+    const yest = new Date();
+    yest.setDate(now.getDate() - 1);
+    if (d.toDateString() === yest.toDateString()) return t("yesterday");
+
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+    return d.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', options);
+  }
+  return t("earlierHistory");
+};
+
+// Función para mostrar el diálogo modal con vista amplia en PC, selector de fechas y botones limpios
+const showCustomConfirm = async (
+  rawNewStickers: string[], 
+  rawOldStickers: string[], 
+  convId: string
+): Promise<CustomConfirmResult | null> => {
   const newStickers = deduplicateStickerUrls(rawNewStickers);
   const oldStickers = deduplicateStickerUrls(rawOldStickers);
+
+  // Cargamos el estado para consultar la fecha de cada sticker
+  const scanState = loadConversationScanState(convId);
+  const urlToDateMap = new Map<string, string>();
+  for (const s of scanState.stickers) {
+    const dateLabel = formatStickerDate(s.time, s.discoveredAt);
+    urlToDateMap.set(s.url, dateLabel);
+    urlToDateMap.set(s.id, dateLabel);
+  }
 
   return new Promise((resolve) => {
     const isMobile = isMobileDevice();
@@ -213,7 +286,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     modal.style.color = "white";
     modal.style.fontFamily = "sans-serif";
 
-    // Botón X grande y visible para cerrar
+    // Botón X para cerrar
     const btnX = document.createElement("button");
     btnX.title = t("close");
     btnX.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -313,8 +386,8 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
 
     const updateActionButtons = () => {
       const count = selectedUrls.size;
-      btnSeq.innerText = `📥 ${t("downloadSeqBtn", { count })}`;
-      btnZip.innerText = `📦 ${t("downloadZipBtn", { count })}`;
+      btnSeq.innerHTML = `${svgDownload}<span>${t("downloadSeqBtn", { count })}</span>`;
+      btnZip.innerHTML = `${svgArchive}<span>${t("downloadZipBtn", { count })}</span>`;
       const isDisabled = count === 0;
       btnSeq.disabled = isDisabled;
       btnZip.disabled = isDisabled;
@@ -323,7 +396,11 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       btnSeq.style.cursor = isDisabled ? "not-allowed" : "pointer";
       btnZip.style.cursor = isDisabled ? "not-allowed" : "pointer";
     };
-    
+
+    // Estado global de la vista: cuadrícula normal o separada por fecha
+    let isDateGrouped = false;
+    let refreshCurrentTab: () => void = () => {};
+
     const createSectionWithGrid = (urls: string[], initiallySelected: boolean, emptyText: string) => {
       const section = document.createElement("div");
       section.style.display = "flex";
@@ -337,17 +414,20 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
         emptyEl.style.fontSize = isMobile ? s(14) : "14px";
         emptyEl.style.marginTop = isMobile ? s(20) : "24px";
         section.appendChild(emptyEl);
-        return section;
+        return { section, refresh: () => {} };
       }
 
+      // Barra de controles superiores: Seleccionar todos (izq) y Separar por fecha (der)
       const sectionHeader = document.createElement("div");
       sectionHeader.style.display = "flex";
       sectionHeader.style.justifyContent = "space-between";
       sectionHeader.style.alignItems = "center";
-      sectionHeader.style.marginBottom = isMobile ? s(10) : "12px";
+      sectionHeader.style.marginBottom = isMobile ? s(10) : "14px";
+      sectionHeader.style.flexWrap = "wrap";
+      sectionHeader.style.gap = "8px";
 
       const btnToggle = document.createElement("button");
-      btnToggle.style.padding = isMobile ? `${s(5)} ${s(10)}` : "6px 14px";
+      btnToggle.style.padding = isMobile ? `${s(6)} ${s(12)}` : "6px 14px";
       btnToggle.style.borderRadius = isMobile ? s(6) : "6px";
       btnToggle.style.cursor = "pointer";
       btnToggle.style.fontSize = isMobile ? s(12) : "13px";
@@ -359,7 +439,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       const updateToggleBtn = () => {
         const allSel = isAllSelected();
         btnToggle.innerText = allSel ? t("cancelSelection") : t("selectAll");
-        btnToggle.style.border = allSel ? "1px solid #fe2c55" : "1px solid #888";
+        btnToggle.style.border = allSel ? "1px solid #fe2c55" : "1px solid #666";
         btnToggle.style.color = allSel ? "#fe2c55" : "#ccc";
         btnToggle.style.backgroundColor = allSel ? "rgba(254, 44, 85, 0.1)" : "transparent";
       };
@@ -380,18 +460,47 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
         updateActionButtons();
       };
 
+      // Botón para alternar entre vista cuadrícula y vista agrupada por fecha
+      const btnDateToggle = document.createElement("button");
+      btnDateToggle.style.padding = isMobile ? `${s(6)} ${s(12)}` : "6px 14px";
+      btnDateToggle.style.borderRadius = isMobile ? s(6) : "6px";
+      btnDateToggle.style.cursor = "pointer";
+      btnDateToggle.style.fontSize = isMobile ? s(12) : "13px";
+      btnDateToggle.style.fontWeight = "bold";
+      btnDateToggle.style.transition = "all 0.2s";
+      btnDateToggle.style.display = "inline-flex";
+      btnDateToggle.style.alignItems = "center";
+      btnDateToggle.style.justifyContent = "center";
+
+      const updateDateToggleVisual = () => {
+        if (isDateGrouped) {
+          btnDateToggle.innerHTML = `${svgGrid}<span>${t("flatView")}</span>`;
+          btnDateToggle.style.border = "1px solid #fe2c55";
+          btnDateToggle.style.color = "#fe2c55";
+          btnDateToggle.style.backgroundColor = "rgba(254, 44, 85, 0.15)";
+        } else {
+          btnDateToggle.innerHTML = `${svgCalendar}<span>${t("groupByDate")}</span>`;
+          btnDateToggle.style.border = "1px solid #666";
+          btnDateToggle.style.color = "#ccc";
+          btnDateToggle.style.backgroundColor = "transparent";
+        }
+      };
+
+      updateDateToggleVisual();
+
+      btnDateToggle.onclick = () => {
+        isDateGrouped = !isDateGrouped;
+        refreshCurrentTab();
+      };
+
       sectionHeader.appendChild(btnToggle);
+      sectionHeader.appendChild(btnDateToggle);
       section.appendChild(sectionHeader);
 
-      const grid = document.createElement("div");
-      grid.style.display = "grid";
-      // En PC mostrar cuadrícula espaciosa y grande (min 88px), en móvil compacta
-      grid.style.gridTemplateColumns = isMobile 
-        ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
-        : "repeat(auto-fill, minmax(88px, 1fr))";
-      grid.style.gap = isMobile ? s(8) : "12px";
+      const gridContainer = document.createElement("div");
+      section.appendChild(gridContainer);
 
-      urls.forEach(url => {
+      const renderStickerItem = (url: string, parentGrid: HTMLElement) => {
         const container = document.createElement("div");
         container.style.position = "relative";
         container.style.cursor = "pointer";
@@ -405,14 +514,15 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
         img.style.backgroundColor = "#181818";
         img.style.transition = "all 0.2s";
 
-        if (!initiallySelected) {
+        const isCurrentlySelected = selectedUrls.has(url);
+        if (!isCurrentlySelected) {
           img.style.opacity = "0.3";
           img.style.transform = "scale(0.9)";
           img.style.filter = "grayscale(100%)";
         }
 
         container.appendChild(img);
-        grid.appendChild(container);
+        parentGrid.appendChild(container);
         const existing = imageElements.get(url) || [];
         existing.push(img);
         imageElements.set(url, existing);
@@ -428,25 +538,115 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
           updateToggleBtn();
           updateActionButtons();
         };
-      });
+      };
 
-      section.appendChild(grid);
-      return section;
+      const renderGridContent = () => {
+        gridContainer.innerHTML = "";
+        updateDateToggleVisual();
+
+        if (!isDateGrouped) {
+          // Vista continua en cuadrícula espaciosa
+          const grid = document.createElement("div");
+          grid.style.display = "grid";
+          grid.style.gridTemplateColumns = isMobile 
+            ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
+            : "repeat(auto-fill, minmax(88px, 1fr))";
+          grid.style.gap = isMobile ? s(8) : "12px";
+
+          urls.forEach(url => renderStickerItem(url, grid));
+          gridContainer.appendChild(grid);
+        } else {
+          // Vista agrupada por fecha
+          const groups = new Map<string, string[]>();
+          urls.forEach(url => {
+            const dateLabel = urlToDateMap.get(url) || urlToDateMap.get(getStickerId(url)) || t("earlierHistory");
+            if (!groups.has(dateLabel)) {
+              groups.set(dateLabel, []);
+            }
+            groups.get(dateLabel)!.push(url);
+          });
+
+          groups.forEach((groupUrls, dateLabel) => {
+            const groupWrapper = document.createElement("div");
+            groupWrapper.style.marginBottom = "20px";
+
+            // Encabezado de fecha estilizado con cápsula elegante
+            const dateHeader = document.createElement("div");
+            dateHeader.style.display = "flex";
+            dateHeader.style.alignItems = "center";
+            dateHeader.style.gap = "10px";
+            dateHeader.style.margin = "14px 0 10px 0";
+
+            const lineLeft = document.createElement("div");
+            lineLeft.style.height = "1px";
+            lineLeft.style.flex = "1";
+            lineLeft.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+
+            const badge = document.createElement("div");
+            badge.style.display = "inline-flex";
+            badge.style.alignItems = "center";
+            badge.style.backgroundColor = "#1f1f1f";
+            badge.style.border = "1px solid rgba(254, 44, 85, 0.35)";
+            badge.style.color = "#fe2c55";
+            badge.style.padding = "4px 12px";
+            badge.style.borderRadius = "14px";
+            badge.style.fontSize = "12px";
+            badge.style.fontWeight = "bold";
+            badge.innerHTML = `${svgCalendar} <span>${dateLabel} (${groupUrls.length})</span>`;
+
+            const lineRight = document.createElement("div");
+            lineRight.style.height = "1px";
+            lineRight.style.flex = "1";
+            lineRight.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+
+            dateHeader.appendChild(lineLeft);
+            dateHeader.appendChild(badge);
+            dateHeader.appendChild(lineRight);
+            groupWrapper.appendChild(dateHeader);
+
+            const grid = document.createElement("div");
+            grid.style.display = "grid";
+            grid.style.gridTemplateColumns = isMobile 
+              ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
+              : "repeat(auto-fill, minmax(88px, 1fr))";
+            grid.style.gap = isMobile ? s(8) : "12px";
+
+            groupUrls.forEach(url => renderStickerItem(url, grid));
+            groupWrapper.appendChild(grid);
+            gridContainer.appendChild(groupWrapper);
+          });
+        }
+      };
+
+      renderGridContent();
+
+      return { section, refresh: renderGridContent };
     };
 
-    const contentNew = createSectionWithGrid(newStickers, true, t("noNewStickers"));
-    const contentOld = createSectionWithGrid(oldStickers, false, t("noOldStickers"));
-    contentOld.style.display = "none";
+    const compNew = createSectionWithGrid(newStickers, true, t("noNewStickers"));
+    const compOld = createSectionWithGrid(oldStickers, false, t("noOldStickers"));
+    compOld.section.style.display = "none";
+
+    let currentTabIsNew = true;
+    refreshCurrentTab = () => {
+      if (currentTabIsNew) {
+        compNew.refresh();
+      } else {
+        compOld.refresh();
+      }
+    };
     
     const setActiveTab = (isNew: boolean) => {
+      currentTabIsNew = isNew;
       tabNew.style.color = isNew ? "#fe2c55" : "#888";
       tabNew.style.borderBottom = isNew ? `2px solid #fe2c55` : `2px solid transparent`;
       
       tabOld.style.color = !isNew ? "#fe2c55" : "#888";
       tabOld.style.borderBottom = !isNew ? `2px solid #fe2c55` : `2px solid transparent`;
       
-      contentNew.style.display = isNew ? "flex" : "none";
-      contentOld.style.display = !isNew ? "flex" : "none";
+      compNew.section.style.display = isNew ? "flex" : "none";
+      compOld.section.style.display = !isNew ? "flex" : "none";
+      refreshCurrentTab();
     };
     
     tabNew.onclick = () => setActiveTab(true);
@@ -454,8 +654,8 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     
     setActiveTab(true);
 
-    scrollContainer.appendChild(contentNew);
-    scrollContainer.appendChild(contentOld);
+    scrollContainer.appendChild(compNew.section);
+    scrollContainer.appendChild(compOld.section);
     modal.appendChild(scrollContainer);
 
     // Fila superior con los 2 botones de descarga lado a lado (50% y 50%)
@@ -467,7 +667,65 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     downloadBtnsRow.style.marginTop = isMobile ? s(12) : "14px";
     downloadBtnsRow.style.width = "100%";
 
-    // Botón Cancelar abajo, en su propia fila para no amontonarse
+    // 1. Botón Descarga Secuencial (uno por uno) con SVG
+    btnSeq.style.padding = isMobile ? s(12) : "12px 18px";
+    btnSeq.style.borderRadius = isMobile ? s(8) : "8px";
+    btnSeq.style.border = "1.5px solid #fe2c55";
+    btnSeq.style.backgroundColor = "transparent";
+    btnSeq.style.color = "#fe2c55";
+    btnSeq.style.cursor = "pointer";
+    btnSeq.style.fontWeight = "bold";
+    btnSeq.style.fontSize = isMobile ? s(14) : "14px";
+    btnSeq.style.flex = "1";
+    btnSeq.style.display = "inline-flex";
+    btnSeq.style.alignItems = "center";
+    btnSeq.style.justifyContent = "center";
+    btnSeq.style.transition = "background-color 0.2s, transform 0.2s";
+    btnSeq.title = t("downloadSeqTooltip");
+
+    btnSeq.addEventListener("mouseenter", () => {
+      if (!btnSeq.disabled) {
+        btnSeq.style.backgroundColor = "rgba(254, 44, 85, 0.12)";
+        btnSeq.style.transform = "scale(1.02)";
+      }
+    });
+    btnSeq.addEventListener("mouseleave", () => {
+      btnSeq.style.backgroundColor = "transparent";
+      btnSeq.style.transform = "scale(1)";
+    });
+
+    // 2. Botón Descarga ZIP con SVG
+    btnZip.style.padding = isMobile ? s(12) : "12px 18px";
+    btnZip.style.borderRadius = isMobile ? s(8) : "8px";
+    btnZip.style.border = "1.5px solid #fe2c55";
+    btnZip.style.backgroundColor = "#fe2c55";
+    btnZip.style.color = "#ffffff";
+    btnZip.style.cursor = "pointer";
+    btnZip.style.fontWeight = "bold";
+    btnZip.style.fontSize = isMobile ? s(14) : "14px";
+    btnZip.style.flex = "1";
+    btnZip.style.display = "inline-flex";
+    btnZip.style.alignItems = "center";
+    btnZip.style.justifyContent = "center";
+    btnZip.style.transition = "filter 0.2s, transform 0.2s";
+    btnZip.title = t("downloadZipTooltip");
+
+    btnZip.addEventListener("mouseenter", () => {
+      if (!btnZip.disabled) {
+        btnZip.style.filter = "brightness(1.1)";
+        btnZip.style.transform = "scale(1.02)";
+      }
+    });
+    btnZip.addEventListener("mouseleave", () => {
+      btnZip.style.filter = "none";
+      btnZip.style.transform = "scale(1)";
+    });
+
+    downloadBtnsRow.appendChild(btnSeq);
+    downloadBtnsRow.appendChild(btnZip);
+    modal.appendChild(downloadBtnsRow);
+
+    // 3. Botón Cancelar abajo, en su propia fila
     const btnCancel = document.createElement("button");
     btnCancel.innerText = t("cancel");
     btnCancel.style.width = "100%";
@@ -494,54 +752,6 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       btnCancel.style.transform = "scale(1)";
     });
 
-    // 2. Botón Descarga Secuencial (uno por uno)
-    btnSeq.style.padding = isMobile ? s(12) : "11px 18px";
-    btnSeq.style.borderRadius = isMobile ? s(8) : "8px";
-    btnSeq.style.border = "1.5px solid #fe2c55";
-    btnSeq.style.backgroundColor = "transparent";
-    btnSeq.style.color = "#fe2c55";
-    btnSeq.style.cursor = "pointer";
-    btnSeq.style.fontWeight = "bold";
-    btnSeq.style.fontSize = isMobile ? s(14) : "14px";
-    btnSeq.style.flex = "1";
-    btnSeq.style.transition = "background-color 0.2s, transform 0.2s";
-    btnSeq.title = t("downloadSeqTooltip");
-
-    btnSeq.addEventListener("mouseenter", () => {
-      if (!btnSeq.disabled) {
-        btnSeq.style.backgroundColor = "rgba(254, 44, 85, 0.12)";
-        btnSeq.style.transform = "scale(1.02)";
-      }
-    });
-    btnSeq.addEventListener("mouseleave", () => {
-      btnSeq.style.backgroundColor = "transparent";
-      btnSeq.style.transform = "scale(1)";
-    });
-
-    // 3. Botón Descarga ZIP
-    btnZip.style.padding = isMobile ? s(12) : "11px 18px";
-    btnZip.style.borderRadius = isMobile ? s(8) : "8px";
-    btnZip.style.border = "1.5px solid #fe2c55";
-    btnZip.style.backgroundColor = "#fe2c55";
-    btnZip.style.color = "#ffffff";
-    btnZip.style.cursor = "pointer";
-    btnZip.style.fontWeight = "bold";
-    btnZip.style.fontSize = isMobile ? s(14) : "14px";
-    btnZip.style.flex = "1";
-    btnZip.style.transition = "filter 0.2s, transform 0.2s";
-    btnZip.title = t("downloadZipTooltip");
-
-    btnZip.addEventListener("mouseenter", () => {
-      if (!btnZip.disabled) {
-        btnZip.style.filter = "brightness(1.1)";
-        btnZip.style.transform = "scale(1.02)";
-      }
-    });
-    btnZip.addEventListener("mouseleave", () => {
-      btnZip.style.filter = "none";
-      btnZip.style.transform = "scale(1)";
-    });
-
     updateActionButtons();
 
     btnCancel.onclick = () => {
@@ -561,9 +771,6 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       resolve({ action: 'zip', urls: Array.from(selectedUrls) });
     };
 
-    downloadBtnsRow.appendChild(btnSeq);
-    downloadBtnsRow.appendChild(btnZip);
-    modal.appendChild(downloadBtnsRow);
     modal.appendChild(btnCancel);
 
     overlay.appendChild(modal);
@@ -651,7 +858,6 @@ const showSettingsModal = () => {
   header.style.textAlign = "center";
   modal.appendChild(header);
 
-  // Selector de idioma
   const langContainer = document.createElement("div");
   langContainer.style.display = "flex";
   langContainer.style.flexDirection = "column";
@@ -704,7 +910,6 @@ const showSettingsModal = () => {
   langContainer.appendChild(langSelect);
   modal.appendChild(langContainer);
 
-  // Delay setting
   const delayContainer = document.createElement("div");
   delayContainer.style.display = "flex";
   delayContainer.style.flexDirection = "column";
@@ -736,7 +941,6 @@ const showSettingsModal = () => {
   delayContainer.appendChild(delayInput);
   modal.appendChild(delayContainer);
 
-  // Clear history button
   const btnClear = document.createElement("button");
   btnClear.innerText = t("clearHistory");
   btnClear.style.padding = s(12);
@@ -870,11 +1074,11 @@ const saveConversationScanState = (state: ConversationScanState) => {
 
 const getStickerMessageContext = (img: HTMLImageElement): { text?: string; time?: string } => {
   const context: { text?: string; time?: string } = {};
-  let el = img.parentElement;
+  let el: HTMLElement | null = img.parentElement;
   let depth = 0;
-  while (el && el !== document.body && depth < 5) {
+  while (el && el !== document.body && depth < 6) {
     if (!context.time) {
-      const timeEl = el.querySelector('time, [class*="Time"], [class*="Date"]');
+      const timeEl = el.querySelector('time, [class*="Time"], [class*="Date"], [data-e2e*="time"]');
       if (timeEl && timeEl.textContent) {
         context.time = timeEl.textContent.trim();
       }
@@ -888,6 +1092,29 @@ const getStickerMessageContext = (img: HTMLImageElement): { text?: string; time?
     el = el.parentElement;
     depth++;
   }
+
+  // Si no se encontró fecha dentro del bubble, buscar hacia atrás divisores de fecha en el chat
+  if (!context.time) {
+    let msgItem = img.closest('div[class*="Message"], div[class*="Chat"], div[data-e2e*="chat"]') as HTMLElement | null;
+    if (!msgItem) msgItem = img.parentElement;
+    let prev = msgItem ? msgItem.previousElementSibling as HTMLElement | null : null;
+    let steps = 0;
+    while (prev && steps < 15) {
+      const txt = prev.textContent ? prev.textContent.trim() : "";
+      if (txt.length > 0 && txt.length < 35) {
+        const isDivider = prev.matches('[class*="Divider"], [class*="Time"], [class*="Date"]') ||
+          /^(today|yesterday|hoy|ayer|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|jan|aug)/i.test(txt) ||
+          /\d{1,2}:\d{2}/.test(txt);
+        if (isDivider) {
+          context.time = txt;
+          break;
+        }
+      }
+      prev = prev.previousElementSibling as HTMLElement | null;
+      steps++;
+    }
+  }
+
   return context;
 };
 
@@ -1233,7 +1460,7 @@ const openStickersModal = async () => {
     return;
   }
 
-  const result = await showCustomConfirm(freshNew, freshOld);
+  const result = await showCustomConfirm(freshNew, freshOld, curConvId);
   if (!result || !result.urls || result.urls.length === 0) return;
 
   await executeDownload(result.action, result.urls);
@@ -1335,11 +1562,11 @@ const addDownloadAllButton = () => {
       return btn;
     };
 
-    // Botón único "Ver stickers"
+    // Botón único "Ver stickers" sin emoji
     const viewText = newStickerCount > 0 
       ? t("viewStickers", { count: newStickerCount }) 
       : t("viewStickersNoCount");
-    const btnView = createTextBtn("🖼️ " + viewText, true);
+    const btnView = createTextBtn(viewText, true);
     btnView.className = "btn-view";
     btnView.title = t("viewStickersTitle");
 
@@ -1411,7 +1638,7 @@ const addDownloadAllButton = () => {
           const freshViewText = freshNewCount > 0 
             ? t("viewStickers", { count: freshNewCount }) 
             : t("viewStickersNoCount");
-          btnView.innerText = "🖼️ " + freshViewText;
+          btnView.innerText = freshViewText;
 
           // Checkpoint inteligente: si ya estaba completado, detener al tocar el historial conocido
           if (wasFullyScanned && knownIdsBeforeScan.size > 0) {
@@ -1454,7 +1681,6 @@ const addDownloadAllButton = () => {
         addDownloadAllButton();
         addIndividualDownloadButtons();
 
-        // Al finalizar el análisis, abrir directamente el diálogo de stickers
         if (scanState.stickers.length > 0) {
           openStickersModal();
         } else {
@@ -1481,7 +1707,7 @@ const addDownloadAllButton = () => {
       const viewText = newStickerCount > 0 
         ? t("viewStickers", { count: newStickerCount }) 
         : t("viewStickersNoCount");
-      btnView.innerText = "🖼️ " + viewText;
+      btnView.innerText = viewText;
     }
     const btnScan = btnContainer.querySelector(".btn-scan") as HTMLButtonElement;
     if (btnScan && !isChatScanning) {
