@@ -145,7 +145,7 @@ const getExtension = (res: Response): string => {
   return "webp";
 };
 
-// Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS o pantalla táctil)
+// Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS, o probando con resolución móvil)
 const isMobileDevice = (): boolean => {
   // 1. Detección estándar si el User-Agent contiene indicadores móviles:
   const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '';
@@ -153,13 +153,19 @@ const isMobileDevice = (): boolean => {
     return true;
   }
 
-  // 2. Detección por hardware para móviles con "Modo Escritorio" activado:
-  // Todos los smartphones del mundo miden <= 500px físicos (CSS), y tienen pantalla táctil (touch).
-  // Las PCs y laptops miden mínimo 768px o 1080px de alto/ancho.
+  // 2. Detección por hardware para smartphones físicos:
   const hasTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
   const isPhoneScreen = typeof window !== 'undefined' && typeof window.screen !== 'undefined' && Math.min(window.screen.width, window.screen.height) <= 600;
+  if (hasTouch && isPhoneScreen) {
+    return true;
+  }
 
-  return hasTouch && isPhoneScreen;
+  // 3. Detección por ancho de viewport para pruebas en Chrome en PC (resolución <= 650px):
+  if (typeof window !== 'undefined' && window.innerWidth > 0 && window.innerWidth <= 650) {
+    return true;
+  }
+
+  return false;
 };
 
 // Funciones para manejar el historial de descargas en localStorage
@@ -2096,6 +2102,10 @@ initMobile();
 setTimeout(initMobile, 300);
 setTimeout(initMobile, 800);
 setTimeout(initMobile, 1800);
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', initMobile);
+}
 
 let isProcessing = false;
 const observer = new MutationObserver(() => {
