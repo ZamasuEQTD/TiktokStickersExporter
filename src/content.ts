@@ -42,6 +42,9 @@ const translations = {
     scanningProgress: "Scanning ({count})...",
     scanFinished: "Scan complete! Found {count} stickers.",
     stopScan: "Stop scan",
+    scanningTitle: "Scanning stickers...",
+    scanningSubtitle: "Searching chat history for stickers...",
+    stickersFound: "{count} stickers found",
     chatFullyScanned: "Up to date",
     chatFullyScannedTooltip: "Chat history is fully scanned. Click to check for newer stickers.",
     viewStickers: "View stickers ({count})",
@@ -98,6 +101,9 @@ const translations = {
     scanningProgress: "Analizando ({count})...",
     scanFinished: "¡Análisis terminado! Se encontraron {count} stickers.",
     stopScan: "Detener",
+    scanningTitle: "Escaneando stickers...",
+    scanningSubtitle: "Buscando stickers en el historial del chat...",
+    stickersFound: "{count} stickers encontrados",
     chatFullyScanned: "Al día",
     chatFullyScannedTooltip: "Historial completamente analizado. Clic para buscar nuevos stickers.",
     viewStickers: "Ver stickers ({count})",
@@ -516,46 +522,43 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     const isAlreadyAtBeginning = scanStateInModal.hasReachedBeginning;
 
     const btnScanInModal = document.createElement("button");
-    btnScanInModal.style.width = "100%";
-    btnScanInModal.style.marginTop = isMobile ? s(8) : "10px";
-    btnScanInModal.style.padding = isMobile ? s(10) : "11px 18px";
-    btnScanInModal.style.borderRadius = isMobile ? s(8) : "8px";
-    btnScanInModal.style.fontWeight = "bold";
-    btnScanInModal.style.fontSize = isMobile ? s(13) : "14px";
+    btnScanInModal.style.width = "auto";
+    btnScanInModal.style.marginTop = isMobile ? s(10) : "12px";
+    btnScanInModal.style.padding = isMobile ? s(6) : "6px 12px";
+    btnScanInModal.style.border = "none";
+    btnScanInModal.style.outline = "none";
+    btnScanInModal.style.backgroundColor = "transparent";
+    btnScanInModal.style.fontWeight = "500";
+    btnScanInModal.style.fontSize = isMobile ? s(13) : "13px";
     btnScanInModal.style.textAlign = "center";
     btnScanInModal.style.display = "inline-flex";
     btnScanInModal.style.alignItems = "center";
     btnScanInModal.style.justifyContent = "center";
-    btnScanInModal.style.transition = "background-color 0.2s, color 0.2s, transform 0.2s, border-color 0.2s";
+    btnScanInModal.style.margin = "10px auto 0 auto";
+    btnScanInModal.style.transition = "color 0.2s, opacity 0.2s";
 
-    const svgSearchModal = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-    const svgCheckModal = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    const svgSearchModal = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+    const svgCheckModal = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
     if (isAlreadyAtBeginning) {
       btnScanInModal.disabled = true;
       btnScanInModal.innerHTML = `${svgCheckModal}<span>${t("chatFullyScanned")}</span>`;
       btnScanInModal.title = t("chatFullyScannedTooltip");
-      btnScanInModal.style.border = "1px solid rgba(46, 213, 115, 0.4)";
-      btnScanInModal.style.backgroundColor = "rgba(46, 213, 115, 0.08)";
-      btnScanInModal.style.color = "#2ed573";
-      btnScanInModal.style.cursor = "not-allowed";
+      btnScanInModal.style.color = "rgba(46, 213, 115, 0.85)";
+      btnScanInModal.style.cursor = "default";
       btnScanInModal.style.opacity = "0.75";
     } else {
       btnScanInModal.disabled = false;
       btnScanInModal.innerHTML = `${svgSearchModal}<span>${t("scanChat")}</span>`;
       btnScanInModal.title = t("scanChat");
-      btnScanInModal.style.border = "1px solid #20d5ec";
-      btnScanInModal.style.backgroundColor = "transparent";
-      btnScanInModal.style.color = "#20d5ec";
+      btnScanInModal.style.color = "rgba(255, 255, 255, 0.65)";
       btnScanInModal.style.cursor = "pointer";
 
       btnScanInModal.addEventListener("mouseenter", () => {
-        btnScanInModal.style.backgroundColor = "rgba(32, 213, 236, 0.12)";
-        btnScanInModal.style.transform = "scale(1.01)";
+        btnScanInModal.style.color = "#20d5ec";
       });
       btnScanInModal.addEventListener("mouseleave", () => {
-        btnScanInModal.style.backgroundColor = "transparent";
-        btnScanInModal.style.transform = "scale(1)";
+        btnScanInModal.style.color = "rgba(255, 255, 255, 0.65)";
       });
 
       btnScanInModal.onclick = () => {
@@ -1375,7 +1378,7 @@ const triggerScrollToTop = (container: HTMLElement) => {
 
 let isChatScanning = false;
 
-// Función para ejecutar el escaneo automático del chat hacia arriba
+// Función para ejecutar el escaneo automático del chat cubriendo la pantalla para máximo rendimiento
 executeChatScan = async () => {
   if (isChatScanning) {
     isChatScanning = false;
@@ -1398,10 +1401,77 @@ executeChatScan = async () => {
   }
 
   isChatScanning = true;
-  const btnView = document.querySelector("#tiktok-stickers-exporter-header-btns .btn-view") as HTMLButtonElement | null;
-  if (btnView) {
-    btnView.innerText = t("scanningProgress", { count: scanState.stickers.length });
+
+  // Pantalla completa oscura para eliminar la carga gráfica de la GPU y bloquear scroll manual
+  const scanOverlay = document.createElement("div");
+  scanOverlay.id = "tt-stickers-scanning-overlay";
+  scanOverlay.style.position = "fixed";
+  scanOverlay.style.top = "0";
+  scanOverlay.style.left = "0";
+  scanOverlay.style.width = "100vw";
+  scanOverlay.style.height = "100vh";
+  scanOverlay.style.backgroundColor = "#121212";
+  scanOverlay.style.zIndex = "99999999";
+  scanOverlay.style.display = "flex";
+  scanOverlay.style.flexDirection = "column";
+  scanOverlay.style.alignItems = "center";
+  scanOverlay.style.justifyContent = "center";
+  scanOverlay.style.padding = "24px";
+  scanOverlay.style.boxSizing = "border-box";
+  scanOverlay.style.touchAction = "none";
+  scanOverlay.style.color = "white";
+  scanOverlay.style.fontFamily = "sans-serif";
+
+  if (!document.getElementById("tt-scanner-spin-style")) {
+    const spinStyle = document.createElement("style");
+    spinStyle.id = "tt-scanner-spin-style";
+    spinStyle.textContent = `@keyframes ttSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+    document.head.appendChild(spinStyle);
   }
+
+  const spinner = document.createElement("div");
+  spinner.innerHTML = `<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#20d5ec" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="animation: ttSpin 1s linear infinite;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+  scanOverlay.appendChild(spinner);
+
+  const scanTitle = document.createElement("h3");
+  scanTitle.innerText = t("scanningTitle");
+  scanTitle.style.margin = "18px 0 8px 0";
+  scanTitle.style.fontSize = "19px";
+  scanTitle.style.fontWeight = "bold";
+  scanOverlay.appendChild(scanTitle);
+
+  const counterEl = document.createElement("div");
+  counterEl.innerText = t("stickersFound", { count: scanState.stickers.length });
+  counterEl.style.fontSize = "15px";
+  counterEl.style.color = "#20d5ec";
+  counterEl.style.fontWeight = "600";
+  counterEl.style.marginBottom = "14px";
+  scanOverlay.appendChild(counterEl);
+
+  const scanDesc = document.createElement("p");
+  scanDesc.innerText = t("scanningSubtitle");
+  scanDesc.style.color = "rgba(255, 255, 255, 0.6)";
+  scanDesc.style.fontSize = "13px";
+  scanDesc.style.margin = "0 0 28px 0";
+  scanDesc.style.textAlign = "center";
+  scanOverlay.appendChild(scanDesc);
+
+  const btnStop = document.createElement("button");
+  btnStop.innerText = t("stopScan");
+  btnStop.style.padding = "10px 24px";
+  btnStop.style.borderRadius = "20px";
+  btnStop.style.border = "1px solid rgba(255, 255, 255, 0.25)";
+  btnStop.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+  btnStop.style.color = "#ffffff";
+  btnStop.style.fontSize = "14px";
+  btnStop.style.fontWeight = "600";
+  btnStop.style.cursor = "pointer";
+  btnStop.onclick = () => {
+    isChatScanning = false;
+  };
+  scanOverlay.appendChild(btnStop);
+
+  document.body.appendChild(scanOverlay);
 
   let lastScrollHeight = container.scrollHeight;
   let lastChildCount = container.childElementCount;
@@ -1417,9 +1487,7 @@ executeChatScan = async () => {
 
       scanState = registerStickersFromDOM(scanConvId);
       const totalDiscovered = scanState.stickers.length;
-      if (btnView) {
-        btnView.innerText = t("scanningProgress", { count: totalDiscovered });
-      }
+      counterEl.innerText = t("stickersFound", { count: totalDiscovered });
 
       triggerScrollToTop(container);
 
@@ -1453,6 +1521,7 @@ executeChatScan = async () => {
     }
   } finally {
     isChatScanning = false;
+    scanOverlay.remove();
 
     scanState = registerStickersFromDOM(scanConvId);
     scanState.lastScanTimestamp = Date.now();
@@ -2064,53 +2133,88 @@ const checkAndShowMessagesRedirectDialog = () => {
   overlay.style.width = '100vw';
   overlay.style.height = '100vh';
   overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
-  overlay.style.backdropFilter = 'blur(8px)';
   overlay.style.zIndex = '9999999';
   overlay.style.display = 'flex';
   overlay.style.alignItems = 'center';
   overlay.style.justifyContent = 'center';
   overlay.style.padding = '20px';
   overlay.style.boxSizing = 'border-box';
-  overlay.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  overlay.style.fontFamily = 'sans-serif';
 
   const card = document.createElement('div');
-  card.style.backgroundColor = '#161823';
-  card.style.border = '1px solid rgba(255, 255, 255, 0.15)';
-  card.style.borderRadius = '24px';
-  card.style.padding = '32px 24px';
-  card.style.maxWidth = '400px';
+  card.style.position = 'relative';
+  card.style.backgroundColor = '#252525';
+  card.style.borderRadius = '16px';
+  card.style.padding = '30px 24px 22px 24px';
+  card.style.maxWidth = '380px';
   card.style.width = '90%';
   card.style.textAlign = 'center';
-  card.style.boxShadow = '0 20px 60px rgba(0, 0, 0, 0.9)';
+  card.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.6)';
   card.style.boxSizing = 'border-box';
   card.style.display = 'flex';
   card.style.flexDirection = 'column';
   card.style.alignItems = 'center';
+  card.style.color = 'white';
+
+  // Botón circular de cerrar (X) en esquina superior derecha
+  const btnClose = document.createElement('button');
+  btnClose.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>`;
+  btnClose.style.position = 'absolute';
+  btnClose.style.top = '12px';
+  btnClose.style.right = '12px';
+  btnClose.style.width = '36px';
+  btnClose.style.height = '36px';
+  btnClose.style.display = 'flex';
+  btnClose.style.alignItems = 'center';
+  btnClose.style.justifyContent = 'center';
+  btnClose.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+  btnClose.style.borderRadius = '50%';
+  btnClose.style.border = 'none';
+  btnClose.style.color = '#ffffff';
+  btnClose.style.cursor = 'pointer';
+  btnClose.style.zIndex = '10';
+  btnClose.style.transition = 'background-color 0.2s, transform 0.2s';
+  btnClose.addEventListener('mouseenter', () => {
+    btnClose.style.backgroundColor = 'rgba(254, 44, 85, 0.9)';
+    btnClose.style.transform = 'scale(1.1)';
+  });
+  btnClose.addEventListener('mouseleave', () => {
+    btnClose.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+    btnClose.style.transform = 'scale(1)';
+  });
+  btnClose.onclick = () => {
+    userDismissedRedirectDialog = true;
+    overlay.remove();
+  };
+  card.appendChild(btnClose);
 
   const iconImg = document.createElement('img');
   iconImg.src = browser.runtime.getURL('icons/icon-128.png');
-  iconImg.style.width = '72px';
-  iconImg.style.height = '72px';
-  iconImg.style.borderRadius = '20px';
-  iconImg.style.marginBottom = '18px';
-  iconImg.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
+  iconImg.style.width = '64px';
+  iconImg.style.height = '64px';
+  iconImg.style.borderRadius = '16px';
+  iconImg.style.marginBottom = '16px';
+  iconImg.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)';
   iconImg.style.objectFit = 'contain';
   card.appendChild(iconImg);
 
   const title = document.createElement('h3');
   title.innerText = t("redirectQuestion");
   title.style.color = '#ffffff';
-  title.style.fontSize = '20px';
+  title.style.fontSize = '19px';
   title.style.fontWeight = '700';
-  title.style.margin = '0 0 10px 0';
+  title.style.margin = '0 0 8px 0';
   card.appendChild(title);
 
   const desc = document.createElement('p');
   desc.innerText = t("redirectSubtitle");
-  desc.style.color = 'rgba(255, 255, 255, 0.72)';
+  desc.style.color = 'rgba(255, 255, 255, 0.7)';
   desc.style.fontSize = '14px';
   desc.style.lineHeight = '1.45';
-  desc.style.margin = '0 0 24px 0';
+  desc.style.margin = '0 0 20px 0';
   card.appendChild(desc);
 
   const btnGo = document.createElement('button');
@@ -2118,9 +2222,9 @@ const checkAndShowMessagesRedirectDialog = () => {
   btnGo.style.backgroundColor = '#fe2c55';
   btnGo.style.color = '#ffffff';
   btnGo.style.border = 'none';
-  btnGo.style.borderRadius = '14px';
-  btnGo.style.padding = '14px 22px';
-  btnGo.style.fontSize = '16px';
+  btnGo.style.borderRadius = '10px';
+  btnGo.style.padding = '12px 20px';
+  btnGo.style.fontSize = '15px';
   btnGo.style.fontWeight = 'bold';
   btnGo.style.cursor = 'pointer';
   btnGo.style.display = 'flex';
@@ -2146,11 +2250,11 @@ const checkAndShowMessagesRedirectDialog = () => {
   btnDismiss.style.color = 'rgba(255, 255, 255, 0.55)';
   btnDismiss.style.border = 'none';
   btnDismiss.style.borderRadius = '8px';
-  btnDismiss.style.padding = '12px 14px';
-  btnDismiss.style.fontSize = '14px';
+  btnDismiss.style.padding = '10px 14px';
+  btnDismiss.style.fontSize = '13px';
   btnDismiss.style.fontWeight = '500';
   btnDismiss.style.cursor = 'pointer';
-  btnDismiss.style.marginTop = '8px';
+  btnDismiss.style.marginTop = '6px';
   btnDismiss.onclick = () => {
     userDismissedRedirectDialog = true;
     overlay.remove();
