@@ -147,28 +147,19 @@ const getExtension = (res: Response): string => {
 
 // Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS o pantalla táctil)
 const isMobileDevice = (): boolean => {
+  // 1. Detección estándar si el User-Agent contiene indicadores móviles:
   const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '';
-  
-  // 1. Si explícitamente es Windows de escritorio o macOS de escritorio, es PC
-  if (/Windows NT|Macintosh|Win64|WOW64/i.test(ua)) {
-    return false;
-  }
-
-  // 2. Si el User-Agent contiene indicadores móviles típicos o Fenix (Firefox Android)
-  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Fenix/i.test(ua)) {
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) {
     return true;
   }
 
-  // 3. Capacidades táctiles nativas y pantalla física de dispositivo móvil
+  // 2. Detección por hardware para móviles con "Modo Escritorio" activado:
+  // Todos los smartphones del mundo miden <= 500px físicos (CSS), y tienen pantalla táctil (touch).
+  // Las PCs y laptops miden mínimo 768px o 1080px de alto/ancho.
   const hasTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
-  const isCoarse = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
-  const isPhysicalPhoneScreen = typeof window !== 'undefined' && typeof window.screen !== 'undefined' && Math.min(window.screen.width, window.screen.height) <= 650;
+  const isPhoneScreen = typeof window !== 'undefined' && typeof window.screen !== 'undefined' && Math.min(window.screen.width, window.screen.height) <= 600;
 
-  if (hasTouch || isCoarse || isPhysicalPhoneScreen) {
-    return true;
-  }
-
-  return false;
+  return hasTouch && isPhoneScreen;
 };
 
 // Funciones para manejar el historial de descargas en localStorage
@@ -1901,7 +1892,10 @@ const updateMobileLayout = () => {
 };
 
 // Muestra un diálogo flotante al entrar a TikTok si no estamos en /messages
+let userDismissedRedirectDialog = false;
+
 const checkAndShowMessagesRedirectDialog = () => {
+  if (userDismissedRedirectDialog) return;
   if (!isMobileDevice()) return;
   if (window.location.pathname.startsWith('/messages')) return;
 
@@ -2004,6 +1998,7 @@ const checkAndShowMessagesRedirectDialog = () => {
   btnDismiss.style.cursor = 'pointer';
   btnDismiss.style.marginTop = '8px';
   btnDismiss.onclick = () => {
+    userDismissedRedirectDialog = true;
     overlay.remove();
   };
   card.appendChild(btnDismiss);
