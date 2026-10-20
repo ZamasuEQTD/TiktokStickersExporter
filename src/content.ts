@@ -458,35 +458,39 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     scrollContainer.appendChild(contentOld);
     modal.appendChild(scrollContainer);
 
-    // Contenedor de botones de acción en fila horizontal (uno al lado del otro)
-    const btnContainer = document.createElement("div");
-    btnContainer.style.display = "flex";
-    btnContainer.style.flexDirection = "row";
-    btnContainer.style.alignItems = "center";
-    btnContainer.style.gap = isMobile ? s(10) : "12px";
-    btnContainer.style.marginTop = isMobile ? s(10) : "14px";
-    btnContainer.style.flexWrap = isMobile ? "wrap" : "nowrap";
+    // Fila superior con los 2 botones de descarga lado a lado (50% y 50%)
+    const downloadBtnsRow = document.createElement("div");
+    downloadBtnsRow.style.display = "flex";
+    downloadBtnsRow.style.flexDirection = "row";
+    downloadBtnsRow.style.alignItems = "center";
+    downloadBtnsRow.style.gap = isMobile ? s(10) : "12px";
+    downloadBtnsRow.style.marginTop = isMobile ? s(12) : "14px";
+    downloadBtnsRow.style.width = "100%";
 
-    // 1. Botón Cancelar
+    // Botón Cancelar abajo, en su propia fila para no amontonarse
     const btnCancel = document.createElement("button");
     btnCancel.innerText = t("cancel");
-    btnCancel.style.padding = isMobile ? s(12) : "11px 18px";
+    btnCancel.style.width = "100%";
+    btnCancel.style.marginTop = isMobile ? s(8) : "10px";
+    btnCancel.style.padding = isMobile ? s(10) : "10px 18px";
     btnCancel.style.borderRadius = isMobile ? s(8) : "8px";
-    btnCancel.style.border = "1px solid rgba(255, 255, 255, 0.15)";
-    btnCancel.style.backgroundColor = "#383838";
-    btnCancel.style.color = "#eee";
+    btnCancel.style.border = "1px solid rgba(255, 255, 255, 0.12)";
+    btnCancel.style.backgroundColor = "#333";
+    btnCancel.style.color = "#bbb";
     btnCancel.style.cursor = "pointer";
     btnCancel.style.fontWeight = "bold";
-    btnCancel.style.fontSize = isMobile ? s(14) : "14px";
-    btnCancel.style.flex = isMobile ? "1 1 100%" : "0 0 auto";
-    btnCancel.style.transition = "background-color 0.2s, transform 0.2s";
+    btnCancel.style.fontSize = isMobile ? s(13) : "14px";
+    btnCancel.style.textAlign = "center";
+    btnCancel.style.transition = "background-color 0.2s, color 0.2s, transform 0.2s";
 
     btnCancel.addEventListener("mouseenter", () => {
-      btnCancel.style.backgroundColor = "#4a4a4a";
-      btnCancel.style.transform = "scale(1.02)";
+      btnCancel.style.backgroundColor = "#444";
+      btnCancel.style.color = "#ffffff";
+      btnCancel.style.transform = "scale(1.01)";
     });
     btnCancel.addEventListener("mouseleave", () => {
-      btnCancel.style.backgroundColor = "#383838";
+      btnCancel.style.backgroundColor = "#333";
+      btnCancel.style.color = "#bbb";
       btnCancel.style.transform = "scale(1)";
     });
 
@@ -557,10 +561,10 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       resolve({ action: 'zip', urls: Array.from(selectedUrls) });
     };
 
-    btnContainer.appendChild(btnCancel);
-    btnContainer.appendChild(btnSeq);
-    btnContainer.appendChild(btnZip);
-    modal.appendChild(btnContainer);
+    downloadBtnsRow.appendChild(btnSeq);
+    downloadBtnsRow.appendChild(btnZip);
+    modal.appendChild(downloadBtnsRow);
+    modal.appendChild(btnCancel);
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);

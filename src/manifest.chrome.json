@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TikTok Stickers Exporter",
-  "version": "1.4.8",
+  "version": "1.4.9",
   "description": "Export TikTok Stickers easily",
   "minimum_chrome_version": "94",
   "permissions": [
