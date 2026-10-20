@@ -47,11 +47,6 @@ const translations = {
     viewStickers: "View stickers ({count})",
     viewStickersNoCount: "View stickers",
     viewStickersTitle: "TikTok Stickers",
-    groupByDate: "Group by date",
-    flatView: "Grid view",
-    today: "Today",
-    yesterday: "Yesterday",
-    earlierHistory: "Earlier history",
     downloadSeqBtn: "Download ({count})",
     downloadZipBtn: "Download ZIP ({count})",
     downloadSeqTooltip: "Download selected stickers one by one",
@@ -108,11 +103,6 @@ const translations = {
     viewStickers: "Ver stickers ({count})",
     viewStickersNoCount: "Ver stickers",
     viewStickersTitle: "Stickers de TikTok",
-    groupByDate: "Separar por fecha",
-    flatView: "Vista cuadrícula",
-    today: "Hoy",
-    yesterday: "Ayer",
-    earlierHistory: "Historial anterior",
     downloadSeqBtn: "Descargar ({count})",
     downloadZipBtn: "Descargar ZIP ({count})",
     downloadSeqTooltip: "Descargar los stickers seleccionados uno por uno",
@@ -199,90 +189,10 @@ interface CustomConfirmResult {
   urls: string[];
 }
 
-// Iconos vectoriales SVG limpios y nítidos (adiós emojis)
-const svgDownload = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;">
-  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-  <polyline points="7 10 12 15 17 10"></polyline>
-  <line x1="12" y1="15" x2="12" y2="3"></line>
-</svg>`;
-
-const svgArchive = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;">
-  <polyline points="21 8 21 21 3 21 3 8"></polyline>
-  <rect x="1" y="3" width="22" height="5" rx="1"></rect>
-  <line x1="10" y1="12" x2="14" y2="12"></line>
-</svg>`;
-
-const svgCalendar = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;flex-shrink:0;">
-  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-  <line x1="16" y1="2" x2="16" y2="6"></line>
-  <line x1="8" y1="2" x2="8" y2="6"></line>
-  <line x1="3" y1="10" x2="21" y2="10"></line>
-</svg>`;
-
-const svgGrid = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;flex-shrink:0;">
-  <rect x="3" y="3" width="7" height="7"></rect>
-  <rect x="14" y="3" width="7" height="7"></rect>
-  <rect x="14" y="14" width="7" height="7"></rect>
-  <rect x="3" y="14" width="7" height="7"></rect>
-</svg>`;
-
-// Comprueba si un texto corresponde a una fecha o separador de tiempo en el chat
-const isDateString = (text: string): boolean => {
-  if (!text) return false;
-  const t = text.trim();
-  if (t.length === 0 || t.length > 55) return false;
-
-  // Patrón universal: días de la semana, fechas con meses (es/en), hoy/ayer, y numéricas
-  const datePattern = /^\s*(?:(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|lun|mar|mi[eé]|jue|vie|s[aá]b|dom|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\.?,?\s+)?(?:(?:hoy|ayer|today|yesterday)|(?:\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)\.?(?:\s+de\s+\d{2,4})?)|(?:\d{1,2}\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)\.?(?:\s+de\s+\d{2,4})?)|(?:(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\.?\s+\d{1,2}(?:,?\s+\d{4})?)|(?:\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\.?(?:,?\s+\d{4})?)|(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|lun|mar|mi[eé]|jue|vie|s[aá]b|dom|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)|(?:\d{1,4}[\/\.-]\d{1,2}[\/\.-]\d{2,4}))(?:,?\s+(?:a\s+las\s+|at\s+)?\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\.?)?)?\s*$/i;
-
-  return datePattern.test(t);
-};
-
-// Limpia el texto de fecha para extraer únicamente la fecha (removiendo horas)
-const cleanDateLabel = (rawText: string): string => {
-  if (!rawText) return "";
-  let s = rawText.trim();
-  // Eliminar la porción horaria al final
-  s = s.replace(/[,.]?\s+(?:a\s+las\s+|at\s+)?\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\.?)?$/i, '');
-  s = s.trim().replace(/,+$/, '').trim();
-  if (s.length > 0) {
-    s = s.charAt(0).toUpperCase() + s.slice(1);
-  }
-  return s;
-};
-
-// Helper para dar formato legible a la fecha de un sticker
-const formatStickerDate = (timeStr?: string, timestamp?: number): string => {
-  const lang = getLang();
-  if (timeStr && timeStr.trim()) {
-    const cleaned = cleanDateLabel(timeStr);
-    if (cleaned) {
-      if (/^(today|hoy)$/i.test(cleaned)) return t("today");
-      if (/^(yesterday|ayer)$/i.test(cleaned)) return t("yesterday");
-      return cleaned;
-    }
-  }
-  // Si no se detectó la fecha real en el chat, evitamos usar la fecha del escaneo como 'Hoy'
-  return t("earlierHistory");
-};
-
-// Función para mostrar el diálogo modal con vista amplia en PC, selector de fechas y botones limpios
-const showCustomConfirm = async (
-  rawNewStickers: string[], 
-  rawOldStickers: string[], 
-  convId: string
-): Promise<CustomConfirmResult | null> => {
+// Función para mostrar un diálogo modal personalizado con vista previa amplia en PC
+const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: string[]): Promise<CustomConfirmResult | null> => {
   const newStickers = deduplicateStickerUrls(rawNewStickers);
   const oldStickers = deduplicateStickerUrls(rawOldStickers);
-
-  // Cargamos el estado para consultar la fecha de cada sticker
-  const scanState = loadConversationScanState(convId);
-  const urlToDateMap = new Map<string, string>();
-  for (const s of scanState.stickers) {
-    const dateLabel = formatStickerDate(s.time, s.discoveredAt);
-    urlToDateMap.set(s.url, dateLabel);
-    urlToDateMap.set(s.id, dateLabel);
-  }
 
   return new Promise((resolve) => {
     const isMobile = isMobileDevice();
@@ -315,7 +225,7 @@ const showCustomConfirm = async (
     modal.style.color = "white";
     modal.style.fontFamily = "sans-serif";
 
-    // Botón X para cerrar
+    // Botón X grande y visible para cerrar
     const btnX = document.createElement("button");
     btnX.title = t("close");
     btnX.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -415,8 +325,8 @@ const showCustomConfirm = async (
 
     const updateActionButtons = () => {
       const count = selectedUrls.size;
-      btnSeq.innerHTML = `${svgDownload}<span>${t("downloadSeqBtn", { count })}</span>`;
-      btnZip.innerHTML = `${svgArchive}<span>${t("downloadZipBtn", { count })}</span>`;
+      btnSeq.innerText = `📥 ${t("downloadSeqBtn", { count })}`;
+      btnZip.innerText = `📦 ${t("downloadZipBtn", { count })}`;
       const isDisabled = count === 0;
       btnSeq.disabled = isDisabled;
       btnZip.disabled = isDisabled;
@@ -425,11 +335,7 @@ const showCustomConfirm = async (
       btnSeq.style.cursor = isDisabled ? "not-allowed" : "pointer";
       btnZip.style.cursor = isDisabled ? "not-allowed" : "pointer";
     };
-
-    // Estado global de la vista: cuadrícula normal o separada por fecha
-    let isDateGrouped = false;
-    let refreshCurrentTab: () => void = () => {};
-
+    
     const createSectionWithGrid = (urls: string[], initiallySelected: boolean, emptyText: string) => {
       const section = document.createElement("div");
       section.style.display = "flex";
@@ -443,20 +349,17 @@ const showCustomConfirm = async (
         emptyEl.style.fontSize = isMobile ? s(14) : "14px";
         emptyEl.style.marginTop = isMobile ? s(20) : "24px";
         section.appendChild(emptyEl);
-        return { section, refresh: () => {} };
+        return section;
       }
 
-      // Barra de controles superiores: Seleccionar todos (izq) y Separar por fecha (der)
       const sectionHeader = document.createElement("div");
       sectionHeader.style.display = "flex";
       sectionHeader.style.justifyContent = "space-between";
       sectionHeader.style.alignItems = "center";
-      sectionHeader.style.marginBottom = isMobile ? s(10) : "14px";
-      sectionHeader.style.flexWrap = "wrap";
-      sectionHeader.style.gap = "8px";
+      sectionHeader.style.marginBottom = isMobile ? s(10) : "12px";
 
       const btnToggle = document.createElement("button");
-      btnToggle.style.padding = isMobile ? `${s(6)} ${s(12)}` : "6px 14px";
+      btnToggle.style.padding = isMobile ? `${s(5)} ${s(10)}` : "6px 14px";
       btnToggle.style.borderRadius = isMobile ? s(6) : "6px";
       btnToggle.style.cursor = "pointer";
       btnToggle.style.fontSize = isMobile ? s(12) : "13px";
@@ -468,7 +371,7 @@ const showCustomConfirm = async (
       const updateToggleBtn = () => {
         const allSel = isAllSelected();
         btnToggle.innerText = allSel ? t("cancelSelection") : t("selectAll");
-        btnToggle.style.border = allSel ? "1px solid #fe2c55" : "1px solid #666";
+        btnToggle.style.border = allSel ? "1px solid #fe2c55" : "1px solid #888";
         btnToggle.style.color = allSel ? "#fe2c55" : "#ccc";
         btnToggle.style.backgroundColor = allSel ? "rgba(254, 44, 85, 0.1)" : "transparent";
       };
@@ -489,47 +392,18 @@ const showCustomConfirm = async (
         updateActionButtons();
       };
 
-      // Botón para alternar entre vista cuadrícula y vista agrupada por fecha
-      const btnDateToggle = document.createElement("button");
-      btnDateToggle.style.padding = isMobile ? `${s(6)} ${s(12)}` : "6px 14px";
-      btnDateToggle.style.borderRadius = isMobile ? s(6) : "6px";
-      btnDateToggle.style.cursor = "pointer";
-      btnDateToggle.style.fontSize = isMobile ? s(12) : "13px";
-      btnDateToggle.style.fontWeight = "bold";
-      btnDateToggle.style.transition = "all 0.2s";
-      btnDateToggle.style.display = "inline-flex";
-      btnDateToggle.style.alignItems = "center";
-      btnDateToggle.style.justifyContent = "center";
-
-      const updateDateToggleVisual = () => {
-        if (isDateGrouped) {
-          btnDateToggle.innerHTML = `${svgGrid}<span>${t("flatView")}</span>`;
-          btnDateToggle.style.border = "1px solid #fe2c55";
-          btnDateToggle.style.color = "#fe2c55";
-          btnDateToggle.style.backgroundColor = "rgba(254, 44, 85, 0.15)";
-        } else {
-          btnDateToggle.innerHTML = `${svgCalendar}<span>${t("groupByDate")}</span>`;
-          btnDateToggle.style.border = "1px solid #666";
-          btnDateToggle.style.color = "#ccc";
-          btnDateToggle.style.backgroundColor = "transparent";
-        }
-      };
-
-      updateDateToggleVisual();
-
-      btnDateToggle.onclick = () => {
-        isDateGrouped = !isDateGrouped;
-        refreshCurrentTab();
-      };
-
       sectionHeader.appendChild(btnToggle);
-      sectionHeader.appendChild(btnDateToggle);
       section.appendChild(sectionHeader);
 
-      const gridContainer = document.createElement("div");
-      section.appendChild(gridContainer);
+      const grid = document.createElement("div");
+      grid.style.display = "grid";
+      // En PC mostrar cuadrícula espaciosa y grande (min 88px), en móvil compacta
+      grid.style.gridTemplateColumns = isMobile 
+        ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
+        : "repeat(auto-fill, minmax(88px, 1fr))";
+      grid.style.gap = isMobile ? s(8) : "12px";
 
-      const renderStickerItem = (url: string, parentGrid: HTMLElement) => {
+      urls.forEach(url => {
         const container = document.createElement("div");
         container.style.position = "relative";
         container.style.cursor = "pointer";
@@ -543,15 +417,14 @@ const showCustomConfirm = async (
         img.style.backgroundColor = "#181818";
         img.style.transition = "all 0.2s";
 
-        const isCurrentlySelected = selectedUrls.has(url);
-        if (!isCurrentlySelected) {
+        if (!initiallySelected) {
           img.style.opacity = "0.3";
           img.style.transform = "scale(0.9)";
           img.style.filter = "grayscale(100%)";
         }
 
         container.appendChild(img);
-        parentGrid.appendChild(container);
+        grid.appendChild(container);
         const existing = imageElements.get(url) || [];
         existing.push(img);
         imageElements.set(url, existing);
@@ -567,93 +440,25 @@ const showCustomConfirm = async (
           updateToggleBtn();
           updateActionButtons();
         };
-      };
+      });
 
-      const renderGridContent = () => {
-        gridContainer.innerHTML = "";
-        updateDateToggleVisual();
-
-        if (!isDateGrouped) {
-          // Vista continua en cuadrícula espaciosa
-          const grid = document.createElement("div");
-          grid.style.display = "grid";
-          grid.style.gridTemplateColumns = isMobile 
-            ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
-            : "repeat(auto-fill, minmax(88px, 1fr))";
-          grid.style.gap = isMobile ? s(8) : "12px";
-
-          urls.forEach(url => renderStickerItem(url, grid));
-          gridContainer.appendChild(grid);
-        } else {
-          // Vista agrupada por fecha tipo galería (alineado a la izquierda, sin chip, sin cantidad)
-          const groups = new Map<string, string[]>();
-          urls.forEach(url => {
-            const dateLabel = urlToDateMap.get(url) || urlToDateMap.get(getStickerId(url)) || t("earlierHistory");
-            if (!groups.has(dateLabel)) {
-              groups.set(dateLabel, []);
-            }
-            groups.get(dateLabel)!.push(url);
-          });
-
-          groups.forEach((groupUrls, dateLabel) => {
-            const groupWrapper = document.createElement("div");
-            groupWrapper.style.marginBottom = "24px";
-
-            // Encabezado tipo Galería: a la izquierda, limpio, sin chip ni números entre paréntesis
-            const dateTitle = document.createElement("div");
-            dateTitle.innerText = dateLabel;
-            dateTitle.style.textAlign = "left";
-            dateTitle.style.fontSize = isMobile ? s(15) : "16px";
-            dateTitle.style.fontWeight = "bold";
-            dateTitle.style.color = "#ffffff";
-            dateTitle.style.letterSpacing = "-0.2px";
-            dateTitle.style.margin = "16px 0 10px 0";
-            dateTitle.style.paddingLeft = "2px";
-            groupWrapper.appendChild(dateTitle);
-
-            const grid = document.createElement("div");
-            grid.style.display = "grid";
-            grid.style.gridTemplateColumns = isMobile 
-              ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
-              : "repeat(auto-fill, minmax(88px, 1fr))";
-            grid.style.gap = isMobile ? s(8) : "12px";
-
-            groupUrls.forEach(url => renderStickerItem(url, grid));
-            groupWrapper.appendChild(grid);
-            gridContainer.appendChild(groupWrapper);
-          });
-        }
-      };
-
-      renderGridContent();
-
-      return { section, refresh: renderGridContent };
+      section.appendChild(grid);
+      return section;
     };
 
-    const compNew = createSectionWithGrid(newStickers, true, t("noNewStickers"));
-    const compOld = createSectionWithGrid(oldStickers, false, t("noOldStickers"));
-    compOld.section.style.display = "none";
-
-    let currentTabIsNew = true;
-    refreshCurrentTab = () => {
-      if (currentTabIsNew) {
-        compNew.refresh();
-      } else {
-        compOld.refresh();
-      }
-    };
+    const contentNew = createSectionWithGrid(newStickers, true, t("noNewStickers"));
+    const contentOld = createSectionWithGrid(oldStickers, false, t("noOldStickers"));
+    contentOld.style.display = "none";
     
     const setActiveTab = (isNew: boolean) => {
-      currentTabIsNew = isNew;
       tabNew.style.color = isNew ? "#fe2c55" : "#888";
       tabNew.style.borderBottom = isNew ? `2px solid #fe2c55` : `2px solid transparent`;
       
       tabOld.style.color = !isNew ? "#fe2c55" : "#888";
       tabOld.style.borderBottom = !isNew ? `2px solid #fe2c55` : `2px solid transparent`;
       
-      compNew.section.style.display = isNew ? "flex" : "none";
-      compOld.section.style.display = !isNew ? "flex" : "none";
-      refreshCurrentTab();
+      contentNew.style.display = isNew ? "flex" : "none";
+      contentOld.style.display = !isNew ? "flex" : "none";
     };
     
     tabNew.onclick = () => setActiveTab(true);
@@ -661,8 +466,8 @@ const showCustomConfirm = async (
     
     setActiveTab(true);
 
-    scrollContainer.appendChild(compNew.section);
-    scrollContainer.appendChild(compOld.section);
+    scrollContainer.appendChild(contentNew);
+    scrollContainer.appendChild(contentOld);
     modal.appendChild(scrollContainer);
 
     // Fila superior con los 2 botones de descarga lado a lado (50% y 50%)
@@ -674,65 +479,7 @@ const showCustomConfirm = async (
     downloadBtnsRow.style.marginTop = isMobile ? s(12) : "14px";
     downloadBtnsRow.style.width = "100%";
 
-    // 1. Botón Descarga Secuencial (uno por uno) con SVG
-    btnSeq.style.padding = isMobile ? s(12) : "12px 18px";
-    btnSeq.style.borderRadius = isMobile ? s(8) : "8px";
-    btnSeq.style.border = "1.5px solid #fe2c55";
-    btnSeq.style.backgroundColor = "transparent";
-    btnSeq.style.color = "#fe2c55";
-    btnSeq.style.cursor = "pointer";
-    btnSeq.style.fontWeight = "bold";
-    btnSeq.style.fontSize = isMobile ? s(14) : "14px";
-    btnSeq.style.flex = "1";
-    btnSeq.style.display = "inline-flex";
-    btnSeq.style.alignItems = "center";
-    btnSeq.style.justifyContent = "center";
-    btnSeq.style.transition = "background-color 0.2s, transform 0.2s";
-    btnSeq.title = t("downloadSeqTooltip");
-
-    btnSeq.addEventListener("mouseenter", () => {
-      if (!btnSeq.disabled) {
-        btnSeq.style.backgroundColor = "rgba(254, 44, 85, 0.12)";
-        btnSeq.style.transform = "scale(1.02)";
-      }
-    });
-    btnSeq.addEventListener("mouseleave", () => {
-      btnSeq.style.backgroundColor = "transparent";
-      btnSeq.style.transform = "scale(1)";
-    });
-
-    // 2. Botón Descarga ZIP con SVG
-    btnZip.style.padding = isMobile ? s(12) : "12px 18px";
-    btnZip.style.borderRadius = isMobile ? s(8) : "8px";
-    btnZip.style.border = "1.5px solid #fe2c55";
-    btnZip.style.backgroundColor = "#fe2c55";
-    btnZip.style.color = "#ffffff";
-    btnZip.style.cursor = "pointer";
-    btnZip.style.fontWeight = "bold";
-    btnZip.style.fontSize = isMobile ? s(14) : "14px";
-    btnZip.style.flex = "1";
-    btnZip.style.display = "inline-flex";
-    btnZip.style.alignItems = "center";
-    btnZip.style.justifyContent = "center";
-    btnZip.style.transition = "filter 0.2s, transform 0.2s";
-    btnZip.title = t("downloadZipTooltip");
-
-    btnZip.addEventListener("mouseenter", () => {
-      if (!btnZip.disabled) {
-        btnZip.style.filter = "brightness(1.1)";
-        btnZip.style.transform = "scale(1.02)";
-      }
-    });
-    btnZip.addEventListener("mouseleave", () => {
-      btnZip.style.filter = "none";
-      btnZip.style.transform = "scale(1)";
-    });
-
-    downloadBtnsRow.appendChild(btnSeq);
-    downloadBtnsRow.appendChild(btnZip);
-    modal.appendChild(downloadBtnsRow);
-
-    // 3. Botón Cancelar abajo, en su propia fila
+    // Botón Cancelar abajo, en su propia fila para no amontonarse
     const btnCancel = document.createElement("button");
     btnCancel.innerText = t("cancel");
     btnCancel.style.width = "100%";
@@ -759,6 +506,54 @@ const showCustomConfirm = async (
       btnCancel.style.transform = "scale(1)";
     });
 
+    // 2. Botón Descarga Secuencial (uno por uno)
+    btnSeq.style.padding = isMobile ? s(12) : "11px 18px";
+    btnSeq.style.borderRadius = isMobile ? s(8) : "8px";
+    btnSeq.style.border = "1.5px solid #fe2c55";
+    btnSeq.style.backgroundColor = "transparent";
+    btnSeq.style.color = "#fe2c55";
+    btnSeq.style.cursor = "pointer";
+    btnSeq.style.fontWeight = "bold";
+    btnSeq.style.fontSize = isMobile ? s(14) : "14px";
+    btnSeq.style.flex = "1";
+    btnSeq.style.transition = "background-color 0.2s, transform 0.2s";
+    btnSeq.title = t("downloadSeqTooltip");
+
+    btnSeq.addEventListener("mouseenter", () => {
+      if (!btnSeq.disabled) {
+        btnSeq.style.backgroundColor = "rgba(254, 44, 85, 0.12)";
+        btnSeq.style.transform = "scale(1.02)";
+      }
+    });
+    btnSeq.addEventListener("mouseleave", () => {
+      btnSeq.style.backgroundColor = "transparent";
+      btnSeq.style.transform = "scale(1)";
+    });
+
+    // 3. Botón Descarga ZIP
+    btnZip.style.padding = isMobile ? s(12) : "11px 18px";
+    btnZip.style.borderRadius = isMobile ? s(8) : "8px";
+    btnZip.style.border = "1.5px solid #fe2c55";
+    btnZip.style.backgroundColor = "#fe2c55";
+    btnZip.style.color = "#ffffff";
+    btnZip.style.cursor = "pointer";
+    btnZip.style.fontWeight = "bold";
+    btnZip.style.fontSize = isMobile ? s(14) : "14px";
+    btnZip.style.flex = "1";
+    btnZip.style.transition = "filter 0.2s, transform 0.2s";
+    btnZip.title = t("downloadZipTooltip");
+
+    btnZip.addEventListener("mouseenter", () => {
+      if (!btnZip.disabled) {
+        btnZip.style.filter = "brightness(1.1)";
+        btnZip.style.transform = "scale(1.02)";
+      }
+    });
+    btnZip.addEventListener("mouseleave", () => {
+      btnZip.style.filter = "none";
+      btnZip.style.transform = "scale(1)";
+    });
+
     updateActionButtons();
 
     btnCancel.onclick = () => {
@@ -778,6 +573,9 @@ const showCustomConfirm = async (
       resolve({ action: 'zip', urls: Array.from(selectedUrls) });
     };
 
+    downloadBtnsRow.appendChild(btnSeq);
+    downloadBtnsRow.appendChild(btnZip);
+    modal.appendChild(downloadBtnsRow);
     modal.appendChild(btnCancel);
 
     overlay.appendChild(modal);
@@ -865,6 +663,7 @@ const showSettingsModal = () => {
   header.style.textAlign = "center";
   modal.appendChild(header);
 
+  // Selector de idioma
   const langContainer = document.createElement("div");
   langContainer.style.display = "flex";
   langContainer.style.flexDirection = "column";
@@ -917,6 +716,7 @@ const showSettingsModal = () => {
   langContainer.appendChild(langSelect);
   modal.appendChild(langContainer);
 
+  // Delay setting
   const delayContainer = document.createElement("div");
   delayContainer.style.display = "flex";
   delayContainer.style.flexDirection = "column";
@@ -948,6 +748,7 @@ const showSettingsModal = () => {
   delayContainer.appendChild(delayInput);
   modal.appendChild(delayContainer);
 
+  // Clear history button
   const btnClear = document.createElement("button");
   btnClear.innerText = t("clearHistory");
   btnClear.style.padding = s(12);
@@ -1036,7 +837,7 @@ interface ScannedStickerRecord {
   id: string;          // getStickerId(url)
   url: string;         // URL completa del sticker (con token firmado más reciente)
   text?: string;       // Texto o comentario que acompaña al sticker si existe
-  time?: string;       // Fecha real del mensaje en el chat
+  time?: string;       // Hora o fecha del mensaje si se muestra en el DOM
   discoveredAt: number;// Timestamp de cuándo se descubrió
 }
 
@@ -1079,81 +880,17 @@ const saveConversationScanState = (state: ConversationScanState) => {
   }
 };
 
-// Localiza todos los divisores de fecha oficiales de TikTok
-const getAllDateDividers = (): { element: Element; date: string }[] => {
-  const results: { element: Element; date: string }[] = [];
-  
-  // Selector oficial de TikTok data-e2e y clases estándar de fecha
-  const selector = '[data-e2e="dm-new-time-separator"], [class*="DivTimeContainer"], [class*="TimeSeparator"]';
-  const dividers = document.querySelectorAll(selector);
-
-  for (const div of Array.from(dividers)) {
-    const span = div.querySelector('span') || div;
-    const raw = (span.textContent || div.textContent || '').trim();
-    if (raw) {
-      const clean = cleanDateLabel(raw);
-      if (clean) {
-        results.push({ element: div, date: clean });
-      }
-    }
-  }
-
-  // Si no se encontró ninguno con el selector oficial, fallback con detector universal
-  if (results.length === 0) {
-    const container = findChatScrollable() || document.body;
-    const candidates = container.querySelectorAll('div, p, span, time');
-    for (const el of Array.from(candidates)) {
-      if (el.children.length > 2) continue;
-      const txt = (el.textContent || '').trim();
-      if (txt.length > 0 && txt.length < 50 && isDateString(txt)) {
-        const clean = cleanDateLabel(txt);
-        if (clean) {
-          const last = results[results.length - 1];
-          if (!last || last.date !== clean || !last.element.contains(el)) {
-            results.push({ element: el, date: clean });
-          }
-        }
-      }
-    }
-  }
-
-  return results;
-};
-
-// Encuentra la fecha real del mensaje en el chat de TikTok para un sticker
-const findStickerDateInDOM = (img: HTMLImageElement, dateDividers: { element: Element; date: string }[]): string => {
-  let matchedDate = "";
-
-  // Buscamos el último divisor de fecha que precede a la imagen en el orden del documento.
-  // img.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_PRECEDING (2) indica que divider está ANTES de img
-  for (const divider of dateDividers) {
-    if (img.compareDocumentPosition(divider.element) & Node.DOCUMENT_POSITION_PRECEDING) {
-      matchedDate = divider.date;
-    }
-  }
-
-  if (matchedDate) return matchedDate;
-
-  // Si no hay divisor previo a la imagen en la vista actual pero hay divisores en pantalla,
-  // asignamos el divisor siguiente más cercano
-  for (const divider of dateDividers) {
-    if (img.compareDocumentPosition(divider.element) & Node.DOCUMENT_POSITION_FOLLOWING) {
-      return divider.date;
-    }
-  }
-
-  if (dateDividers.length > 0) {
-    return dateDividers[0].date;
-  }
-
-  return "";
-};
-
 const getStickerMessageContext = (img: HTMLImageElement): { text?: string; time?: string } => {
   const context: { text?: string; time?: string } = {};
-  let el: HTMLElement | null = img.parentElement;
+  let el = img.parentElement;
   let depth = 0;
-  while (el && el !== document.body && depth < 6) {
+  while (el && el !== document.body && depth < 5) {
+    if (!context.time) {
+      const timeEl = el.querySelector('time, [class*="Time"], [class*="Date"]');
+      if (timeEl && timeEl.textContent) {
+        context.time = timeEl.textContent.trim();
+      }
+    }
     if (!context.text) {
       const textEl = el.querySelector('p, span[class*="Text"], div[class*="Text"]');
       if (textEl && textEl.textContent && textEl.textContent.trim()) {
@@ -1174,33 +911,24 @@ const registerStickersFromDOM = (convId: string): ConversationScanState => {
     existingMap.set(s.id, s);
   }
 
-  const dateDividers = getAllDateDividers();
   const imgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
   let changed = false;
 
   for (const img of imgs) {
     const id = getStickerId(img.src);
     const existing = existingMap.get(id);
-    const detectedDate = findStickerDateInDOM(img, dateDividers);
-
     if (existing) {
       if (existing.url !== img.src) {
         existing.url = img.src;
         changed = true;
       }
-      // Si detectamos la fecha real del mensaje en el DOM, actualizar el registro
-      if (detectedDate && existing.time !== detectedDate) {
-        existing.time = detectedDate;
-        changed = true;
-      }
     } else {
       const ctx = getStickerMessageContext(img);
-      const dateStr = detectedDate || ctx.time || "";
       const record: ScannedStickerRecord = {
         id,
         url: img.src,
         text: ctx.text,
-        time: dateStr,
+        time: ctx.time,
         discoveredAt: Date.now()
       };
       state.stickers.push(record);
@@ -1517,7 +1245,7 @@ const openStickersModal = async () => {
     return;
   }
 
-  const result = await showCustomConfirm(freshNew, freshOld, curConvId);
+  const result = await showCustomConfirm(freshNew, freshOld);
   if (!result || !result.urls || result.urls.length === 0) return;
 
   await executeDownload(result.action, result.urls);
@@ -1619,11 +1347,11 @@ const addDownloadAllButton = () => {
       return btn;
     };
 
-    // Botón único "Ver stickers" sin ningún emoji
+    // Botón único "Ver stickers"
     const viewText = newStickerCount > 0 
       ? t("viewStickers", { count: newStickerCount }) 
       : t("viewStickersNoCount");
-    const btnView = createTextBtn(viewText, true);
+    const btnView = createTextBtn("🖼️ " + viewText, true);
     btnView.className = "btn-view";
     btnView.title = t("viewStickersTitle");
 
@@ -1695,7 +1423,7 @@ const addDownloadAllButton = () => {
           const freshViewText = freshNewCount > 0 
             ? t("viewStickers", { count: freshNewCount }) 
             : t("viewStickersNoCount");
-          btnView.innerText = freshViewText;
+          btnView.innerText = "🖼️ " + freshViewText;
 
           // Checkpoint inteligente: si ya estaba completado, detener al tocar el historial conocido
           if (wasFullyScanned && knownIdsBeforeScan.size > 0) {
@@ -1738,6 +1466,7 @@ const addDownloadAllButton = () => {
         addDownloadAllButton();
         addIndividualDownloadButtons();
 
+        // Al finalizar el análisis, abrir directamente el diálogo de stickers
         if (scanState.stickers.length > 0) {
           openStickersModal();
         } else {
@@ -1764,7 +1493,7 @@ const addDownloadAllButton = () => {
       const viewText = newStickerCount > 0 
         ? t("viewStickers", { count: newStickerCount }) 
         : t("viewStickersNoCount");
-      btnView.innerText = viewText;
+      btnView.innerText = "🖼️ " + viewText;
     }
     const btnScan = btnContainer.querySelector(".btn-scan") as HTMLButtonElement;
     if (btnScan && !isChatScanning) {
@@ -1972,10 +1701,8 @@ const enforceDesktopViewport = () => {
 
 // Muestra un diálogo flotante al entrar a TikTok si no estamos en /messages
 const checkAndShowMessagesRedirectDialog = () => {
-  // Si ya estamos en la sección de mensajes, no mostrar el diálogo
   if (window.location.pathname.startsWith('/messages')) return;
 
-  // Si ya existe el diálogo o fue descartado en esta sesión de pestaña
   if (document.getElementById('tt-stickers-redirect-dialog')) return;
   try {
     if (sessionStorage.getItem('tt_stickers_redirect_dismissed') === '1') return;
@@ -2014,7 +1741,6 @@ const checkAndShowMessagesRedirectDialog = () => {
   card.style.flexDirection = 'column';
   card.style.alignItems = 'center';
 
-  // Icono con degradado TikTok (Rojo + Cian)
   const iconBox = document.createElement('div');
   iconBox.style.width = '58px';
   iconBox.style.height = '58px';
@@ -2032,7 +1758,6 @@ const checkAndShowMessagesRedirectDialog = () => {
   </svg>`;
   card.appendChild(iconBox);
 
-  // Título
   const title = document.createElement('h3');
   title.innerText = t("redirectQuestion");
   title.style.color = '#ffffff';
@@ -2041,7 +1766,6 @@ const checkAndShowMessagesRedirectDialog = () => {
   title.style.margin = '0 0 8px 0';
   card.appendChild(title);
 
-  // Subtítulo
   const desc = document.createElement('p');
   desc.innerText = t("redirectSubtitle");
   desc.style.color = 'rgba(255, 255, 255, 0.72)';
@@ -2050,7 +1774,6 @@ const checkAndShowMessagesRedirectDialog = () => {
   desc.style.margin = '0 0 22px 0';
   card.appendChild(desc);
 
-  // Botón principal: "Ir a Mensajes"
   const btnGo = document.createElement('button');
   btnGo.style.width = '100%';
   btnGo.style.backgroundColor = '#fe2c55';
@@ -2086,7 +1809,6 @@ const checkAndShowMessagesRedirectDialog = () => {
   });
   card.appendChild(btnGo);
 
-  // Botón secundario: "Ahora no"
   const btnDismiss = document.createElement('button');
   btnDismiss.innerText = t("notNow");
   btnDismiss.style.width = '100%';
