@@ -230,38 +230,21 @@ const svgGrid = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" str
 const isDateString = (text: string): boolean => {
   if (!text) return false;
   const t = text.trim();
-  if (t.length === 0 || t.length > 60) return false;
+  if (t.length === 0 || t.length > 55) return false;
 
-  // Español: "15 de octubre de 2026 12:26", "15 de octubre 12:26", "15 de octubre", "15 oct", "15 de oct"
-  if (/^\s*\d{1,2}\s+de\s+[a-z\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1]+(\s+de\s+\d{2,4})?,?(\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-  if (/^\s*\d{1,2}\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)[a-z]*(\s+de\s+\d{2,4})?,?(\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  // Patrón universal: días de la semana, fechas con meses (es/en), hoy/ayer, y numéricas
+  const datePattern = /^\s*(?:(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|lun|mar|mi[eé]|jue|vie|s[aá]b|dom|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\.?,?\s+)?(?:(?:hoy|ayer|today|yesterday)|(?:\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)\.?(?:\s+de\s+\d{2,4})?)|(?:\d{1,2}\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)\.?(?:\s+de\s+\d{2,4})?)|(?:(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\.?\s+\d{1,2}(?:,?\s+\d{4})?)|(?:\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\.?(?:,?\s+\d{4})?)|(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|lun|mar|mi[eé]|jue|vie|s[aá]b|dom|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)|(?:\d{1,4}[\/\.-]\d{1,2}[\/\.-]\d{2,4}))(?:,?\s+(?:a\s+las\s+|at\s+)?\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\.?)?)?\s*$/i;
 
-  // Inglés: "Oct 15, 12:26 PM", "October 15, 2026, 12:26 PM", "Oct 15", "15 Oct, 12:26"
-  if (/^\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(,?\s+\d{4})?,?(\s+(at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-  if (/^\s*\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(,?\s+\d{4})?,?(\s+(at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-
-  // Hoy / Ayer / Today / Yesterday
-  if (/^\s*(hoy|ayer|today|yesterday),?(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-
-  // Fechas numéricas: 15/10/2026, 2026-10-15, 10/15/2026
-  if (/^\s*\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4},?(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-  if (/^\s*\d{4}[\/\.-]\d{1,2}[\/\.-]\d{1,2},?(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-
-  return false;
+  return datePattern.test(t);
 };
 
 // Limpia el texto de fecha para extraer únicamente la fecha (removiendo horas)
 const cleanDateLabel = (rawText: string): string => {
   if (!rawText) return "";
   let s = rawText.trim();
-
-  // Eliminar la porción horaria: " 12:26", " 12:26:00", " 12:26 PM", " at 12:26", " a las 12:26"
-  s = s.replace(/\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?/i, '');
-  s = s.replace(/\s+at\s+\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?/i, '');
-  s = s.replace(/,\s*\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?/i, '');
-  s = s.trim();
-
-  // Si queda algo como "Hoy" o "Today" o la fecha completa
+  // Eliminar la porción horaria al final
+  s = s.replace(/[,.]?\s+(?:a\s+las\s+|at\s+)?\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\.?)?$/i, '');
+  s = s.trim().replace(/,+$/, '').trim();
   if (s.length > 0) {
     s = s.charAt(0).toUpperCase() + s.slice(1);
   }
@@ -1098,11 +1081,38 @@ const saveConversationScanState = (state: ConversationScanState) => {
 
 // Encuentra la fecha real del mensaje en el chat de TikTok para un sticker
 const findStickerDateInDOM = (img: HTMLImageElement, scrollContainer: HTMLElement | null): string => {
-  // 1. Revisar dentro del contenedor inmediato del mensaje
+  const container = scrollContainer || document.body;
+
+  // 1. Buscamos todos los candidatos a divisores de fecha en el contenedor
+  const allElements = container.querySelectorAll('div, p, span, time');
+  let lastMatchingDate = "";
+
+  for (const node of Array.from(allElements)) {
+    // Si contiene la imagen, no es un divisor anterior a la imagen
+    if (node.contains(img)) break;
+
+    // Solo comprobar si precede al sticker en el árbol del DOM
+    if (node.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_PRECEDING) {
+      // Ignorar contenedores que agrupan muchos elementos
+      if (node.children.length > 2) continue;
+
+      const txt = node.textContent ? node.textContent.trim() : "";
+      if (txt.length > 0 && txt.length < 50 && isDateString(txt)) {
+        lastMatchingDate = cleanDateLabel(txt);
+      }
+    } else {
+      // Hemos alcanzado o superado el sticker en el DOM
+      break;
+    }
+  }
+
+  if (lastMatchingDate) return lastMatchingDate;
+
+  // 2. Si no se encontró un divisor anterior, revisar atributos aria o time en el bubble
   let el: HTMLElement | null = img.parentElement;
   let depth = 0;
-  while (el && el !== document.body && el !== scrollContainer && depth < 6) {
-    const timeEl = el.querySelector('time, [class*="Time"], [class*="Date"], [data-e2e*="time"]');
+  while (el && el !== document.body && depth < 6) {
+    const timeEl = el.querySelector('time, [class*="Time"], [class*="Date"]');
     if (timeEl && timeEl.textContent && isDateString(timeEl.textContent)) {
       return cleanDateLabel(timeEl.textContent);
     }
@@ -1112,50 +1122,6 @@ const findStickerDateInDOM = (img: HTMLImageElement, scrollContainer: HTMLElemen
     }
     el = el.parentElement;
     depth++;
-  }
-
-  // 2. Buscar hacia atrás en los elementos hermanos anteriores (el separador de fecha de TikTok)
-  let msgBlock: HTMLElement | null = img;
-  if (scrollContainer) {
-    while (msgBlock && msgBlock.parentElement && msgBlock.parentElement !== scrollContainer && msgBlock.parentElement !== document.body) {
-      msgBlock = msgBlock.parentElement;
-    }
-  } else {
-    msgBlock = img.closest('div[class*="Message"], div[class*="Chat"], div[data-e2e*="chat"]') || img.parentElement;
-  }
-
-  let prev = msgBlock ? (msgBlock.previousElementSibling as HTMLElement | null) : null;
-  let steps = 0;
-  while (prev && steps < 80) {
-    const text = prev.innerText || prev.textContent || "";
-    if (isDateString(text)) {
-      return cleanDateLabel(text);
-    }
-    const childWithDate = prev.querySelector('time, [class*="Time"], [class*="Date"], span, p, div');
-    if (childWithDate && childWithDate.textContent && isDateString(childWithDate.textContent)) {
-      return cleanDateLabel(childWithDate.textContent);
-    }
-    prev = prev.previousElementSibling as HTMLElement | null;
-    steps++;
-  }
-
-  // 3. Fallback: buscar el separador de fecha más cercano que precede al sticker en el contenedor
-  if (scrollContainer) {
-    const allDivs = scrollContainer.querySelectorAll('div, p, span, time');
-    let lastFoundDate = "";
-    for (const node of Array.from(allDivs)) {
-      if (node.contains(img)) continue;
-      // Comprobar si el nodo precede al sticker en orden de documento
-      if (node.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_PRECEDING) {
-        const txt = node.textContent ? node.textContent.trim() : "";
-        if (isDateString(txt)) {
-          lastFoundDate = cleanDateLabel(txt);
-        }
-      } else {
-        break;
-      }
-    }
-    if (lastFoundDate) return lastFoundDate;
   }
 
   return "";
