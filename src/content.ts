@@ -56,6 +56,12 @@ const translations = {
     downloadZipBtn: "Download ZIP ({count})",
     downloadSeqTooltip: "Download selected stickers one by one",
     downloadZipTooltip: "Compress and download all selected stickers in a single ZIP",
+  
+    redirectTitle: "TikTok Stickers Exporter",
+    redirectQuestion: "Do you want to download stickers?",
+    redirectSubtitle: "Go to your TikTok messages to view, scan, and download all your stickers.",
+    goToMessages: "Go to Messages",
+    notNow: "Not now",
   },
   es: {
     settings: "Configuración",
@@ -111,6 +117,12 @@ const translations = {
     downloadZipBtn: "Descargar ZIP ({count})",
     downloadSeqTooltip: "Descargar los stickers seleccionados uno por uno",
     downloadZipTooltip: "Comprimir y descargar todos los stickers seleccionados en un archivo ZIP",
+  
+    redirectTitle: "TikTok Stickers Exporter",
+    redirectQuestion: "¿Quieres descargar tus stickers?",
+    redirectSubtitle: "Entra a tus Mensajes de TikTok para ver, escanear y descargar todos tus stickers.",
+    goToMessages: "Ir a Mensajes",
+    notNow: "Ahora no",
   }
 };
 
@@ -218,22 +230,22 @@ const svgGrid = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" str
 const isDateString = (text: string): boolean => {
   if (!text) return false;
   const t = text.trim();
-  if (t.length === 0 || t.length > 55) return false;
+  if (t.length === 0 || t.length > 60) return false;
 
-  // Español: "15 de octubre de 2026 12:26", "15 de octubre 12:26", "15 de octubre", "15 oct"
-  if (/^\s*\d{1,2}\s+de\s+[a-z\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1]+(\s+de\s+\d{2,4})?(\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-  if (/^\s*\d{1,2}\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)[a-z]*(\s+de\s+\d{2,4})?(\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  // Español: "15 de octubre de 2026 12:26", "15 de octubre 12:26", "15 de octubre", "15 oct", "15 de oct"
+  if (/^\s*\d{1,2}\s+de\s+[a-z\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1]+(\s+de\s+\d{2,4})?,?(\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  if (/^\s*\d{1,2}\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)[a-z]*(\s+de\s+\d{2,4})?,?(\s+(a\s+las\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
 
-  // Inglés: "October 15, 2026 12:26 PM", "Oct 15 12:26", "15 Oct 2026"
-  if (/^\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(,?\s+\d{4})?(\s+(at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-  if (/^\s*\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(,?\s+\d{4})?(\s+(at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  // Inglés: "Oct 15, 12:26 PM", "October 15, 2026, 12:26 PM", "Oct 15", "15 Oct, 12:26"
+  if (/^\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(,?\s+\d{4})?,?(\s+(at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  if (/^\s*\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(,?\s+\d{4})?,?(\s+(at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
 
   // Hoy / Ayer / Today / Yesterday
-  if (/^\s*(hoy|ayer|today|yesterday)(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  if (/^\s*(hoy|ayer|today|yesterday),?(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
 
   // Fechas numéricas: 15/10/2026, 2026-10-15, 10/15/2026
-  if (/^\s*\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4}(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
-  if (/^\s*\d{4}[\/\.-]\d{1,2}[\/\.-]\d{1,2}(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  if (/^\s*\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4},?(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
+  if (/^\s*\d{4}[\/\.-]\d{1,2}[\/\.-]\d{1,2},?(\s+(a\s+las\s+|at\s+)?\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?)?\s*$/i.test(t)) return true;
 
   return false;
 };
@@ -1951,8 +1963,176 @@ const addSettingsButton = () => {
   targetContainer.appendChild(btn);
 };
 
+
+// En dispositivos móviles (p.ej. Firefox Android), fuerza el layout de escritorio (1024px)
+const enforceDesktopViewport = () => {
+  if (!isMobileDevice()) return;
+  try {
+    let meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'viewport';
+      document.head.appendChild(meta);
+    }
+    if (meta.getAttribute('data-forced-desktop') === 'true') return;
+    meta.setAttribute('data-forced-desktop', 'true');
+    meta.content = 'width=1024, initial-scale=0.38, minimum-scale=0.25, maximum-scale=3.0, user-scalable=yes';
+  } catch (e) {
+    console.error("Error forzando viewport de escritorio:", e);
+  }
+};
+
+// Muestra un diálogo flotante al entrar a TikTok si no estamos en /messages
+const checkAndShowMessagesRedirectDialog = () => {
+  // Si ya estamos en la sección de mensajes, no mostrar el diálogo
+  if (window.location.pathname.startsWith('/messages')) return;
+
+  // Si ya existe el diálogo o fue descartado en esta sesión de pestaña
+  if (document.getElementById('tt-stickers-redirect-dialog')) return;
+  try {
+    if (sessionStorage.getItem('tt_stickers_redirect_dismissed') === '1') return;
+  } catch (e) {}
+
+  if (!document.body) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'tt-stickers-redirect-dialog';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.78)';
+  overlay.style.backdropFilter = 'blur(6px)';
+  overlay.style.zIndex = '9999999';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.padding = '20px';
+  overlay.style.boxSizing = 'border-box';
+  overlay.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+  const card = document.createElement('div');
+  card.style.backgroundColor = '#161823';
+  card.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+  card.style.borderRadius = '20px';
+  card.style.padding = isMobileDevice() ? '26px 20px' : '30px 26px';
+  card.style.maxWidth = '420px';
+  card.style.width = '100%';
+  card.style.textAlign = 'center';
+  card.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.85)';
+  card.style.boxSizing = 'border-box';
+  card.style.display = 'flex';
+  card.style.flexDirection = 'column';
+  card.style.alignItems = 'center';
+
+  // Icono con degradado TikTok (Rojo + Cian)
+  const iconBox = document.createElement('div');
+  iconBox.style.width = '58px';
+  iconBox.style.height = '58px';
+  iconBox.style.borderRadius = '16px';
+  iconBox.style.background = 'linear-gradient(135deg, #fe2c55 0%, #25f4ee 100%)';
+  iconBox.style.display = 'flex';
+  iconBox.style.alignItems = 'center';
+  iconBox.style.justifyContent = 'center';
+  iconBox.style.marginBottom = '16px';
+  iconBox.style.boxShadow = '0 6px 20px rgba(254, 44, 85, 0.4)';
+  iconBox.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    <polyline points="9 10 12 13 15 10"></polyline>
+    <line x1="12" y1="6" x2="12" y2="13"></line>
+  </svg>`;
+  card.appendChild(iconBox);
+
+  // Título
+  const title = document.createElement('h3');
+  title.innerText = t("redirectQuestion");
+  title.style.color = '#ffffff';
+  title.style.fontSize = isMobileDevice() ? '19px' : '21px';
+  title.style.fontWeight = '700';
+  title.style.margin = '0 0 8px 0';
+  card.appendChild(title);
+
+  // Subtítulo
+  const desc = document.createElement('p');
+  desc.innerText = t("redirectSubtitle");
+  desc.style.color = 'rgba(255, 255, 255, 0.72)';
+  desc.style.fontSize = '14px';
+  desc.style.lineHeight = '1.45';
+  desc.style.margin = '0 0 22px 0';
+  card.appendChild(desc);
+
+  // Botón principal: "Ir a Mensajes"
+  const btnGo = document.createElement('button');
+  btnGo.style.width = '100%';
+  btnGo.style.backgroundColor = '#fe2c55';
+  btnGo.style.color = '#ffffff';
+  btnGo.style.border = 'none';
+  btnGo.style.borderRadius = '12px';
+  btnGo.style.padding = '13px 20px';
+  btnGo.style.fontSize = '15px';
+  btnGo.style.fontWeight = 'bold';
+  btnGo.style.cursor = 'pointer';
+  btnGo.style.display = 'flex';
+  btnGo.style.alignItems = 'center';
+  btnGo.style.justifyContent = 'center';
+  btnGo.style.gap = '8px';
+  btnGo.style.boxShadow = '0 4px 14px rgba(254, 44, 85, 0.4)';
+  btnGo.style.transition = 'transform 0.15s, background-color 0.15s';
+  btnGo.innerHTML = `<span>${t("goToMessages")}</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+      <polyline points="12 5 19 12 12 19"></polyline>
+    </svg>`;
+  
+  btnGo.addEventListener('mouseenter', () => {
+    btnGo.style.backgroundColor = '#e02448';
+    btnGo.style.transform = 'scale(1.02)';
+  });
+  btnGo.addEventListener('mouseleave', () => {
+    btnGo.style.backgroundColor = '#fe2c55';
+    btnGo.style.transform = 'scale(1)';
+  });
+  btnGo.addEventListener('click', () => {
+    window.location.href = 'https://www.tiktok.com/messages';
+  });
+  card.appendChild(btnGo);
+
+  // Botón secundario: "Ahora no"
+  const btnDismiss = document.createElement('button');
+  btnDismiss.innerText = t("notNow");
+  btnDismiss.style.width = '100%';
+  btnDismiss.style.backgroundColor = 'transparent';
+  btnDismiss.style.color = 'rgba(255, 255, 255, 0.55)';
+  btnDismiss.style.border = 'none';
+  btnDismiss.style.borderRadius = '8px';
+  btnDismiss.style.padding = '10px 14px';
+  btnDismiss.style.fontSize = '13px';
+  btnDismiss.style.fontWeight = '500';
+  btnDismiss.style.cursor = 'pointer';
+  btnDismiss.style.marginTop = '6px';
+  btnDismiss.addEventListener('click', () => {
+    try {
+      sessionStorage.setItem('tt_stickers_redirect_dismissed', '1');
+    } catch (e) {}
+    overlay.remove();
+  });
+  card.appendChild(btnDismiss);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+};
+
+// Inicialización inmediata
+enforceDesktopViewport();
+setTimeout(() => {
+  checkAndShowMessagesRedirectDialog();
+}, 600);
+
 let isProcessing = false;
 const observer = new MutationObserver(() => {
+  enforceDesktopViewport();
+  checkAndShowMessagesRedirectDialog();
   if (isProcessing) return;
   isProcessing = true;
   
