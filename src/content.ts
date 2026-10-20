@@ -50,6 +50,12 @@ const translations = {
     viewStickers: "View stickers ({count})",
     viewStickersNoCount: "View stickers",
     viewStickersTitle: "TikTok Stickers",
+    downloadSelectedBtn: "Download stickers ({count})",
+    chooseDownloadFormat: "Choose download format",
+    downloadZipOption: "ZIP File (.zip)",
+    downloadZipOptionDesc: "Package all selected stickers into a single archive",
+    downloadSeqOption: "Individual download",
+    downloadSeqOptionDesc: "Download each sticker one by one to your device",
     downloadSeqBtn: "Download ({count})",
     downloadZipBtn: "Download ZIP ({count})",
     downloadSeqTooltip: "Download selected stickers one by one",
@@ -97,7 +103,7 @@ const translations = {
     completedTitle: "¡Completado!",
     completedZip: "Archivo ZIP generado y descargado con éxito.",
     completedSeq: "Stickers descargados con éxito.",
-    scanChat: "Analizar chat",
+    scanChat: "Escanear chat",
     scanningProgress: "Analizando ({count})...",
     scanFinished: "¡Análisis terminado! Se encontraron {count} stickers.",
     stopScan: "Detener",
@@ -109,6 +115,12 @@ const translations = {
     viewStickers: "Ver stickers ({count})",
     viewStickersNoCount: "Ver stickers",
     viewStickersTitle: "Stickers de TikTok",
+    downloadSelectedBtn: "Descargar stickers ({count})",
+    chooseDownloadFormat: "Elige el formato de descarga",
+    downloadZipOption: "Archivo ZIP (.zip)",
+    downloadZipOptionDesc: "Empaqueta todos los stickers seleccionados en un único archivo",
+    downloadSeqOption: "Descarga individual",
+    downloadSeqOptionDesc: "Descarga cada sticker uno por uno directamente a tu dispositivo",
     downloadSeqBtn: "Descargar ({count})",
     downloadZipBtn: "Descargar ZIP ({count})",
     downloadSeqTooltip: "Descargar los stickers seleccionados uno por uno",
@@ -212,6 +224,184 @@ interface CustomConfirmResult {
 }
 
 // Función para mostrar un diálogo modal personalizado con vista previa amplia en PC
+// Helper para registrar animaciones de Bottom Sheet
+const ensureModalAnimationsStyle = () => {
+  if (typeof document === 'undefined') return;
+  if (!document.getElementById("tt-modal-animations-style")) {
+    const animStyle = document.createElement("style");
+    animStyle.id = "tt-modal-animations-style";
+    animStyle.textContent = `
+      @keyframes ttSlideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+    `;
+    document.head.appendChild(animStyle);
+  }
+};
+
+// Bottom Sheet para seleccionar el formato de descarga en móvil (ZIP o Secuencial)
+const showMobileDownloadOptionsBottomSheet = (
+  selectedCount: number,
+  onSelect: (action: 'seq' | 'zip') => void
+) => {
+  ensureModalAnimationsStyle();
+
+  const overlay = document.createElement("div");
+  overlay.id = "tt-download-options-overlay";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.75)";
+  overlay.style.backdropFilter = "blur(4px)";
+  overlay.style.zIndex = "10000000";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "flex-end";
+  overlay.style.justifyContent = "center";
+  overlay.style.padding = "0";
+  overlay.style.boxSizing = "border-box";
+
+  const sheet = document.createElement("div");
+  sheet.style.position = "relative";
+  sheet.style.backgroundColor = "#252525";
+  sheet.style.borderRadius = "20px 20px 0 0";
+  sheet.style.padding = "14px 20px 24px 20px";
+  sheet.style.width = "100%";
+  sheet.style.maxWidth = "100%";
+  sheet.style.boxSizing = "border-box";
+  sheet.style.color = "white";
+  sheet.style.fontFamily = "sans-serif";
+  sheet.style.animation = "ttSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
+  sheet.style.boxShadow = "0 -4px 30px rgba(0, 0, 0, 0.8)";
+
+  // Barra de arrastre (drag handle)
+  const handle = document.createElement("div");
+  handle.style.width = "40px";
+  handle.style.height = "4px";
+  handle.style.borderRadius = "2px";
+  handle.style.backgroundColor = "rgba(255, 255, 255, 0.28)";
+  handle.style.margin = "0 auto 14px auto";
+  sheet.appendChild(handle);
+
+  const title = document.createElement("h3");
+  title.innerText = t("chooseDownloadFormat");
+  title.style.margin = "0 0 16px 0";
+  title.style.fontSize = "17px";
+  title.style.fontWeight = "bold";
+  title.style.textAlign = "center";
+  sheet.appendChild(title);
+
+  const createOption = (
+    iconSvg: string,
+    accentColor: string,
+    accentBg: string,
+    optTitle: string,
+    optDesc: string,
+    onClick: () => void
+  ) => {
+    const btn = document.createElement("div");
+    btn.style.display = "flex";
+    btn.style.alignItems = "center";
+    btn.style.padding = "13px 15px";
+    btn.style.borderRadius = "12px";
+    btn.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+    btn.style.border = "1px solid rgba(255, 255, 255, 0.1)";
+    btn.style.marginBottom = "10px";
+    btn.style.cursor = "pointer";
+    btn.style.transition = "background-color 0.15s, transform 0.1s";
+
+    const iconBox = document.createElement("div");
+    iconBox.style.width = "40px";
+    iconBox.style.height = "40px";
+    iconBox.style.borderRadius = "10px";
+    iconBox.style.backgroundColor = accentBg;
+    iconBox.style.color = accentColor;
+    iconBox.style.display = "flex";
+    iconBox.style.alignItems = "center";
+    iconBox.style.justifyContent = "center";
+    iconBox.style.flexShrink = "0";
+    iconBox.style.marginRight = "14px";
+    iconBox.innerHTML = iconSvg;
+    btn.appendChild(iconBox);
+
+    const textCol = document.createElement("div");
+    textCol.style.display = "flex";
+    textCol.style.flexDirection = "column";
+    textCol.style.gap = "2px";
+
+    const itemTitle = document.createElement("div");
+    itemTitle.innerText = optTitle;
+    itemTitle.style.fontSize = "15px";
+    itemTitle.style.fontWeight = "bold";
+    itemTitle.style.color = "#ffffff";
+    textCol.appendChild(itemTitle);
+
+    const itemDesc = document.createElement("div");
+    itemDesc.innerText = optDesc;
+    itemDesc.style.fontSize = "12px";
+    itemDesc.style.color = "rgba(255, 255, 255, 0.65)";
+    itemDesc.style.lineHeight = "1.3";
+    textCol.appendChild(itemDesc);
+
+    btn.appendChild(textCol);
+
+    btn.onclick = () => {
+      overlay.remove();
+      onClick();
+    };
+    return btn;
+  };
+
+  const svgZip = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
+  const svgDownload = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+
+  const optZip = createOption(
+    svgZip,
+    "#fe2c55",
+    "rgba(254, 44, 85, 0.16)",
+    t("downloadZipOption"),
+    t("downloadZipOptionDesc"),
+    () => onSelect('zip')
+  );
+  sheet.appendChild(optZip);
+
+  const optSeq = createOption(
+    svgDownload,
+    "#20d5ec",
+    "rgba(32, 213, 236, 0.16)",
+    t("downloadSeqOption"),
+    t("downloadSeqOptionDesc"),
+    () => onSelect('seq')
+  );
+  sheet.appendChild(optSeq);
+
+  const btnCancel = document.createElement("button");
+  btnCancel.innerText = t("cancel");
+  btnCancel.style.width = "100%";
+  btnCancel.style.padding = "12px";
+  btnCancel.style.borderRadius = "10px";
+  btnCancel.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+  btnCancel.style.color = "rgba(255, 255, 255, 0.75)";
+  btnCancel.style.border = "none";
+  btnCancel.style.fontSize = "14px";
+  btnCancel.style.fontWeight = "600";
+  btnCancel.style.cursor = "pointer";
+  btnCancel.style.marginTop = "6px";
+  btnCancel.onclick = () => overlay.remove();
+  sheet.appendChild(btnCancel);
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+    }
+  };
+
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+};
+
 const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: string[], convId?: string): Promise<CustomConfirmResult | null> => {
   const newStickers = deduplicateStickerUrls(rawNewStickers);
   const oldStickers = deduplicateStickerUrls(rawOldStickers);
@@ -360,7 +550,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     btnZip.style.alignItems = "center";
     btnZip.style.justifyContent = "center";
 
-    const updateActionButtons = () => {
+    let updateActionButtons = () => {
       const count = selectedUrls.size;
       btnSeq.innerHTML = `${svgDownload}<span>${t("downloadSeqBtn", { count })}</span>`;
       btnZip.innerHTML = `${svgZip}<span>${t("downloadZipBtn", { count })}</span>`;
@@ -507,7 +697,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     scrollContainer.appendChild(contentOld);
     modal.appendChild(scrollContainer);
 
-    // Fila superior con los 2 botones de descarga lado a lado (50% y 50%)
+    // Fila con botones de descarga: 1 botón con Bottom Sheet en móvil, 2 botones lado a lado en PC
     const downloadBtnsRow = document.createElement("div");
     downloadBtnsRow.style.display = "flex";
     downloadBtnsRow.style.flexDirection = "row";
@@ -516,49 +706,51 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     downloadBtnsRow.style.marginTop = isMobile ? s(12) : "14px";
     downloadBtnsRow.style.width = "100%";
 
-    // Botón Escanear chat en lugar de Cancelar abajo
+    // Botón Escanear chat (botón gris elegante de ancho completo con misma altura)
     const currentConvId = convId || getActiveConversationId();
     const scanStateInModal = loadConversationScanState(currentConvId);
     const isAlreadyAtBeginning = scanStateInModal.hasReachedBeginning;
 
     const btnScanInModal = document.createElement("button");
-    btnScanInModal.style.width = "auto";
+    btnScanInModal.style.width = "100%";
     btnScanInModal.style.marginTop = isMobile ? s(10) : "12px";
-    btnScanInModal.style.padding = isMobile ? s(6) : "6px 12px";
+    btnScanInModal.style.padding = isMobile ? s(12) : "12px 18px";
+    btnScanInModal.style.borderRadius = isMobile ? s(10) : "10px";
     btnScanInModal.style.border = "none";
     btnScanInModal.style.outline = "none";
-    btnScanInModal.style.backgroundColor = "transparent";
-    btnScanInModal.style.fontWeight = "500";
-    btnScanInModal.style.fontSize = isMobile ? s(13) : "13px";
+    btnScanInModal.style.fontWeight = "600";
+    btnScanInModal.style.fontSize = isMobile ? s(14) : "14px";
     btnScanInModal.style.textAlign = "center";
-    btnScanInModal.style.display = "inline-flex";
+    btnScanInModal.style.display = "flex";
     btnScanInModal.style.alignItems = "center";
     btnScanInModal.style.justifyContent = "center";
-    btnScanInModal.style.margin = "10px auto 0 auto";
-    btnScanInModal.style.transition = "color 0.2s, opacity 0.2s";
+    btnScanInModal.style.gap = "8px";
+    btnScanInModal.style.boxSizing = "border-box";
+    btnScanInModal.style.transition = "background-color 0.2s, transform 0.15s, opacity 0.2s";
 
-    const svgSearchModal = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-    const svgCheckModal = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    const svgSearchModal = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+    const svgCheckModal = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2ed573" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
     if (isAlreadyAtBeginning) {
       btnScanInModal.disabled = true;
       btnScanInModal.innerHTML = `${svgCheckModal}<span>${t("chatFullyScanned")}</span>`;
       btnScanInModal.title = t("chatFullyScannedTooltip");
-      btnScanInModal.style.color = "rgba(46, 213, 115, 0.85)";
+      btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
+      btnScanInModal.style.color = "rgba(255, 255, 255, 0.45)";
       btnScanInModal.style.cursor = "default";
-      btnScanInModal.style.opacity = "0.75";
     } else {
       btnScanInModal.disabled = false;
       btnScanInModal.innerHTML = `${svgSearchModal}<span>${t("scanChat")}</span>`;
       btnScanInModal.title = t("scanChat");
-      btnScanInModal.style.color = "rgba(255, 255, 255, 0.65)";
+      btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+      btnScanInModal.style.color = "#ffffff";
       btnScanInModal.style.cursor = "pointer";
 
       btnScanInModal.addEventListener("mouseenter", () => {
-        btnScanInModal.style.color = "#20d5ec";
+        btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
       });
       btnScanInModal.addEventListener("mouseleave", () => {
-        btnScanInModal.style.color = "rgba(255, 255, 255, 0.65)";
+        btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
       });
 
       btnScanInModal.onclick = () => {
@@ -568,70 +760,117 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       };
     }
 
-    // 2. Botón Descarga Secuencial (uno por uno)
-    btnSeq.style.padding = isMobile ? s(12) : "11px 18px";
-    btnSeq.style.borderRadius = isMobile ? s(8) : "8px";
-    btnSeq.style.border = "1.5px solid #fe2c55";
-    btnSeq.style.backgroundColor = "transparent";
-    btnSeq.style.color = "#fe2c55";
-    btnSeq.style.cursor = "pointer";
-    btnSeq.style.fontWeight = "bold";
-    btnSeq.style.fontSize = isMobile ? s(14) : "14px";
-    btnSeq.style.flex = "1";
-    btnSeq.style.transition = "background-color 0.2s, transform 0.2s";
-    btnSeq.title = t("downloadSeqTooltip");
+    if (isMobile) {
+      // Un solo botón de Descarga en Móvil -> Abre Bottom Sheet con opciones (ZIP o individual)
+      const btnDownloadMobile = document.createElement("button");
+      btnDownloadMobile.style.width = "100%";
+      btnDownloadMobile.style.padding = s(12);
+      btnDownloadMobile.style.borderRadius = s(10);
+      btnDownloadMobile.style.backgroundColor = "#fe2c55";
+      btnDownloadMobile.style.color = "#ffffff";
+      btnDownloadMobile.style.border = "none";
+      btnDownloadMobile.style.fontWeight = "bold";
+      btnDownloadMobile.style.fontSize = s(15);
+      btnDownloadMobile.style.cursor = "pointer";
+      btnDownloadMobile.style.display = "flex";
+      btnDownloadMobile.style.alignItems = "center";
+      btnDownloadMobile.style.justifyContent = "center";
+      btnDownloadMobile.style.gap = "8px";
+      btnDownloadMobile.style.boxShadow = "0 4px 16px rgba(254, 44, 85, 0.4)";
+      btnDownloadMobile.style.transition = "background-color 0.2s, transform 0.15s";
 
-    btnSeq.addEventListener("mouseenter", () => {
-      if (!btnSeq.disabled) {
-        btnSeq.style.backgroundColor = "rgba(254, 44, 85, 0.12)";
-        btnSeq.style.transform = "scale(1.02)";
-      }
-    });
-    btnSeq.addEventListener("mouseleave", () => {
+      const updateMobileDownloadBtn = () => {
+        const count = selectedUrls.size;
+        btnDownloadMobile.innerHTML = `${svgDownload}<span>${t("downloadSelectedBtn", { count })}</span>`;
+        const isDisabled = count === 0;
+        btnDownloadMobile.disabled = isDisabled;
+        btnDownloadMobile.style.opacity = isDisabled ? "0.4" : "1";
+        btnDownloadMobile.style.cursor = isDisabled ? "not-allowed" : "pointer";
+      };
+
+      updateMobileDownloadBtn();
+
+      btnDownloadMobile.onclick = () => {
+        if (selectedUrls.size === 0) return;
+        showMobileDownloadOptionsBottomSheet(selectedUrls.size, (action) => {
+          document.body.removeChild(overlay);
+          resolve({ action, urls: Array.from(selectedUrls) });
+        });
+      };
+
+      const origUpdateActionButtons = updateActionButtons;
+      updateActionButtons = () => {
+        origUpdateActionButtons();
+        updateMobileDownloadBtn();
+      };
+
+      downloadBtnsRow.appendChild(btnDownloadMobile);
+    } else {
+      // En PC: Botón Descarga Secuencial y Botón ZIP lado a lado
+      btnSeq.style.padding = "11px 18px";
+      btnSeq.style.borderRadius = "8px";
+      btnSeq.style.border = "1.5px solid #fe2c55";
       btnSeq.style.backgroundColor = "transparent";
-      btnSeq.style.transform = "scale(1)";
-    });
+      btnSeq.style.color = "#fe2c55";
+      btnSeq.style.cursor = "pointer";
+      btnSeq.style.fontWeight = "bold";
+      btnSeq.style.fontSize = "14px";
+      btnSeq.style.flex = "1";
+      btnSeq.style.transition = "background-color 0.2s, transform 0.2s";
+      btnSeq.title = t("downloadSeqTooltip");
 
-    // 3. Botón Descarga ZIP
-    btnZip.style.padding = isMobile ? s(12) : "11px 18px";
-    btnZip.style.borderRadius = isMobile ? s(8) : "8px";
-    btnZip.style.border = "1.5px solid #fe2c55";
-    btnZip.style.backgroundColor = "#fe2c55";
-    btnZip.style.color = "#ffffff";
-    btnZip.style.cursor = "pointer";
-    btnZip.style.fontWeight = "bold";
-    btnZip.style.fontSize = isMobile ? s(14) : "14px";
-    btnZip.style.flex = "1";
-    btnZip.style.transition = "filter 0.2s, transform 0.2s";
-    btnZip.title = t("downloadZipTooltip");
+      btnSeq.addEventListener("mouseenter", () => {
+        if (!btnSeq.disabled) {
+          btnSeq.style.backgroundColor = "rgba(254, 44, 85, 0.12)";
+          btnSeq.style.transform = "scale(1.02)";
+        }
+      });
+      btnSeq.addEventListener("mouseleave", () => {
+        btnSeq.style.backgroundColor = "transparent";
+        btnSeq.style.transform = "scale(1)";
+      });
 
-    btnZip.addEventListener("mouseenter", () => {
-      if (!btnZip.disabled) {
-        btnZip.style.filter = "brightness(1.1)";
-        btnZip.style.transform = "scale(1.02)";
-      }
-    });
-    btnZip.addEventListener("mouseleave", () => {
-      btnZip.style.filter = "none";
-      btnZip.style.transform = "scale(1)";
-    });
+      btnZip.style.padding = "11px 18px";
+      btnZip.style.borderRadius = "8px";
+      btnZip.style.border = "1.5px solid #fe2c55";
+      btnZip.style.backgroundColor = "#fe2c55";
+      btnZip.style.color = "#ffffff";
+      btnZip.style.cursor = "pointer";
+      btnZip.style.fontWeight = "bold";
+      btnZip.style.fontSize = "14px";
+      btnZip.style.flex = "1";
+      btnZip.style.transition = "filter 0.2s, transform 0.2s";
+      btnZip.title = t("downloadZipTooltip");
 
-    updateActionButtons();
+      btnZip.addEventListener("mouseenter", () => {
+        if (!btnZip.disabled) {
+          btnZip.style.filter = "brightness(1.1)";
+          btnZip.style.transform = "scale(1.02)";
+        }
+      });
+      btnZip.addEventListener("mouseleave", () => {
+        btnZip.style.filter = "none";
+        btnZip.style.transform = "scale(1)";
+      });
 
-    btnSeq.onclick = () => {
-      if (selectedUrls.size === 0) return;
-      document.body.removeChild(overlay);
-      resolve({ action: 'seq', urls: Array.from(selectedUrls) });
-    };
+      updateActionButtons();
 
-    btnZip.onclick = () => {
-      if (selectedUrls.size === 0) return;
-      document.body.removeChild(overlay);
-      resolve({ action: 'zip', urls: Array.from(selectedUrls) });
-    };
+      btnSeq.onclick = () => {
+        if (selectedUrls.size === 0) return;
+        document.body.removeChild(overlay);
+        resolve({ action: 'seq', urls: Array.from(selectedUrls) });
+      };
 
-    downloadBtnsRow.appendChild(btnSeq);
-    downloadBtnsRow.appendChild(btnZip);
+      btnZip.onclick = () => {
+        if (selectedUrls.size === 0) return;
+        document.body.removeChild(overlay);
+        resolve({ action: 'zip', urls: Array.from(selectedUrls) });
+      };
+
+      downloadBtnsRow.appendChild(btnSeq);
+      downloadBtnsRow.appendChild(btnZip);
+    }
+
     modal.appendChild(downloadBtnsRow);
     modal.appendChild(btnScanInModal);
 
@@ -646,8 +885,10 @@ const getDelay = () => {
 };
 
 const showSettingsModal = () => {
+  const isMobile = isMobileDevice();
+  ensureModalAnimationsStyle();
   const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
-  const s = (px: number) => (px * scaleFactor) + "px";
+  const s = (px: number) => isMobile ? (px * scaleFactor) + "px" : px + "px";
 
   const overlay = document.createElement("div");
   overlay.style.position = "fixed";
@@ -658,22 +899,41 @@ const showSettingsModal = () => {
   overlay.style.backgroundColor = "rgba(0, 0, 0, 0.85)";
   overlay.style.zIndex = "999999";
   overlay.style.display = "flex";
-  overlay.style.alignItems = "center";
+  overlay.style.alignItems = isMobile ? "flex-end" : "center";
   overlay.style.justifyContent = "center";
+  overlay.style.padding = isMobile ? "0" : "20px";
+  overlay.style.boxSizing = "border-box";
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay) close();
+  };
 
   const modal = document.createElement("div");
   modal.style.position = "relative";
   modal.style.backgroundColor = "#252525";
-  modal.style.borderRadius = s(16);
-  modal.style.padding = s(24);
-  modal.style.width = "85%";
-  modal.style.maxWidth = s(380);
+  modal.style.borderRadius = isMobile ? "20px 20px 0 0" : "16px";
+  modal.style.padding = isMobile ? `${s(16)} ${s(20)} ${s(24)} ${s(20)}` : "24px 28px";
+  modal.style.width = isMobile ? "100%" : "85%";
+  modal.style.maxWidth = isMobile ? "100%" : "400px";
+  modal.style.maxHeight = isMobile ? "85vh" : "80vh";
+  modal.style.overflowY = "auto";
+  modal.style.boxSizing = "border-box";
   modal.style.display = "flex";
   modal.style.flexDirection = "column";
-  modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
+  modal.style.boxShadow = isMobile ? "0 -4px 30px rgba(0,0,0,0.8)" : "0 10px 40px rgba(0,0,0,0.6)";
   modal.style.color = "white";
   modal.style.fontFamily = "sans-serif";
-  modal.style.gap = s(16);
+  modal.style.gap = isMobile ? s(14) : "16px";
+  if (isMobile) {
+    modal.style.animation = "ttSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1)";
+    const dragHandle = document.createElement("div");
+    dragHandle.style.width = "40px";
+    dragHandle.style.height = "4px";
+    dragHandle.style.borderRadius = "2px";
+    dragHandle.style.backgroundColor = "rgba(255, 255, 255, 0.28)";
+    dragHandle.style.margin = "0 auto 10px auto";
+    modal.appendChild(dragHandle);
+  }
 
   const close = () => {
     if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
@@ -1012,6 +1272,8 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
   const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
   const s = (px: number) => isMobile ? (px * scaleFactor) + "px" : px + "px";
 
+  ensureModalAnimationsStyle();
+
   const overlay = document.createElement("div");
   overlay.style.position = "fixed";
   overlay.style.top = "0";
@@ -1021,23 +1283,40 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
   overlay.style.backgroundColor = "rgba(0, 0, 0, 0.85)";
   overlay.style.zIndex = "9999999";
   overlay.style.display = "flex";
-  overlay.style.alignItems = "center";
+  overlay.style.alignItems = isMobile ? "flex-end" : "center";
   overlay.style.justifyContent = "center";
+  overlay.style.padding = isMobile ? "0" : "20px";
+  overlay.style.boxSizing = "border-box";
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay) close();
+  };
 
   const modal = document.createElement("div");
   modal.style.position = "relative";
   modal.style.backgroundColor = "#252525";
-  modal.style.borderRadius = isMobile ? s(16) : "16px";
-  modal.style.padding = isMobile ? `${s(30)} ${s(26)} ${s(26)} ${s(26)}` : "30px 26px 26px 26px";
-  modal.style.width = isMobile ? "85%" : "440px";
-  modal.style.maxWidth = isMobile ? s(460) : "480px";
+  modal.style.borderRadius = isMobile ? "20px 20px 0 0" : "16px";
+  modal.style.padding = isMobile ? `${s(16)} ${s(24)} ${s(28)} ${s(24)}` : "30px 26px 26px 26px";
+  modal.style.width = isMobile ? "100%" : "440px";
+  modal.style.maxWidth = isMobile ? "100%" : "480px";
   modal.style.display = "flex";
   modal.style.flexDirection = "column";
   modal.style.alignItems = "center";
-  modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
+  modal.style.boxShadow = isMobile ? "0 -4px 30px rgba(0,0,0,0.8)" : "0 10px 40px rgba(0,0,0,0.6)";
   modal.style.color = "white";
   modal.style.fontFamily = "sans-serif";
-  modal.style.gap = isMobile ? s(16) : "16px";
+  modal.style.gap = isMobile ? s(14) : "16px";
+  modal.style.boxSizing = "border-box";
+  if (isMobile) {
+    modal.style.animation = "ttSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1)";
+    const dragHandle = document.createElement("div");
+    dragHandle.style.width = "40px";
+    dragHandle.style.height = "4px";
+    dragHandle.style.borderRadius = "2px";
+    dragHandle.style.backgroundColor = "rgba(255, 255, 255, 0.28)";
+    dragHandle.style.margin = "0 auto 12px auto";
+    modal.appendChild(dragHandle);
+  }
 
   let isClosed = false;
   let countdownTimer: any = null;
@@ -1762,28 +2041,33 @@ const addSettingsButton = () => {
   const targetContainer = messagesH2.parentElement;
   if (!targetContainer) return;
 
-  // Botón chevron left al lado de "Mensajes" para volver a tiktok.com
-  if (!document.getElementById('tiktok-stickers-back-home-btn')) {
-    const btnHome = document.createElement("button");
-    btnHome.id = "tiktok-stickers-back-home-btn";
-    btnHome.setAttribute("aria-label", "Volver a TikTok");
-    btnHome.title = "Volver a TikTok";
-    btnHome.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
-    btnHome.style.background = "none";
-    btnHome.style.border = "none";
-    btnHome.style.color = "#ffffff";
-    btnHome.style.cursor = "pointer";
-    btnHome.style.padding = "6px";
-    btnHome.style.marginRight = "6px";
-    btnHome.style.display = "inline-flex";
-    btnHome.style.alignItems = "center";
-    btnHome.style.justifyContent = "center";
-    btnHome.style.borderRadius = "50%";
-    btnHome.onclick = (e) => {
-      e.stopPropagation();
-      window.location.href = 'https://www.tiktok.com/';
-    };
-    targetContainer.insertBefore(btnHome, messagesH2);
+  // Botón chevron left al lado de "Mensajes" para volver a tiktok.com (solo en móvil)
+  if (isMobileDevice()) {
+    if (!document.getElementById('tiktok-stickers-back-home-btn')) {
+      const btnHome = document.createElement("button");
+      btnHome.id = "tiktok-stickers-back-home-btn";
+      btnHome.setAttribute("aria-label", "Volver a TikTok");
+      btnHome.title = "Volver a TikTok";
+      btnHome.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
+      btnHome.style.background = "none";
+      btnHome.style.border = "none";
+      btnHome.style.color = "#ffffff";
+      btnHome.style.cursor = "pointer";
+      btnHome.style.padding = "6px";
+      btnHome.style.marginRight = "6px";
+      btnHome.style.display = "inline-flex";
+      btnHome.style.alignItems = "center";
+      btnHome.style.justifyContent = "center";
+      btnHome.style.borderRadius = "50%";
+      btnHome.onclick = (e) => {
+        e.stopPropagation();
+        window.location.href = 'https://www.tiktok.com/';
+      };
+      targetContainer.insertBefore(btnHome, messagesH2);
+    }
+  } else {
+    const existingHome = document.getElementById('tiktok-stickers-back-home-btn');
+    if (existingHome) existingHome.remove();
   }
 
   if (document.getElementById('tiktok-stickers-exporter-settings-btn')) return;
@@ -2125,6 +2409,9 @@ const checkAndShowMessagesRedirectDialog = () => {
   if (document.getElementById('tt-stickers-redirect-dialog')) return;
   if (!document.body) return;
 
+  const isMobile = isMobileDevice();
+  ensureModalAnimationsStyle();
+
   const overlay = document.createElement('div');
   overlay.id = 'tt-stickers-redirect-dialog';
   overlay.style.position = 'fixed';
@@ -2135,26 +2422,43 @@ const checkAndShowMessagesRedirectDialog = () => {
   overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
   overlay.style.zIndex = '9999999';
   overlay.style.display = 'flex';
-  overlay.style.alignItems = 'center';
+  overlay.style.alignItems = isMobile ? 'flex-end' : 'center';
   overlay.style.justifyContent = 'center';
-  overlay.style.padding = '20px';
+  overlay.style.padding = isMobile ? '0' : '20px';
   overlay.style.boxSizing = 'border-box';
   overlay.style.fontFamily = 'sans-serif';
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      userDismissedRedirectDialog = true;
+      overlay.remove();
+    }
+  };
 
   const card = document.createElement('div');
   card.style.position = 'relative';
   card.style.backgroundColor = '#252525';
-  card.style.borderRadius = '16px';
-  card.style.padding = '30px 24px 22px 24px';
-  card.style.maxWidth = '380px';
-  card.style.width = '90%';
+  card.style.borderRadius = isMobile ? '20px 20px 0 0' : '16px';
+  card.style.padding = isMobile ? '16px 20px 28px 20px' : '30px 24px 22px 24px';
+  card.style.maxWidth = isMobile ? '100%' : '380px';
+  card.style.width = isMobile ? '100%' : '90%';
   card.style.textAlign = 'center';
-  card.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.6)';
+  card.style.boxShadow = isMobile ? '0 -4px 30px rgba(0, 0, 0, 0.8)' : '0 10px 40px rgba(0, 0, 0, 0.6)';
   card.style.boxSizing = 'border-box';
   card.style.display = 'flex';
   card.style.flexDirection = 'column';
   card.style.alignItems = 'center';
   card.style.color = 'white';
+  if (isMobile) {
+    card.style.animation = 'ttSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
+    const dragHandle = document.createElement('div');
+    dragHandle.style.width = "40px";
+    dragHandle.style.height = "4px";
+    dragHandle.style.borderRadius = "2px";
+    dragHandle.style.backgroundColor = "rgba(255, 255, 255, 0.28)";
+    dragHandle.style.margin = "0 auto 12px auto";
+    card.appendChild(dragHandle);
+  }
 
   // Botón circular de cerrar (X) en esquina superior derecha
   const btnClose = document.createElement('button');
@@ -2265,24 +2569,51 @@ const checkAndShowMessagesRedirectDialog = () => {
   document.body.appendChild(overlay);
 };
 
-// Inicialización inmediata
-const initMobile = () => {
+// Limpieza completa del modo móvil al volver al tamaño de PC
+const cleanupMobileEnhancements = () => {
+  const styleEl = document.getElementById('tt-mobile-enhancement-styles');
+  if (styleEl) {
+    styleEl.remove();
+  }
+
+  document.body.classList.remove('tt-chat-active');
+  userClosedChatMobile = false;
+
+  const btnBackChat = document.querySelector('.btn-mobile-back-to-list');
+  if (btnBackChat) {
+    btnBackChat.remove();
+  }
+
+  const btnHome = document.getElementById('tiktok-stickers-back-home-btn');
+  if (btnHome) {
+    btnHome.remove();
+  }
+
+  const meta = document.querySelector('meta[data-forced-desktop="true"]');
+  if (meta) {
+    meta.remove();
+  }
+};
+
+// Sincronización dinámica según tamaño de pantalla / dispositivo
+const syncResponsiveMode = () => {
   if (isMobileDevice()) {
-    console.log("[TiktokStickersExporter] Inicializando modo móvil");
     enforceDesktopViewport();
     setupMobileEnhancements();
     checkAndShowMessagesRedirectDialog();
     updateMobileLayout();
+  } else {
+    cleanupMobileEnhancements();
   }
 };
 
-initMobile();
-setTimeout(initMobile, 300);
-setTimeout(initMobile, 800);
-setTimeout(initMobile, 1800);
+syncResponsiveMode();
+setTimeout(syncResponsiveMode, 300);
+setTimeout(syncResponsiveMode, 800);
+setTimeout(syncResponsiveMode, 1800);
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('resize', initMobile);
+  window.addEventListener('resize', syncResponsiveMode);
 }
 
 let isProcessing = false;
@@ -2292,7 +2623,12 @@ const observer = new MutationObserver(() => {
     setupMobileEnhancements();
     checkAndShowMessagesRedirectDialog();
     updateMobileLayout();
+  } else {
+    if (document.getElementById('tt-mobile-enhancement-styles') || document.body.classList.contains('tt-chat-active')) {
+      cleanupMobileEnhancements();
+    }
   }
+
   if (isProcessing) return;
   isProcessing = true;
   
