@@ -198,6 +198,8 @@ const deduplicateStickerUrls = (urls: string[]): string[] => {
   return unique;
 };
 
+let executeChatScan: () => Promise<void> = async () => {};
+
 interface CustomConfirmResult {
   action: 'zip' | 'seq';
   urls: string[];
@@ -559,10 +561,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       btnScanInModal.onclick = () => {
         document.body.removeChild(overlay);
         resolve(null);
-        const headerScanBtn = document.querySelector("#tiktok-stickers-exporter-header-btns .btn-scan") as HTMLButtonElement | null;
-        if (headerScanBtn) {
-          headerScanBtn.click();
-        }
+        executeChatScan();
       };
     }
 
@@ -1376,9 +1375,103 @@ const triggerScrollToTop = (container: HTMLElement) => {
 
 let isChatScanning = false;
 
-// Función para inyectar los botones de escaneo y "Ver Stickers" en el Header del chat
+// Función para ejecutar el escaneo automático del chat hacia arriba
+executeChatScan = async () => {
+  if (isChatScanning) {
+    isChatScanning = false;
+    return;
+  }
+
+  const container = findChatScrollable();
+  if (!container) {
+    alert(t("noStickersOnScreen"));
+    return;
+  }
+
+  const scanConvId = getActiveConversationId();
+  let scanState = registerStickersFromDOM(scanConvId);
+
+  const initialImgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
+  if (initialImgs.length > 0) {
+    scanState.newestKnownStickerId = getStickerId(initialImgs[initialImgs.length - 1].src);
+    saveConversationScanState(scanState);
+  }
+
+  isChatScanning = true;
+  const btnView = document.querySelector("#tiktok-stickers-exporter-header-btns .btn-view") as HTMLButtonElement | null;
+  if (btnView) {
+    btnView.innerText = t("scanningProgress", { count: scanState.stickers.length });
+  }
+
+  let lastScrollHeight = container.scrollHeight;
+  let lastChildCount = container.childElementCount;
+  let lastFirstChildText = container.firstElementChild?.textContent || "";
+  let unchangedTries = 0;
+  const maxUnchanged = 16;
+
+  try {
+    while (isChatScanning) {
+      if (getActiveConversationId() !== scanConvId) {
+        break;
+      }
+
+      scanState = registerStickersFromDOM(scanConvId);
+      const totalDiscovered = scanState.stickers.length;
+      if (btnView) {
+        btnView.innerText = t("scanningProgress", { count: totalDiscovered });
+      }
+
+      triggerScrollToTop(container);
+
+      const currentScrollHeight = container.scrollHeight;
+      const currentChildCount = container.childElementCount;
+      const currentFirstChildText = container.firstElementChild?.textContent || "";
+      const isAtTop = container.scrollTop <= 5;
+
+      const hasChanged = 
+        currentScrollHeight !== lastScrollHeight || 
+        currentChildCount !== lastChildCount ||
+        currentFirstChildText !== lastFirstChildText;
+
+      if (isAtTop && !hasChanged) {
+        unchangedTries++;
+        if (unchangedTries >= maxUnchanged) {
+          scanState.hasReachedBeginning = true;
+          scanState.lastScanTimestamp = Date.now();
+          saveConversationScanState(scanState);
+          console.log("[TiktokStickersExporter] Se alcanzó el inicio real de la conversación.");
+          break;
+        }
+      } else {
+        unchangedTries = 0;
+        lastScrollHeight = currentScrollHeight;
+        lastChildCount = currentChildCount;
+        lastFirstChildText = currentFirstChildText;
+      }
+
+      await new Promise(r => setTimeout(r, 350));
+    }
+  } finally {
+    isChatScanning = false;
+
+    scanState = registerStickersFromDOM(scanConvId);
+    scanState.lastScanTimestamp = Date.now();
+    saveConversationScanState(scanState);
+
+    addDownloadAllButton();
+    addIndividualDownloadButtons();
+
+    if (scanState.stickers.length > 0) {
+      openStickersModal();
+    } else {
+      alert(t("noStickersOnScreen"));
+    }
+  }
+};
+
+// Función para inyectar ÚNICAMENTE el botón "Ver Stickers" en el Header del chat
 const addDownloadAllButton = () => {
-  const headerContainer = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement;
+  const headerContainer = document.querySelector('div[class*="--DivChatHeader"], div[class*="ChatHeader"], [data-e2e="chat-header"]') as HTMLElement;
   if (!headerContainer) return;
 
   const convId = getActiveConversationId();
@@ -1403,9 +1496,8 @@ const addDownloadAllButton = () => {
     btnContainer.id = "tiktok-stickers-exporter-header-btns";
     btnContainer.dataset.convId = convId;
     btnContainer.style.display = "flex";
-    btnContainer.style.gap = "8px";
     btnContainer.style.marginLeft = "auto";
-    btnContainer.style.marginRight = "15px";
+    btnContainer.style.marginRight = "10px";
     btnContainer.style.alignItems = "center";
 
     const createTextBtn = (text: string, isPrimary: boolean) => {
@@ -1419,6 +1511,7 @@ const addDownloadAllButton = () => {
       btn.style.color = isPrimary ? "white" : "#fe2c55";
       btn.style.fontWeight = "bold";
       btn.style.fontSize = "13px";
+      btn.style.whiteSpace = "nowrap";
       btn.style.transition = "transform 0.2s, background-color 0.2s";
       
       btn.addEventListener("mouseenter", () => {
@@ -1439,137 +1532,8 @@ const addDownloadAllButton = () => {
     const btnView = createTextBtn(viewText, true);
     btnView.className = "btn-view";
     btnView.title = t("viewStickersTitle");
-
-    const svgSearch = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-    const svgStop = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -1px; margin-right: 5px; display: inline-block;"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>`;
-    const svgCheck = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-
-    // Botón de escaneo automático de chat
-    const isFullyExplored = state.hasReachedBeginning;
-    const btnScan = createTextBtn("", false);
-    btnScan.className = "btn-scan";
-    btnScan.style.borderColor = isFullyExplored ? "#2ed573" : "#20d5ec";
-    btnScan.style.color = isFullyExplored ? "#2ed573" : "#20d5ec";
-    btnScan.title = isFullyExplored ? t("chatFullyScannedTooltip") : t("scanChat");
-    btnScan.innerHTML = isFullyExplored 
-      ? `${svgCheck}<span>${t("chatFullyScanned")}</span>` 
-      : `${svgSearch}<span>${t("scanChat")}</span>`;
-
-    btnScan.addEventListener("mouseenter", () => {
-      btnScan.style.transform = "scale(1.05)";
-      if (!isChatScanning) {
-        btnScan.style.backgroundColor = isFullyExplored ? "rgba(46, 213, 115, 0.12)" : "rgba(32, 213, 236, 0.12)";
-      }
-    });
-    btnScan.addEventListener("mouseleave", () => {
-      btnScan.style.transform = "scale(1)";
-      if (!isChatScanning) btnScan.style.backgroundColor = "transparent";
-    });
-
-    const scanChatLogic = async () => {
-      if (isChatScanning) {
-        isChatScanning = false;
-        return;
-      }
-
-      const container = findChatScrollable();
-      if (!container) {
-        alert(t("noStickersOnScreen"));
-        return;
-      }
-
-      const scanConvId = getActiveConversationId();
-      let scanState = registerStickersFromDOM(scanConvId);
-
-      const initialImgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
-      if (initialImgs.length > 0) {
-        scanState.newestKnownStickerId = getStickerId(initialImgs[initialImgs.length - 1].src);
-        saveConversationScanState(scanState);
-      }
-
-      isChatScanning = true;
-      btnScan.style.backgroundColor = "rgba(32, 213, 236, 0.25)";
-      btnScan.style.borderColor = "#20d5ec";
-      btnScan.style.color = "#20d5ec";
-      btnScan.innerHTML = `${svgStop}<span>${t("stopScan")}</span>`;
-
-      let lastScrollHeight = container.scrollHeight;
-      let lastChildCount = container.childElementCount;
-      let lastFirstChildText = container.firstElementChild?.textContent || "";
-      let unchangedTries = 0;
-      const maxUnchanged = 16; // Espera ~5.6 segundos de estabilidad absoluta en la parte superior
-
-      try {
-        while (isChatScanning) {
-          if (getActiveConversationId() !== scanConvId) {
-            break;
-          }
-
-          scanState = registerStickersFromDOM(scanConvId);
-          const totalDiscovered = scanState.stickers.length;
-          btnScan.innerHTML = `${svgStop}<span>${t("stopScan")} (${totalDiscovered})</span>`;
-
-          const freshNewCount = scanState.stickers.filter(s => !isDownloaded(s.url)).length;
-          const freshViewText = freshNewCount > 0 
-            ? t("viewStickers", { count: freshNewCount }) 
-            : t("viewStickersNoCount");
-          btnView.innerText = freshViewText;
-
-          // Forzar scroll hacia la parte superior
-          triggerScrollToTop(container);
-
-          const currentScrollHeight = container.scrollHeight;
-          const currentChildCount = container.childElementCount;
-          const currentFirstChildText = container.firstElementChild?.textContent || "";
-          const isAtTop = container.scrollTop <= 5;
-
-          const hasChanged = 
-            currentScrollHeight !== lastScrollHeight || 
-            currentChildCount !== lastChildCount ||
-            currentFirstChildText !== lastFirstChildText;
-
-          if (isAtTop && !hasChanged) {
-            unchangedTries++;
-            if (unchangedTries >= maxUnchanged) {
-              scanState.hasReachedBeginning = true;
-              scanState.lastScanTimestamp = Date.now();
-              saveConversationScanState(scanState);
-              console.log("[TiktokStickersExporter] Se alcanzó el inicio real de la conversación.");
-              break;
-            }
-          } else {
-            unchangedTries = 0;
-            lastScrollHeight = currentScrollHeight;
-            lastChildCount = currentChildCount;
-            lastFirstChildText = currentFirstChildText;
-          }
-
-          await new Promise(r => setTimeout(r, 350));
-        }
-      } finally {
-        isChatScanning = false;
-        btnScan.style.backgroundColor = "transparent";
-
-        scanState = registerStickersFromDOM(scanConvId);
-        scanState.lastScanTimestamp = Date.now();
-        saveConversationScanState(scanState);
-
-        addDownloadAllButton();
-        addIndividualDownloadButtons();
-
-        // Al finalizar el análisis, abrir directamente el diálogo de stickers
-        if (scanState.stickers.length > 0) {
-          openStickersModal();
-        } else {
-          alert(t("noStickersOnScreen"));
-        }
-      }
-    };
-
-    btnScan.addEventListener("click", scanChatLogic);
     btnView.addEventListener("click", openStickersModal);
 
-    btnContainer.appendChild(btnScan);
     btnContainer.appendChild(btnView);
     
     if (window.getComputedStyle(headerContainer).display !== "flex") {
@@ -1578,25 +1542,13 @@ const addDownloadAllButton = () => {
     }
     headerContainer.appendChild(btnContainer);
   } else {
-    // Si ya existe el contenedor en pantalla, actualizar el botón "Ver stickers" y el botón de escaneo
+    // Si ya existe el contenedor en pantalla, actualizar únicamente el botón "Ver stickers"
     const btnView = btnContainer.querySelector(".btn-view") as HTMLButtonElement;
-    if (btnView) {
+    if (btnView && !isChatScanning) {
       const viewText = newStickerCount > 0 
         ? t("viewStickers", { count: newStickerCount }) 
         : t("viewStickersNoCount");
       btnView.innerText = viewText;
-    }
-    const btnScan = btnContainer.querySelector(".btn-scan") as HTMLButtonElement;
-    if (btnScan && !isChatScanning) {
-      const svgSearch = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-      const svgCheck = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-      const isUpToDate = state.hasReachedBeginning;
-      btnScan.innerHTML = isUpToDate 
-        ? `${svgCheck}<span>${t("chatFullyScanned")}</span>` 
-        : `${svgSearch}<span>${t("scanChat")}</span>`;
-      btnScan.title = isUpToDate ? t("chatFullyScannedTooltip") : t("scanChat");
-      btnScan.style.borderColor = isUpToDate ? "#2ed573" : "#20d5ec";
-      btnScan.style.color = isUpToDate ? "#2ed573" : "#20d5ec";
     }
   }
 };
