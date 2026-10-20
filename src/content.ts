@@ -320,13 +320,22 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       });
     };
     
+    const svgDownload = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+    const svgZip = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
+
     const btnSeq = document.createElement("button");
     const btnZip = document.createElement("button");
+    btnSeq.style.display = "inline-flex";
+    btnSeq.style.alignItems = "center";
+    btnSeq.style.justifyContent = "center";
+    btnZip.style.display = "inline-flex";
+    btnZip.style.alignItems = "center";
+    btnZip.style.justifyContent = "center";
 
     const updateActionButtons = () => {
       const count = selectedUrls.size;
-      btnSeq.innerText = `📥 ${t("downloadSeqBtn", { count })}`;
-      btnZip.innerText = `📦 ${t("downloadZipBtn", { count })}`;
+      btnSeq.innerHTML = `${svgDownload}<span>${t("downloadSeqBtn", { count })}</span>`;
+      btnZip.innerHTML = `${svgZip}<span>${t("downloadZipBtn", { count })}</span>`;
       const isDisabled = count === 0;
       btnSeq.disabled = isDisabled;
       btnZip.disabled = isDisabled;
@@ -1289,6 +1298,36 @@ const findChatScrollable = (): HTMLElement | null => {
   return null;
 };
 
+const triggerScrollToTop = (container: HTMLElement) => {
+  container.scrollTop = 0;
+  try {
+    container.scrollBy({ top: -1000, behavior: 'instant' });
+  } catch (e) {}
+
+  let parent = container.parentElement;
+  while (parent && parent !== document.body) {
+    const style = window.getComputedStyle(parent);
+    if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
+      parent.scrollTop = 0;
+    }
+    parent = parent.parentElement;
+  }
+
+  const firstChild = container.firstElementChild as HTMLElement;
+  if (firstChild && typeof firstChild.scrollIntoView === 'function') {
+    try {
+      firstChild.scrollIntoView({ block: 'start', behavior: 'instant' });
+    } catch (e) {}
+  }
+
+  container.dispatchEvent(new Event('scroll', { bubbles: true, cancelable: true }));
+  container.dispatchEvent(new UIEvent('scroll', { bubbles: true }));
+
+  try {
+    container.dispatchEvent(new WheelEvent('wheel', { deltaY: -600, deltaMode: 0, bubbles: true, cancelable: true }));
+  } catch (e) {}
+};
+
 let isChatScanning = false;
 
 // Función para inyectar los botones de escaneo y "Ver Stickers" en el Header del chat
@@ -1355,13 +1394,20 @@ const addDownloadAllButton = () => {
     btnView.className = "btn-view";
     btnView.title = t("viewStickersTitle");
 
+    const svgSearch = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+    const svgStop = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -1px; margin-right: 5px; display: inline-block;"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>`;
+    const svgCheck = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
     // Botón de escaneo automático de chat
     const isFullyExplored = state.hasReachedBeginning;
-    const btnScan = createTextBtn(isFullyExplored ? "✓ " + t("chatFullyScanned") : "🔍 " + t("scanChat"), false);
+    const btnScan = createTextBtn("", false);
     btnScan.className = "btn-scan";
     btnScan.style.borderColor = isFullyExplored ? "#2ed573" : "#20d5ec";
     btnScan.style.color = isFullyExplored ? "#2ed573" : "#20d5ec";
     btnScan.title = isFullyExplored ? t("chatFullyScannedTooltip") : t("scanChat");
+    btnScan.innerHTML = isFullyExplored 
+      ? `${svgCheck}<span>${t("chatFullyScanned")}</span>` 
+      : `${svgSearch}<span>${t("scanChat")}</span>`;
 
     btnScan.addEventListener("mouseenter", () => {
       btnScan.style.transform = "scale(1.05)";
@@ -1389,9 +1435,6 @@ const addDownloadAllButton = () => {
       const scanConvId = getActiveConversationId();
       let scanState = registerStickersFromDOM(scanConvId);
 
-      const knownIdsBeforeScan = new Set(scanState.stickers.map(s => s.id));
-      const wasFullyScanned = scanState.hasReachedBeginning;
-
       const initialImgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
       if (initialImgs.length > 0) {
         scanState.newestKnownStickerId = getStickerId(initialImgs[initialImgs.length - 1].src);
@@ -1402,12 +1445,13 @@ const addDownloadAllButton = () => {
       btnScan.style.backgroundColor = "rgba(32, 213, 236, 0.25)";
       btnScan.style.borderColor = "#20d5ec";
       btnScan.style.color = "#20d5ec";
-      btnScan.innerText = "⏹ " + t("stopScan");
+      btnScan.innerHTML = `${svgStop}<span>${t("stopScan")}</span>`;
 
-      let lastCount = 0;
-      let unchangedTries = 0;
-      const maxUnchanged = 6;
       let lastScrollHeight = container.scrollHeight;
+      let lastChildCount = container.childElementCount;
+      let lastFirstChildText = container.firstElementChild?.textContent || "";
+      let unchangedTries = 0;
+      const maxUnchanged = 16; // Espera ~5.6 segundos de estabilidad absoluta en la parte superior
 
       try {
         while (isChatScanning) {
@@ -1417,7 +1461,7 @@ const addDownloadAllButton = () => {
 
           scanState = registerStickersFromDOM(scanConvId);
           const totalDiscovered = scanState.stickers.length;
-          btnScan.innerText = `⏹ ${t("stopScan")} (${totalDiscovered})`;
+          btnScan.innerHTML = `${svgStop}<span>${t("stopScan")} (${totalDiscovered})</span>`;
 
           const freshNewCount = scanState.stickers.filter(s => !isDownloaded(s.url)).length;
           const freshViewText = freshNewCount > 0 
@@ -1425,35 +1469,36 @@ const addDownloadAllButton = () => {
             : t("viewStickersNoCount");
           btnView.innerText = freshViewText;
 
-          // Checkpoint inteligente: si ya estaba completado, detener al tocar el historial conocido
-          if (wasFullyScanned && knownIdsBeforeScan.size > 0) {
-            const currentImgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
-            const hitCheckpoint = currentImgs.some(img => knownIdsBeforeScan.has(getStickerId(img.src)));
-            if (hitCheckpoint) {
-              console.log("[TiktokStickersExporter] Checkpoint histórico alcanzado. Deteniendo escaneo anticipadamente.");
-              break;
-            }
-          }
+          // Forzar scroll hacia la parte superior
+          triggerScrollToTop(container);
 
-          container.scrollTop = 0;
-          container.dispatchEvent(new Event('scroll', { bubbles: true }));
+          const currentScrollHeight = container.scrollHeight;
+          const currentChildCount = container.childElementCount;
+          const currentFirstChildText = container.firstElementChild?.textContent || "";
+          const isAtTop = container.scrollTop <= 5;
 
-          if (container.scrollTop === 0 && (container.scrollHeight === lastScrollHeight || totalDiscovered === lastCount)) {
+          const hasChanged = 
+            currentScrollHeight !== lastScrollHeight || 
+            currentChildCount !== lastChildCount ||
+            currentFirstChildText !== lastFirstChildText;
+
+          if (isAtTop && !hasChanged) {
             unchangedTries++;
             if (unchangedTries >= maxUnchanged) {
               scanState.hasReachedBeginning = true;
               scanState.lastScanTimestamp = Date.now();
               saveConversationScanState(scanState);
-              console.log("[TiktokStickersExporter] Se alcanzó el inicio de la historia del chat.");
+              console.log("[TiktokStickersExporter] Se alcanzó el inicio real de la conversación.");
               break;
             }
           } else {
             unchangedTries = 0;
-            lastScrollHeight = container.scrollHeight;
-            lastCount = totalDiscovered;
+            lastScrollHeight = currentScrollHeight;
+            lastChildCount = currentChildCount;
+            lastFirstChildText = currentFirstChildText;
           }
 
-          await new Promise(r => setTimeout(r, 250));
+          await new Promise(r => setTimeout(r, 350));
         }
       } finally {
         isChatScanning = false;
@@ -1497,8 +1542,12 @@ const addDownloadAllButton = () => {
     }
     const btnScan = btnContainer.querySelector(".btn-scan") as HTMLButtonElement;
     if (btnScan && !isChatScanning) {
+      const svgSearch = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+      const svgCheck = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
       const isUpToDate = state.hasReachedBeginning;
-      btnScan.innerText = isUpToDate ? "✓ " + t("chatFullyScanned") : "🔍 " + t("scanChat");
+      btnScan.innerHTML = isUpToDate 
+        ? `${svgCheck}<span>${t("chatFullyScanned")}</span>` 
+        : `${svgSearch}<span>${t("scanChat")}</span>`;
       btnScan.title = isUpToDate ? t("chatFullyScannedTooltip") : t("scanChat");
       btnScan.style.borderColor = isUpToDate ? "#2ed573" : "#20d5ec";
       btnScan.style.color = isUpToDate ? "#2ed573" : "#20d5ec";
