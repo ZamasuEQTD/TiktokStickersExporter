@@ -1838,23 +1838,64 @@ const setupMobileEnhancements = () => {
         box-sizing: border-box !important;
       }
 
-      /* Botones de acción del header (Ver stickers / Analizar chat) */
+      /* ESTILOS PERSONALIZADOS DE LA LISTA DE CHATS EN MÓVIL */
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] {
+        padding: 6px 10px !important;
+        background-color: #121212 !important;
+      }
+      /* Items de conversación estilizados como tarjetas táctiles modernas */
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] a,
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] [role="listitem"],
+      body:not(.tt-chat-active) [class*="ConversationItem"] {
+        padding: 12px 14px !important;
+        margin-bottom: 8px !important;
+        border-radius: 14px !important;
+        background-color: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        transition: background-color 0.15s, transform 0.1s !important;
+        display: flex !important;
+        align-items: center !important;
+        cursor: pointer !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+      }
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] a:active,
+      body:not(.tt-chat-active) [class*="ConversationItem"]:active {
+        background-color: rgba(254, 44, 85, 0.15) !important;
+        border-color: rgba(254, 44, 85, 0.4) !important;
+        transform: scale(0.985) !important;
+      }
+      /* Avatares grandes y nítidos */
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] img,
+      body:not(.tt-chat-active) [class*="ConversationItem"] img {
+        width: 46px !important;
+        height: 46px !important;
+        border-radius: 50% !important;
+        margin-right: 12px !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+      }
+
+      /* Botón de acción del header (View stickers) */
       #tiktok-stickers-exporter-header-btns {
         display: flex !important;
         align-items: center !important;
-        gap: 6px !important;
         margin-left: auto !important;
       }
       #tiktok-stickers-exporter-header-btns button {
-        padding: 6px 12px !important;
+        padding: 7px 14px !important;
         font-size: 13px !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
         white-space: nowrap !important;
+        box-shadow: 0 2px 8px rgba(254, 44, 85, 0.4) !important;
       }
       #tiktok-stickers-exporter-settings-btn {
-        padding: 6px 12px !important;
+        background-color: #fe2c55 !important;
+        color: white !important;
+        border: none !important;
+        padding: 6px 14px !important;
         font-size: 13px !important;
-        border-radius: 8px !important;
+        font-weight: 600 !important;
+        border-radius: 16px !important;
+        box-shadow: 0 2px 8px rgba(254, 44, 85, 0.35) !important;
       }
     `;
     document.head.appendChild(style);
@@ -1863,14 +1904,48 @@ const setupMobileEnhancements = () => {
 
 let lastActiveHeader: Element | null = null;
 let userClosedChatMobile = false;
+let userIntentionallyFocusedInput = false;
+let suppressAutofocusUntil = 0;
 
-// Al hacer clic en un chat de la lista de conversaciones en móvil, reactivar la vista de chat
 if (typeof document !== 'undefined') {
+  // Al hacer clic en un chat de la lista de conversaciones en móvil, reactivar la vista de chat y suprimir autofocus
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement | null;
     if (target && (target.closest('[data-e2e="dm-new-conversation-list"]') || target.closest('[class*="ConversationItem"]'))) {
       userClosedChatMobile = false;
+      userIntentionallyFocusedInput = false;
+      suppressAutofocusUntil = Date.now() + 2500; // Suprime autofocus durante la carga del chat
       document.body.classList.add('tt-chat-active');
+    }
+  }, true);
+
+  // Permitir foco SOLO cuando el usuario toca intencionalmente el input de mensaje
+  document.addEventListener('pointerdown', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (target && (target.getAttribute('contenteditable') === 'true' || target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')) {
+      userIntentionallyFocusedInput = true;
+      suppressAutofocusUntil = 0;
+      setTimeout(() => { userIntentionallyFocusedInput = false; }, 1500);
+    }
+  }, true);
+
+  // Evitar autofocus automático de TikTok para que NO se levante el teclado móvil
+  document.addEventListener('focusin', (e) => {
+    if (!isMobileDevice()) return;
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+
+    const isEditor = target.getAttribute('contenteditable') === 'true' || target.tagName === 'TEXTAREA' || target.tagName === 'INPUT';
+    if (isEditor) {
+      const now = Date.now();
+      if (now < suppressAutofocusUntil || !userIntentionallyFocusedInput) {
+        e.preventDefault();
+        e.stopPropagation();
+        target.blur();
+        if (document.activeElement === target) {
+          (document.activeElement as HTMLElement).blur();
+        }
+      }
     }
   }, true);
 }
