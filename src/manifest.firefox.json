@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TikTok Stickers Exporter",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "Export TikTok Stickers easily",
   "browser_specific_settings": {
     "gecko": {
@@ -43,7 +43,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "converter.worker.js"
+        "converter.worker.js",
+        "icons/*"
       ],
       "matches": [
         "*://*.tiktok.com/*"

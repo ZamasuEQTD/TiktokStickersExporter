@@ -190,7 +190,7 @@ interface CustomConfirmResult {
 }
 
 // Función para mostrar un diálogo modal personalizado con vista previa amplia en PC
-const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: string[]): Promise<CustomConfirmResult | null> => {
+const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: string[], convId?: string): Promise<CustomConfirmResult | null> => {
   const newStickers = deduplicateStickerUrls(rawNewStickers);
   const oldStickers = deduplicateStickerUrls(rawOldStickers);
 
@@ -200,6 +200,12 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     const s = (px: number) => isMobile ? (px * scaleFactor) + "px" : px + "px";
 
     const overlay = document.createElement("div");
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+        resolve(null);
+      }
+    };
     overlay.style.position = "fixed";
     overlay.style.top = "0";
     overlay.style.left = "0";
@@ -488,32 +494,63 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     downloadBtnsRow.style.marginTop = isMobile ? s(12) : "14px";
     downloadBtnsRow.style.width = "100%";
 
-    // Botón Cancelar abajo, en su propia fila para no amontonarse
-    const btnCancel = document.createElement("button");
-    btnCancel.innerText = t("cancel");
-    btnCancel.style.width = "100%";
-    btnCancel.style.marginTop = isMobile ? s(8) : "10px";
-    btnCancel.style.padding = isMobile ? s(10) : "10px 18px";
-    btnCancel.style.borderRadius = isMobile ? s(8) : "8px";
-    btnCancel.style.border = "1px solid rgba(255, 255, 255, 0.12)";
-    btnCancel.style.backgroundColor = "#333";
-    btnCancel.style.color = "#bbb";
-    btnCancel.style.cursor = "pointer";
-    btnCancel.style.fontWeight = "bold";
-    btnCancel.style.fontSize = isMobile ? s(13) : "14px";
-    btnCancel.style.textAlign = "center";
-    btnCancel.style.transition = "background-color 0.2s, color 0.2s, transform 0.2s";
+    // Botón Escanear chat en lugar de Cancelar abajo
+    const currentConvId = convId || getActiveConversationId();
+    const scanStateInModal = loadConversationScanState(currentConvId);
+    const isAlreadyAtBeginning = scanStateInModal.hasReachedBeginning;
 
-    btnCancel.addEventListener("mouseenter", () => {
-      btnCancel.style.backgroundColor = "#444";
-      btnCancel.style.color = "#ffffff";
-      btnCancel.style.transform = "scale(1.01)";
-    });
-    btnCancel.addEventListener("mouseleave", () => {
-      btnCancel.style.backgroundColor = "#333";
-      btnCancel.style.color = "#bbb";
-      btnCancel.style.transform = "scale(1)";
-    });
+    const btnScanInModal = document.createElement("button");
+    btnScanInModal.style.width = "100%";
+    btnScanInModal.style.marginTop = isMobile ? s(8) : "10px";
+    btnScanInModal.style.padding = isMobile ? s(10) : "11px 18px";
+    btnScanInModal.style.borderRadius = isMobile ? s(8) : "8px";
+    btnScanInModal.style.fontWeight = "bold";
+    btnScanInModal.style.fontSize = isMobile ? s(13) : "14px";
+    btnScanInModal.style.textAlign = "center";
+    btnScanInModal.style.display = "inline-flex";
+    btnScanInModal.style.alignItems = "center";
+    btnScanInModal.style.justifyContent = "center";
+    btnScanInModal.style.transition = "background-color 0.2s, color 0.2s, transform 0.2s, border-color 0.2s";
+
+    const svgSearchModal = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+    const svgCheckModal = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+    if (isAlreadyAtBeginning) {
+      btnScanInModal.disabled = true;
+      btnScanInModal.innerHTML = `${svgCheckModal}<span>${t("chatFullyScanned")}</span>`;
+      btnScanInModal.title = t("chatFullyScannedTooltip");
+      btnScanInModal.style.border = "1px solid rgba(46, 213, 115, 0.4)";
+      btnScanInModal.style.backgroundColor = "rgba(46, 213, 115, 0.08)";
+      btnScanInModal.style.color = "#2ed573";
+      btnScanInModal.style.cursor = "not-allowed";
+      btnScanInModal.style.opacity = "0.75";
+    } else {
+      btnScanInModal.disabled = false;
+      btnScanInModal.innerHTML = `${svgSearchModal}<span>${t("scanChat")}</span>`;
+      btnScanInModal.title = t("scanChat");
+      btnScanInModal.style.border = "1px solid #20d5ec";
+      btnScanInModal.style.backgroundColor = "transparent";
+      btnScanInModal.style.color = "#20d5ec";
+      btnScanInModal.style.cursor = "pointer";
+
+      btnScanInModal.addEventListener("mouseenter", () => {
+        btnScanInModal.style.backgroundColor = "rgba(32, 213, 236, 0.12)";
+        btnScanInModal.style.transform = "scale(1.01)";
+      });
+      btnScanInModal.addEventListener("mouseleave", () => {
+        btnScanInModal.style.backgroundColor = "transparent";
+        btnScanInModal.style.transform = "scale(1)";
+      });
+
+      btnScanInModal.onclick = () => {
+        document.body.removeChild(overlay);
+        resolve(null);
+        const headerScanBtn = document.querySelector("#tiktok-stickers-exporter-header-btns .btn-scan") as HTMLButtonElement | null;
+        if (headerScanBtn) {
+          headerScanBtn.click();
+        }
+      };
+    }
 
     // 2. Botón Descarga Secuencial (uno por uno)
     btnSeq.style.padding = isMobile ? s(12) : "11px 18px";
@@ -565,11 +602,6 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
 
     updateActionButtons();
 
-    btnCancel.onclick = () => {
-      document.body.removeChild(overlay);
-      resolve(null);
-    };
-
     btnSeq.onclick = () => {
       if (selectedUrls.size === 0) return;
       document.body.removeChild(overlay);
@@ -585,7 +617,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     downloadBtnsRow.appendChild(btnSeq);
     downloadBtnsRow.appendChild(btnZip);
     modal.appendChild(downloadBtnsRow);
-    modal.appendChild(btnCancel);
+    modal.appendChild(btnScanInModal);
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
@@ -801,7 +833,7 @@ const showSettingsModal = () => {
 };
 
 // Helper para obtener un identificador único de la conversación activa
-const getActiveConversationId = (): string => {
+function getActiveConversationId(): string {
   const headerContainer = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement;
   if (headerContainer) {
     const profileLink = headerContainer.querySelector('a[href*="/@"]') as HTMLAnchorElement;
@@ -860,7 +892,7 @@ interface ConversationScanState {
 
 const getChatScanStorageKey = (convId: string) => `tiktok-chat-scan-${convId}`;
 
-const loadConversationScanState = (convId: string): ConversationScanState => {
+function loadConversationScanState(convId: string): ConversationScanState {
   try {
     const raw = localStorage.getItem(getChatScanStorageKey(convId));
     if (raw) {
@@ -1254,7 +1286,7 @@ const openStickersModal = async () => {
     return;
   }
 
-  const result = await showCustomConfirm(freshNew, freshOld);
+  const result = await showCustomConfirm(freshNew, freshOld, curConvId);
   if (!result || !result.urls || result.urls.length === 0) return;
 
   await executeDownload(result.action, result.urls);
@@ -1730,7 +1762,7 @@ const addSettingsButton = () => {
 };
 
 
-// En dispositivos móviles (p.ej. Firefox Android), fuerza el layout de escritorio (1024px)
+// En dispositivos móviles (p.ej. Firefox Android), fuerza el layout y desactiva completamente el zoom
 const enforceDesktopViewport = () => {
   if (!isMobileDevice()) return;
   try {
@@ -1740,11 +1772,69 @@ const enforceDesktopViewport = () => {
       meta.name = 'viewport';
       document.head.appendChild(meta);
     }
-    if (meta.getAttribute('data-forced-desktop') === 'true') return;
     meta.setAttribute('data-forced-desktop', 'true');
-    meta.content = 'width=1024, initial-scale=0.38, minimum-scale=0.25, maximum-scale=3.0, user-scalable=yes';
+    meta.content = 'width=1024, initial-scale=0.38, minimum-scale=0.38, maximum-scale=0.38, user-scalable=no';
   } catch (e) {
     console.error("Error forzando viewport de escritorio:", e);
+  }
+};
+
+// Configura mejoras de interfaz móvil, desactiva gestos de zoom y adapta TikTok Messages al ancho del móvil
+const setupMobileEnhancements = () => {
+  if (!isMobileDevice()) return;
+
+  // 1. Bloquear zoom táctil (pinch-to-zoom y doble tap)
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches && e.touches.length > 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener('gesturestart', (e) => {
+    e.preventDefault();
+  });
+
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+      e.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  // 2. Estilos para que en /messages la UI se sienta nativa de móvil
+  if (!document.getElementById('tt-mobile-enhancement-styles')) {
+    const style = document.createElement('style');
+    style.id = 'tt-mobile-enhancement-styles';
+    style.textContent = `
+      html, body {
+        touch-action: pan-x pan-y !important;
+      }
+      /* Ocultar barra lateral de navegación global de TikTok en /messages en móvil */
+      div[data-e2e="nav-bar"],
+      div[class*="DivSideNavContainer"],
+      div[class*="DivNavContainer"],
+      div[class*="SideNav"],
+      aside[class*="SideNav"],
+      header[data-e2e="tiktok-header"] {
+        display: none !important;
+      }
+      /* Expandir chat en móvil al ancho completo de pantalla */
+      div[class*="DivMessagesContainer"],
+      div[class*="DivChatRoom"],
+      div[class*="DivChatContainer"] {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+      }
+      #tiktok-stickers-exporter-header-btns button {
+        padding: 8px 16px !important;
+        font-size: 14px !important;
+        border-radius: 10px !important;
+      }
+    `;
+    document.head.appendChild(style);
   }
 };
 
@@ -1791,22 +1881,15 @@ const checkAndShowMessagesRedirectDialog = () => {
   card.style.flexDirection = 'column';
   card.style.alignItems = 'center';
 
-  const iconBox = document.createElement('div');
-  iconBox.style.width = '58px';
-  iconBox.style.height = '58px';
-  iconBox.style.borderRadius = '16px';
-  iconBox.style.background = 'linear-gradient(135deg, #fe2c55 0%, #25f4ee 100%)';
-  iconBox.style.display = 'flex';
-  iconBox.style.alignItems = 'center';
-  iconBox.style.justifyContent = 'center';
-  iconBox.style.marginBottom = '16px';
-  iconBox.style.boxShadow = '0 6px 20px rgba(254, 44, 85, 0.4)';
-  iconBox.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-    <polyline points="9 10 12 13 15 10"></polyline>
-    <line x1="12" y1="6" x2="12" y2="13"></line>
-  </svg>`;
-  card.appendChild(iconBox);
+  const iconImg = document.createElement('img');
+  iconImg.src = browser.runtime.getURL('icons/icon-128.png');
+  iconImg.style.width = '64px';
+  iconImg.style.height = '64px';
+  iconImg.style.borderRadius = '18px';
+  iconImg.style.marginBottom = '16px';
+  iconImg.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
+  iconImg.style.objectFit = 'contain';
+  card.appendChild(iconImg);
 
   const title = document.createElement('h3');
   title.innerText = t("redirectQuestion");
@@ -1886,6 +1969,7 @@ const checkAndShowMessagesRedirectDialog = () => {
 // Inicialización inmediata (simulación móvil solo en dispositivos móviles)
 if (isMobileDevice()) {
   enforceDesktopViewport();
+  setupMobileEnhancements();
   setTimeout(() => {
     checkAndShowMessagesRedirectDialog();
   }, 600);
@@ -1895,6 +1979,7 @@ let isProcessing = false;
 const observer = new MutationObserver(() => {
   if (isMobileDevice()) {
     enforceDesktopViewport();
+    setupMobileEnhancements();
     checkAndShowMessagesRedirectDialog();
   }
   if (isProcessing) return;
