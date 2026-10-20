@@ -147,11 +147,28 @@ const getExtension = (res: Response): string => {
 
 // Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS o pantalla táctil)
 const isMobileDevice = (): boolean => {
-  const ua = navigator.userAgent || '';
-  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
-  const hasCoarsePointer = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
-  const isSmallScreen = typeof window !== 'undefined' && window.innerWidth <= 768;
-  return isMobileUA || (hasCoarsePointer && isSmallScreen);
+  const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '';
+  
+  // 1. Si explícitamente es Windows de escritorio o macOS de escritorio, es PC
+  if (/Windows NT|Macintosh|Win64|WOW64/i.test(ua)) {
+    return false;
+  }
+
+  // 2. Si el User-Agent contiene indicadores móviles típicos o Fenix (Firefox Android)
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Fenix/i.test(ua)) {
+    return true;
+  }
+
+  // 3. Capacidades táctiles nativas y pantalla física de dispositivo móvil
+  const hasTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
+  const isCoarse = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
+  const isPhysicalPhoneScreen = typeof window !== 'undefined' && typeof window.screen !== 'undefined' && Math.min(window.screen.width, window.screen.height) <= 650;
+
+  if (hasTouch || isCoarse || isPhysicalPhoneScreen) {
+    return true;
+  }
+
+  return false;
 };
 
 // Funciones para manejar el historial de descargas en localStorage
@@ -1811,13 +1828,15 @@ const setupMobileEnhancements = () => {
       html, body {
         touch-action: pan-x pan-y !important;
       }
-      /* Ocultar barra lateral de navegación global de TikTok en /messages en móvil */
+      /* Ocultar barra lateral de navegación global de TikTok en móvil */
       div[data-e2e="nav-bar"],
       div[class*="DivSideNavContainer"],
       div[class*="DivNavContainer"],
       div[class*="SideNav"],
       aside[class*="SideNav"],
-      header[data-e2e="tiktok-header"] {
+      aside,
+      header[data-e2e="tiktok-header"],
+      div[id="app-header"] {
         display: none !important;
       }
       /* Expandir chat en móvil al ancho completo de pantalla */
@@ -1827,14 +1846,57 @@ const setupMobileEnhancements = () => {
         width: 100vw !important;
         max-width: 100vw !important;
         margin: 0 !important;
+        padding: 0 !important;
+      }
+      /* Ocultar lista de conversaciones si el chat está activo para ver el chat a pantalla completa */
+      body.tt-chat-active div[class*="DivConversationList"],
+      body.tt-chat-active div[class*="ConversationList"] {
+        display: none !important;
       }
       #tiktok-stickers-exporter-header-btns button {
-        padding: 8px 16px !important;
-        font-size: 14px !important;
-        border-radius: 10px !important;
+        padding: 10px 18px !important;
+        font-size: 15px !important;
+        border-radius: 12px !important;
       }
     `;
     document.head.appendChild(style);
+  }
+};
+
+const updateMobileLayout = () => {
+  if (!isMobileDevice()) return;
+  const isMessages = window.location.pathname.startsWith('/messages');
+  if (!isMessages) {
+    document.body.classList.remove('tt-chat-active');
+    return;
+  }
+
+  const header = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement | null;
+  if (header) {
+    document.body.classList.add('tt-chat-active');
+    // Agregar botón ← para volver a la lista de chats si no existe
+    if (!header.querySelector('.btn-mobile-back-to-list')) {
+      const btnBack = document.createElement('button');
+      btnBack.className = 'btn-mobile-back-to-list';
+      btnBack.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`;
+      btnBack.style.background = 'none';
+      btnBack.style.border = 'none';
+      btnBack.style.color = '#ffffff';
+      btnBack.style.cursor = 'pointer';
+      btnBack.style.padding = '8px';
+      btnBack.style.marginRight = '8px';
+      btnBack.style.display = 'inline-flex';
+      btnBack.style.alignItems = 'center';
+      btnBack.style.justifyContent = 'center';
+      btnBack.title = 'Volver a chats';
+      btnBack.onclick = (e) => {
+        e.stopPropagation();
+        document.body.classList.toggle('tt-chat-active');
+      };
+      header.prepend(btnBack);
+    }
+  } else {
+    document.body.classList.remove('tt-chat-active');
   }
 };
 
@@ -1844,10 +1906,6 @@ const checkAndShowMessagesRedirectDialog = () => {
   if (window.location.pathname.startsWith('/messages')) return;
 
   if (document.getElementById('tt-stickers-redirect-dialog')) return;
-  try {
-    if (sessionStorage.getItem('tt_stickers_redirect_dismissed') === '1') return;
-  } catch (e) {}
-
   if (!document.body) return;
 
   const overlay = document.createElement('div');
@@ -1857,8 +1915,8 @@ const checkAndShowMessagesRedirectDialog = () => {
   overlay.style.left = '0';
   overlay.style.width = '100vw';
   overlay.style.height = '100vh';
-  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.78)';
-  overlay.style.backdropFilter = 'blur(6px)';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+  overlay.style.backdropFilter = 'blur(8px)';
   overlay.style.zIndex = '9999999';
   overlay.style.display = 'flex';
   overlay.style.alignItems = 'center';
@@ -1870,12 +1928,12 @@ const checkAndShowMessagesRedirectDialog = () => {
   const card = document.createElement('div');
   card.style.backgroundColor = '#161823';
   card.style.border = '1px solid rgba(255, 255, 255, 0.15)';
-  card.style.borderRadius = '20px';
-  card.style.padding = isMobileDevice() ? '26px 20px' : '30px 26px';
-  card.style.maxWidth = '420px';
-  card.style.width = '100%';
+  card.style.borderRadius = '24px';
+  card.style.padding = '32px 24px';
+  card.style.maxWidth = '400px';
+  card.style.width = '90%';
   card.style.textAlign = 'center';
-  card.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.85)';
+  card.style.boxShadow = '0 20px 60px rgba(0, 0, 0, 0.9)';
   card.style.boxSizing = 'border-box';
   card.style.display = 'flex';
   card.style.flexDirection = 'column';
@@ -1883,10 +1941,10 @@ const checkAndShowMessagesRedirectDialog = () => {
 
   const iconImg = document.createElement('img');
   iconImg.src = browser.runtime.getURL('icons/icon-128.png');
-  iconImg.style.width = '64px';
-  iconImg.style.height = '64px';
-  iconImg.style.borderRadius = '18px';
-  iconImg.style.marginBottom = '16px';
+  iconImg.style.width = '72px';
+  iconImg.style.height = '72px';
+  iconImg.style.borderRadius = '20px';
+  iconImg.style.marginBottom = '18px';
   iconImg.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
   iconImg.style.objectFit = 'contain';
   card.appendChild(iconImg);
@@ -1894,9 +1952,9 @@ const checkAndShowMessagesRedirectDialog = () => {
   const title = document.createElement('h3');
   title.innerText = t("redirectQuestion");
   title.style.color = '#ffffff';
-  title.style.fontSize = isMobileDevice() ? '19px' : '21px';
+  title.style.fontSize = '20px';
   title.style.fontWeight = '700';
-  title.style.margin = '0 0 8px 0';
+  title.style.margin = '0 0 10px 0';
   card.appendChild(title);
 
   const desc = document.createElement('p');
@@ -1904,7 +1962,7 @@ const checkAndShowMessagesRedirectDialog = () => {
   desc.style.color = 'rgba(255, 255, 255, 0.72)';
   desc.style.fontSize = '14px';
   desc.style.lineHeight = '1.45';
-  desc.style.margin = '0 0 22px 0';
+  desc.style.margin = '0 0 24px 0';
   card.appendChild(desc);
 
   const btnGo = document.createElement('button');
@@ -1912,34 +1970,25 @@ const checkAndShowMessagesRedirectDialog = () => {
   btnGo.style.backgroundColor = '#fe2c55';
   btnGo.style.color = '#ffffff';
   btnGo.style.border = 'none';
-  btnGo.style.borderRadius = '12px';
-  btnGo.style.padding = '13px 20px';
-  btnGo.style.fontSize = '15px';
+  btnGo.style.borderRadius = '14px';
+  btnGo.style.padding = '14px 22px';
+  btnGo.style.fontSize = '16px';
   btnGo.style.fontWeight = 'bold';
   btnGo.style.cursor = 'pointer';
   btnGo.style.display = 'flex';
   btnGo.style.alignItems = 'center';
   btnGo.style.justifyContent = 'center';
   btnGo.style.gap = '8px';
-  btnGo.style.boxShadow = '0 4px 14px rgba(254, 44, 85, 0.4)';
+  btnGo.style.boxShadow = '0 4px 16px rgba(254, 44, 85, 0.45)';
   btnGo.style.transition = 'transform 0.15s, background-color 0.15s';
   btnGo.innerHTML = `<span>${t("goToMessages")}</span>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
       <line x1="5" y1="12" x2="19" y2="12"></line>
       <polyline points="12 5 19 12 12 19"></polyline>
     </svg>`;
-  
-  btnGo.addEventListener('mouseenter', () => {
-    btnGo.style.backgroundColor = '#e02448';
-    btnGo.style.transform = 'scale(1.02)';
-  });
-  btnGo.addEventListener('mouseleave', () => {
-    btnGo.style.backgroundColor = '#fe2c55';
-    btnGo.style.transform = 'scale(1)';
-  });
-  btnGo.addEventListener('click', () => {
+  btnGo.onclick = () => {
     window.location.href = 'https://www.tiktok.com/messages';
-  });
+  };
   card.appendChild(btnGo);
 
   const btnDismiss = document.createElement('button');
@@ -1949,31 +1998,35 @@ const checkAndShowMessagesRedirectDialog = () => {
   btnDismiss.style.color = 'rgba(255, 255, 255, 0.55)';
   btnDismiss.style.border = 'none';
   btnDismiss.style.borderRadius = '8px';
-  btnDismiss.style.padding = '10px 14px';
-  btnDismiss.style.fontSize = '13px';
+  btnDismiss.style.padding = '12px 14px';
+  btnDismiss.style.fontSize = '14px';
   btnDismiss.style.fontWeight = '500';
   btnDismiss.style.cursor = 'pointer';
-  btnDismiss.style.marginTop = '6px';
-  btnDismiss.addEventListener('click', () => {
-    try {
-      sessionStorage.setItem('tt_stickers_redirect_dismissed', '1');
-    } catch (e) {}
+  btnDismiss.style.marginTop = '8px';
+  btnDismiss.onclick = () => {
     overlay.remove();
-  });
+  };
   card.appendChild(btnDismiss);
 
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 };
 
-// Inicialización inmediata (simulación móvil solo en dispositivos móviles)
-if (isMobileDevice()) {
-  enforceDesktopViewport();
-  setupMobileEnhancements();
-  setTimeout(() => {
+// Inicialización inmediata
+const initMobile = () => {
+  if (isMobileDevice()) {
+    console.log("[TiktokStickersExporter] Inicializando modo móvil");
+    enforceDesktopViewport();
+    setupMobileEnhancements();
     checkAndShowMessagesRedirectDialog();
-  }, 600);
-}
+    updateMobileLayout();
+  }
+};
+
+initMobile();
+setTimeout(initMobile, 300);
+setTimeout(initMobile, 800);
+setTimeout(initMobile, 1800);
 
 let isProcessing = false;
 const observer = new MutationObserver(() => {
@@ -1981,6 +2034,7 @@ const observer = new MutationObserver(() => {
     enforceDesktopViewport();
     setupMobileEnhancements();
     checkAndShowMessagesRedirectDialog();
+    updateMobileLayout();
   }
   if (isProcessing) return;
   isProcessing = true;
