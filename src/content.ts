@@ -1770,7 +1770,7 @@ const addSettingsButton = () => {
 };
 
 
-// En dispositivos móviles (p.ej. Firefox Android), fuerza el layout y desactiva completamente el zoom
+// En dispositivos móviles (p.ej. Firefox Android o Chrome con emulación móvil), desactiva completamente el zoom sin distorsionar la resolución
 const enforceDesktopViewport = () => {
   if (!isMobileDevice()) return;
   try {
@@ -1781,9 +1781,9 @@ const enforceDesktopViewport = () => {
       document.head.appendChild(meta);
     }
     meta.setAttribute('data-forced-desktop', 'true');
-    meta.content = 'width=1024, initial-scale=0.38, minimum-scale=0.38, maximum-scale=0.38, user-scalable=no';
+    meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
   } catch (e) {
-    console.error("Error forzando viewport de escritorio:", e);
+    console.error("Error ajustando viewport:", e);
   }
 };
 
@@ -1811,7 +1811,7 @@ const setupMobileEnhancements = () => {
     lastTouchEnd = now;
   }, { passive: false });
 
-  // 2. Estilos para que en /messages la UI se sienta nativa de móvil
+  // 2. Estilos para que en /messages la UI se sienta nativa de móvil sin ocultar el contenido principal
   if (!document.getElementById('tt-mobile-enhancement-styles')) {
     const style = document.createElement('style');
     style.id = 'tt-mobile-enhancement-styles';
@@ -1819,52 +1819,88 @@ const setupMobileEnhancements = () => {
       html, body {
         touch-action: pan-x pan-y !important;
       }
-      /* Ocultar barra lateral de navegación global de TikTok en móvil */
-      div[data-e2e="nav-bar"],
-      div[class*="DivSideNavContainer"],
-      div[class*="DivNavContainer"],
-      div[class*="SideNav"],
-      aside[class*="SideNav"],
-      aside,
-      header[data-e2e="tiktok-header"],
-      div[id="app-header"] {
+      /* Ocultar barra superior de escritorio para ganar espacio vertical */
+      #app-header {
         display: none !important;
       }
-      /* Expandir chat en móvil al ancho completo de pantalla */
-      div[class*="DivMessagesContainer"],
-      div[class*="DivChatRoom"],
-      div[class*="DivChatContainer"] {
-        width: 100vw !important;
+      /* Ocultar los botones de navegación del feed global (Home, Following), preservando el cajón de mensajes */
+      div[class*="DivFixedContentContainer"],
+      div[class*="DivScrollingContentContainer"] {
+        display: none !important;
+      }
+      /* Proteger el contenedor principal de mensajes para que NUNCA se oculte */
+      #main-content-messages {
+        display: flex !important;
+        flex: 1 1 auto !important;
+        width: 100% !important;
         max-width: 100vw !important;
         margin: 0 !important;
         padding: 0 !important;
       }
-      /* Ocultar lista de conversaciones si el chat está activo para ver el chat a pantalla completa */
-      body.tt-chat-active div[class*="DivConversationList"],
-      body.tt-chat-active div[class*="ConversationList"] {
+      /* Ajuste responsive de lista de conversaciones y chat */
+      div[class*="DivChatBox"],
+      div[class*="DivMessagesContainer"],
+      div[class*="DivChatRoom"],
+      div[class*="DivChatContainer"] {
+        width: 100% !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      /* Ocultar la lista de conversaciones únicamente cuando el chat individual está abierto */
+      body.tt-chat-active div[class*="DivConversationListContainer"],
+      body.tt-chat-active div[data-e2e="dm-new-conversation-list"] {
         display: none !important;
       }
+      /* En móvil el chat activo toma el 100% de la pantalla */
+      body.tt-chat-active div[class*="DivChatRoom"] {
+        width: 100% !important;
+        max-width: 100vw !important;
+      }
       #tiktok-stickers-exporter-header-btns button {
-        padding: 10px 18px !important;
-        font-size: 15px !important;
-        border-radius: 12px !important;
+        padding: 8px 14px !important;
+        font-size: 14px !important;
+        border-radius: 10px !important;
       }
     `;
     document.head.appendChild(style);
   }
 };
 
+let lastActiveHeader: Element | null = null;
+let userClosedChatMobile = false;
+
+// Al hacer clic en un chat de la lista de conversaciones en móvil, reactivar la vista de chat
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest('[data-e2e="dm-new-conversation-list"]')) {
+      userClosedChatMobile = false;
+      document.body.classList.add('tt-chat-active');
+    }
+  }, true);
+}
+
 const updateMobileLayout = () => {
   if (!isMobileDevice()) return;
   const isMessages = window.location.pathname.startsWith('/messages');
   if (!isMessages) {
     document.body.classList.remove('tt-chat-active');
+    userClosedChatMobile = false;
     return;
   }
 
   const header = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement | null;
   if (header) {
-    document.body.classList.add('tt-chat-active');
+    if (header !== lastActiveHeader) {
+      lastActiveHeader = header;
+      userClosedChatMobile = false;
+    }
+
+    if (!userClosedChatMobile) {
+      document.body.classList.add('tt-chat-active');
+    }
+
     // Agregar botón ← para volver a la lista de chats si no existe
     if (!header.querySelector('.btn-mobile-back-to-list')) {
       const btnBack = document.createElement('button');
@@ -1882,12 +1918,14 @@ const updateMobileLayout = () => {
       btnBack.title = 'Volver a chats';
       btnBack.onclick = (e) => {
         e.stopPropagation();
-        document.body.classList.toggle('tt-chat-active');
+        userClosedChatMobile = true;
+        document.body.classList.remove('tt-chat-active');
       };
       header.prepend(btnBack);
     }
   } else {
     document.body.classList.remove('tt-chat-active');
+    userClosedChatMobile = false;
   }
 };
 
