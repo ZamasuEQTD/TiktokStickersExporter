@@ -1686,14 +1686,38 @@ const addIndividualDownloadButtons = () => {
 };
 
 const addSettingsButton = () => {
-  if (document.getElementById('tiktok-stickers-exporter-settings-btn')) return;
-
   const h2s = Array.from(document.querySelectorAll('h2'));
   const messagesH2 = h2s.find(h2 => h2.innerText.includes("Messages") || h2.innerText.includes("Mensajes") || (h2.className && h2.className.includes("H2Semibold")));
   
   if (!messagesH2) return;
   const targetContainer = messagesH2.parentElement;
   if (!targetContainer) return;
+
+  // Botón chevron left al lado de "Mensajes" para volver a tiktok.com
+  if (!document.getElementById('tiktok-stickers-back-home-btn')) {
+    const btnHome = document.createElement("button");
+    btnHome.id = "tiktok-stickers-back-home-btn";
+    btnHome.setAttribute("aria-label", "Volver a TikTok");
+    btnHome.title = "Volver a TikTok";
+    btnHome.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
+    btnHome.style.background = "none";
+    btnHome.style.border = "none";
+    btnHome.style.color = "#ffffff";
+    btnHome.style.cursor = "pointer";
+    btnHome.style.padding = "6px";
+    btnHome.style.marginRight = "6px";
+    btnHome.style.display = "inline-flex";
+    btnHome.style.alignItems = "center";
+    btnHome.style.justifyContent = "center";
+    btnHome.style.borderRadius = "50%";
+    btnHome.onclick = (e) => {
+      e.stopPropagation();
+      window.location.href = 'https://www.tiktok.com/';
+    };
+    targetContainer.insertBefore(btnHome, messagesH2);
+  }
+
+  if (document.getElementById('tiktok-stickers-exporter-settings-btn')) return;
 
   const btn = document.createElement("button");
   btn.id = "tiktok-stickers-exporter-settings-btn";
@@ -1781,10 +1805,33 @@ const setupMobileEnhancements = () => {
       #app-header {
         display: none !important;
       }
-      /* Ocultar botones del feed global (Home, Following), manteniendo el cajón de mensajes */
+      /* Quitar la barra lateral izquierda por completo y alinear al borde izquierdo (0px) */
+      div[class*="DivAnimationCover"],
       div[class*="DivFixedContentContainer"],
       div[class*="DivScrollingContentContainer"] {
         display: none !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+      }
+      div[class*="BaseBodyContainer"] {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      div[class*="DivSideNavPlaceholderContainer"],
+      div[class*="DivSideNavContainer"] {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        min-width: 100vw !important;
+        left: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      div[class*="DivDrawerContainer"],
+      div[class*="DivMessageDrawerContainer"] {
+        left: 0 !important;
+        margin-left: 0 !important;
+        transform: none !important;
       }
 
       /* VISTA 1: Lista de conversaciones (cuando NO hay chat individual abierto) */
