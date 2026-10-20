@@ -13,7 +13,7 @@ const translations = {
     downloadZip: "Download ZIP",
     confirmZipTitle: "Compress stickers in a ZIP?",
     confirmSeqTitle: "Download stickers?",
-    noStickersOnScreen: "No stickers on screen!",
+    noStickersOnScreen: "No stickers found in this chat!",
     errorDownload: "Error downloading:",
     errorZip: "An error occurred while creating the ZIP file.",
     downloadCount: "Download ({count})",
@@ -44,6 +44,13 @@ const translations = {
     stopScan: "Stop scan",
     chatFullyScanned: "Up to date",
     chatFullyScannedTooltip: "Chat history is fully scanned. Click to check for newer stickers.",
+    viewStickers: "View stickers ({count})",
+    viewStickersNoCount: "View stickers",
+    viewStickersTitle: "TikTok Stickers",
+    downloadSeqBtn: "Download ({count})",
+    downloadZipBtn: "Download ZIP ({count})",
+    downloadSeqTooltip: "Download selected stickers one by one",
+    downloadZipTooltip: "Compress and download all selected stickers in a single ZIP",
   },
   es: {
     settings: "Configuración",
@@ -56,7 +63,7 @@ const translations = {
     downloadZip: "Descargar ZIP",
     confirmZipTitle: "¿Comprimir stickers en un ZIP?",
     confirmSeqTitle: "¿Descargar stickers?",
-    noStickersOnScreen: "¡No hay stickers en pantalla!",
+    noStickersOnScreen: "¡No se encontraron stickers en este chat!",
     errorDownload: "Error al descargar:",
     errorZip: "Ocurrió un error al crear el archivo ZIP.",
     downloadCount: "Descargar ({count})",
@@ -87,6 +94,13 @@ const translations = {
     stopScan: "Detener",
     chatFullyScanned: "Al día",
     chatFullyScannedTooltip: "Historial completamente analizado. Clic para buscar nuevos stickers.",
+    viewStickers: "Ver stickers ({count})",
+    viewStickersNoCount: "Ver stickers",
+    viewStickersTitle: "Stickers de TikTok",
+    downloadSeqBtn: "Descargar ({count})",
+    downloadZipBtn: "Descargar ZIP ({count})",
+    downloadSeqTooltip: "Descargar los stickers seleccionados uno por uno",
+    downloadZipTooltip: "Comprimir y descargar todos los stickers seleccionados en un archivo ZIP",
   }
 };
 
@@ -119,6 +133,15 @@ const getExtension = (res: Response): string => {
   return "webp";
 };
 
+// Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS o pantalla táctil)
+const isMobileDevice = (): boolean => {
+  const ua = navigator.userAgent || '';
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+  const hasCoarsePointer = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
+  const isSmallScreen = typeof window !== 'undefined' && window.innerWidth <= 768;
+  return isMobileUA || (hasCoarsePointer && isSmallScreen);
+};
+
 // Funciones para manejar el historial de descargas en localStorage
 const getStickerId = (url: string): string => {
   try {
@@ -149,14 +172,20 @@ const deduplicateStickerUrls = (urls: string[]): string[] => {
   return unique;
 };
 
-// Función para mostrar un diálogo modal personalizado con vista previa
-const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOldStickers: string[]): Promise<string[] | null> => {
+interface CustomConfirmResult {
+  action: 'zip' | 'seq';
+  urls: string[];
+}
+
+// Función para mostrar un diálogo modal personalizado con vista previa amplia en PC
+const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: string[]): Promise<CustomConfirmResult | null> => {
   const newStickers = deduplicateStickerUrls(rawNewStickers);
   const oldStickers = deduplicateStickerUrls(rawOldStickers);
 
   return new Promise((resolve) => {
+    const isMobile = isMobileDevice();
     const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
-    const s = (px: number) => (px * scaleFactor) + "px";
+    const s = (px: number) => isMobile ? (px * scaleFactor) + "px" : px + "px";
 
     const overlay = document.createElement("div");
     overlay.style.position = "fixed";
@@ -173,11 +202,11 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
     const modal = document.createElement("div");
     modal.style.position = "relative";
     modal.style.backgroundColor = "#252525";
-    modal.style.borderRadius = s(16);
-    modal.style.padding = s(20);
-    modal.style.width = "85%";
-    modal.style.maxWidth = s(450);
-    modal.style.maxHeight = "85vh";
+    modal.style.borderRadius = isMobile ? s(16) : "16px";
+    modal.style.padding = isMobile ? s(20) : "24px 28px";
+    modal.style.width = isMobile ? "92%" : "820px";
+    modal.style.maxWidth = isMobile ? s(460) : "920px";
+    modal.style.maxHeight = isMobile ? "85vh" : "82vh";
     modal.style.display = "flex";
     modal.style.flexDirection = "column";
     modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
@@ -192,10 +221,10 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>`;
     btnX.style.position = "absolute";
-    btnX.style.top = s(12);
-    btnX.style.right = s(12);
-    btnX.style.width = s(36);
-    btnX.style.height = s(36);
+    btnX.style.top = isMobile ? s(12) : "16px";
+    btnX.style.right = isMobile ? s(12) : "16px";
+    btnX.style.width = isMobile ? s(36) : "36px";
+    btnX.style.height = isMobile ? s(36) : "36px";
     btnX.style.display = "flex";
     btnX.style.alignItems = "center";
     btnX.style.justifyContent = "center";
@@ -222,36 +251,36 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
     modal.appendChild(btnX);
     
     const header = document.createElement("h2");
-    header.innerText = title;
+    header.innerText = t("viewStickersTitle");
     header.style.marginTop = "0";
     header.style.textAlign = "center";
-    header.style.fontSize = s(18);
-    header.style.marginBottom = s(15);
+    header.style.fontSize = isMobile ? s(18) : "20px";
+    header.style.marginBottom = isMobile ? s(15) : "18px";
     modal.appendChild(header);
 
     const tabsContainer = document.createElement("div");
     tabsContainer.style.display = "flex";
     tabsContainer.style.borderBottom = "1px solid #444";
-    tabsContainer.style.marginBottom = s(15);
+    tabsContainer.style.marginBottom = isMobile ? s(15) : "16px";
 
     const tabNew = document.createElement("div");
     tabNew.innerText = t("newStickers", { count: newStickers.length });
     tabNew.style.flex = "1";
     tabNew.style.textAlign = "center";
-    tabNew.style.padding = s(10);
+    tabNew.style.padding = isMobile ? s(10) : "10px";
     tabNew.style.cursor = "pointer";
     tabNew.style.fontWeight = "bold";
-    tabNew.style.fontSize = s(14);
+    tabNew.style.fontSize = isMobile ? s(14) : "15px";
     tabNew.style.transition = "color 0.2s, border-bottom 0.2s";
 
     const tabOld = document.createElement("div");
     tabOld.innerText = t("oldStickers", { count: oldStickers.length });
     tabOld.style.flex = "1";
     tabOld.style.textAlign = "center";
-    tabOld.style.padding = s(10);
+    tabOld.style.padding = isMobile ? s(10) : "10px";
     tabOld.style.cursor = "pointer";
     tabOld.style.fontWeight = "bold";
-    tabOld.style.fontSize = s(14);
+    tabOld.style.fontSize = isMobile ? s(14) : "15px";
     tabOld.style.transition = "color 0.2s, border-bottom 0.2s";
 
     tabsContainer.appendChild(tabNew);
@@ -261,7 +290,7 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
     const scrollContainer = document.createElement("div");
     scrollContainer.style.overflowY = "auto";
     scrollContainer.style.flexGrow = "1";
-    scrollContainer.style.marginBottom = s(15);
+    scrollContainer.style.marginBottom = isMobile ? s(15) : "16px";
     scrollContainer.style.scrollbarWidth = "thin";
     scrollContainer.style.scrollbarColor = "#fe2c55 #252525";
     scrollContainer.style.display = "flex";
@@ -279,11 +308,20 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
       });
     };
     
-    const btnConfirm = document.createElement("button");
-    const updateConfirmButton = () => {
-      btnConfirm.innerText = t("downloadCount", { count: selectedUrls.size });
-      btnConfirm.disabled = selectedUrls.size === 0;
-      btnConfirm.style.opacity = btnConfirm.disabled ? "0.5" : "1";
+    const btnSeq = document.createElement("button");
+    const btnZip = document.createElement("button");
+
+    const updateActionButtons = () => {
+      const count = selectedUrls.size;
+      btnSeq.innerText = `📥 ${t("downloadSeqBtn", { count })}`;
+      btnZip.innerText = `📦 ${t("downloadZipBtn", { count })}`;
+      const isDisabled = count === 0;
+      btnSeq.disabled = isDisabled;
+      btnZip.disabled = isDisabled;
+      btnSeq.style.opacity = isDisabled ? "0.4" : "1";
+      btnZip.style.opacity = isDisabled ? "0.4" : "1";
+      btnSeq.style.cursor = isDisabled ? "not-allowed" : "pointer";
+      btnZip.style.cursor = isDisabled ? "not-allowed" : "pointer";
     };
     
     const createSectionWithGrid = (urls: string[], initiallySelected: boolean, emptyText: string) => {
@@ -296,8 +334,8 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
         emptyEl.innerText = emptyText;
         emptyEl.style.textAlign = "center";
         emptyEl.style.color = "#888";
-        emptyEl.style.fontSize = s(14);
-        emptyEl.style.marginTop = s(20);
+        emptyEl.style.fontSize = isMobile ? s(14) : "14px";
+        emptyEl.style.marginTop = isMobile ? s(20) : "24px";
         section.appendChild(emptyEl);
         return section;
       }
@@ -306,13 +344,13 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
       sectionHeader.style.display = "flex";
       sectionHeader.style.justifyContent = "space-between";
       sectionHeader.style.alignItems = "center";
-      sectionHeader.style.marginBottom = s(10);
+      sectionHeader.style.marginBottom = isMobile ? s(10) : "12px";
 
       const btnToggle = document.createElement("button");
-      btnToggle.style.padding = `${s(5)} ${s(10)}`;
-      btnToggle.style.borderRadius = s(6);
+      btnToggle.style.padding = isMobile ? `${s(5)} ${s(10)}` : "6px 14px";
+      btnToggle.style.borderRadius = isMobile ? s(6) : "6px";
       btnToggle.style.cursor = "pointer";
-      btnToggle.style.fontSize = s(12);
+      btnToggle.style.fontSize = isMobile ? s(12) : "13px";
       btnToggle.style.fontWeight = "bold";
       btnToggle.style.transition = "all 0.2s";
 
@@ -339,7 +377,7 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
           setUrlVisualState(url, shouldSelectAll);
         });
         updateToggleBtn();
-        updateConfirmButton();
+        updateActionButtons();
       };
 
       sectionHeader.appendChild(btnToggle);
@@ -347,8 +385,11 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
 
       const grid = document.createElement("div");
       grid.style.display = "grid";
-      grid.style.gridTemplateColumns = `repeat(auto-fill, minmax(${s(70)}, 1fr))`;
-      grid.style.gap = s(8);
+      // En PC mostrar cuadrícula espaciosa y grande (min 88px), en móvil compacta
+      grid.style.gridTemplateColumns = isMobile 
+        ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
+        : "repeat(auto-fill, minmax(88px, 1fr))";
+      grid.style.gap = isMobile ? s(8) : "12px";
 
       urls.forEach(url => {
         const container = document.createElement("div");
@@ -360,8 +401,8 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
         img.style.width = "100%";
         img.style.aspectRatio = "1/1";
         img.style.objectFit = "cover";
-        img.style.borderRadius = s(8);
-        img.style.backgroundColor = "#111";
+        img.style.borderRadius = isMobile ? s(8) : "8px";
+        img.style.backgroundColor = "#181818";
         img.style.transition = "all 0.2s";
 
         if (!initiallySelected) {
@@ -385,7 +426,7 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
           }
           setUrlVisualState(url, nextSelected);
           updateToggleBtn();
-          updateConfirmButton();
+          updateActionButtons();
         };
       });
 
@@ -417,38 +458,108 @@ const showCustomConfirm = async (title: string, rawNewStickers: string[], rawOld
     scrollContainer.appendChild(contentOld);
     modal.appendChild(scrollContainer);
 
-    btnConfirm.style.flex = "1";
-    btnConfirm.style.padding = s(12);
-    btnConfirm.style.borderRadius = s(8);
-    btnConfirm.style.border = "none";
-    btnConfirm.style.backgroundColor = "#fe2c55";
-    btnConfirm.style.color = "white";
-    btnConfirm.style.cursor = "pointer";
-    btnConfirm.style.fontWeight = "bold";
-    btnConfirm.style.fontSize = s(15);
-    updateConfirmButton();
-
+    // Contenedor de botones de acción en fila horizontal (uno al lado del otro)
     const btnContainer = document.createElement("div");
     btnContainer.style.display = "flex";
-    btnContainer.style.gap = s(12);
+    btnContainer.style.flexDirection = "row";
+    btnContainer.style.alignItems = "center";
+    btnContainer.style.gap = isMobile ? s(10) : "12px";
+    btnContainer.style.marginTop = isMobile ? s(10) : "14px";
+    btnContainer.style.flexWrap = isMobile ? "wrap" : "nowrap";
 
+    // 1. Botón Cancelar
     const btnCancel = document.createElement("button");
     btnCancel.innerText = t("cancel");
-    btnCancel.style.flex = "1";
-    btnCancel.style.padding = s(12);
-    btnCancel.style.borderRadius = s(8);
-    btnCancel.style.border = "none";
-    btnCancel.style.backgroundColor = "#444";
-    btnCancel.style.color = "white";
+    btnCancel.style.padding = isMobile ? s(12) : "11px 18px";
+    btnCancel.style.borderRadius = isMobile ? s(8) : "8px";
+    btnCancel.style.border = "1px solid rgba(255, 255, 255, 0.15)";
+    btnCancel.style.backgroundColor = "#383838";
+    btnCancel.style.color = "#eee";
     btnCancel.style.cursor = "pointer";
     btnCancel.style.fontWeight = "bold";
-    btnCancel.style.fontSize = s(15);
+    btnCancel.style.fontSize = isMobile ? s(14) : "14px";
+    btnCancel.style.flex = isMobile ? "1 1 100%" : "0 0 auto";
+    btnCancel.style.transition = "background-color 0.2s, transform 0.2s";
 
-    btnCancel.onclick = () => { document.body.removeChild(overlay); resolve(null); };
-    btnConfirm.onclick = () => { document.body.removeChild(overlay); resolve(Array.from(selectedUrls)); };
+    btnCancel.addEventListener("mouseenter", () => {
+      btnCancel.style.backgroundColor = "#4a4a4a";
+      btnCancel.style.transform = "scale(1.02)";
+    });
+    btnCancel.addEventListener("mouseleave", () => {
+      btnCancel.style.backgroundColor = "#383838";
+      btnCancel.style.transform = "scale(1)";
+    });
+
+    // 2. Botón Descarga Secuencial (uno por uno)
+    btnSeq.style.padding = isMobile ? s(12) : "11px 18px";
+    btnSeq.style.borderRadius = isMobile ? s(8) : "8px";
+    btnSeq.style.border = "1.5px solid #fe2c55";
+    btnSeq.style.backgroundColor = "transparent";
+    btnSeq.style.color = "#fe2c55";
+    btnSeq.style.cursor = "pointer";
+    btnSeq.style.fontWeight = "bold";
+    btnSeq.style.fontSize = isMobile ? s(14) : "14px";
+    btnSeq.style.flex = "1";
+    btnSeq.style.transition = "background-color 0.2s, transform 0.2s";
+    btnSeq.title = t("downloadSeqTooltip");
+
+    btnSeq.addEventListener("mouseenter", () => {
+      if (!btnSeq.disabled) {
+        btnSeq.style.backgroundColor = "rgba(254, 44, 85, 0.12)";
+        btnSeq.style.transform = "scale(1.02)";
+      }
+    });
+    btnSeq.addEventListener("mouseleave", () => {
+      btnSeq.style.backgroundColor = "transparent";
+      btnSeq.style.transform = "scale(1)";
+    });
+
+    // 3. Botón Descarga ZIP
+    btnZip.style.padding = isMobile ? s(12) : "11px 18px";
+    btnZip.style.borderRadius = isMobile ? s(8) : "8px";
+    btnZip.style.border = "1.5px solid #fe2c55";
+    btnZip.style.backgroundColor = "#fe2c55";
+    btnZip.style.color = "#ffffff";
+    btnZip.style.cursor = "pointer";
+    btnZip.style.fontWeight = "bold";
+    btnZip.style.fontSize = isMobile ? s(14) : "14px";
+    btnZip.style.flex = "1";
+    btnZip.style.transition = "filter 0.2s, transform 0.2s";
+    btnZip.title = t("downloadZipTooltip");
+
+    btnZip.addEventListener("mouseenter", () => {
+      if (!btnZip.disabled) {
+        btnZip.style.filter = "brightness(1.1)";
+        btnZip.style.transform = "scale(1.02)";
+      }
+    });
+    btnZip.addEventListener("mouseleave", () => {
+      btnZip.style.filter = "none";
+      btnZip.style.transform = "scale(1)";
+    });
+
+    updateActionButtons();
+
+    btnCancel.onclick = () => {
+      document.body.removeChild(overlay);
+      resolve(null);
+    };
+
+    btnSeq.onclick = () => {
+      if (selectedUrls.size === 0) return;
+      document.body.removeChild(overlay);
+      resolve({ action: 'seq', urls: Array.from(selectedUrls) });
+    };
+
+    btnZip.onclick = () => {
+      if (selectedUrls.size === 0) return;
+      document.body.removeChild(overlay);
+      resolve({ action: 'zip', urls: Array.from(selectedUrls) });
+    };
 
     btnContainer.appendChild(btnCancel);
-    btnContainer.appendChild(btnConfirm);
+    btnContainer.appendChild(btnSeq);
+    btnContainer.appendChild(btnZip);
     modal.appendChild(btnContainer);
 
     overlay.appendChild(modal);
@@ -478,179 +589,145 @@ const showSettingsModal = () => {
   overlay.style.justifyContent = "center";
 
   const modal = document.createElement("div");
+  modal.style.position = "relative";
   modal.style.backgroundColor = "#252525";
   modal.style.borderRadius = s(16);
-  modal.style.padding = s(20);
+  modal.style.padding = s(24);
   modal.style.width = "85%";
-  modal.style.maxWidth = s(400);
+  modal.style.maxWidth = s(380);
   modal.style.display = "flex";
   modal.style.flexDirection = "column";
   modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
   modal.style.color = "white";
   modal.style.fontFamily = "sans-serif";
-  modal.style.gap = s(15);
-  modal.style.maxHeight = "85vh";
-  modal.style.overflowY = "auto";
-  
-  const header = document.createElement("h2");
+  modal.style.gap = s(16);
+
+  const close = () => {
+    if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+  };
+
+  const btnX = document.createElement("button");
+  btnX.title = t("close");
+  btnX.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>`;
+  btnX.style.position = "absolute";
+  btnX.style.top = s(12);
+  btnX.style.right = s(12);
+  btnX.style.width = s(36);
+  btnX.style.height = s(36);
+  btnX.style.display = "flex";
+  btnX.style.alignItems = "center";
+  btnX.style.justifyContent = "center";
+  btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+  btnX.style.borderRadius = "50%";
+  btnX.style.border = "none";
+  btnX.style.color = "#ffffff";
+  btnX.style.cursor = "pointer";
+  btnX.style.zIndex = "1000";
+  btnX.style.transition = "background-color 0.2s, transform 0.2s";
+
+  btnX.addEventListener("mouseenter", () => {
+    btnX.style.backgroundColor = "rgba(254, 44, 85, 0.9)";
+    btnX.style.transform = "scale(1.1)";
+  });
+  btnX.addEventListener("mouseleave", () => {
+    btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+    btnX.style.transform = "scale(1)";
+  });
+  btnX.onclick = close;
+  modal.appendChild(btnX);
+
+  const header = document.createElement("h3");
   header.innerText = t("settings");
-  header.style.marginTop = "0";
-  header.style.textAlign = "center";
+  header.style.margin = "0";
   header.style.fontSize = s(18);
-  header.style.marginBottom = "0";
+  header.style.fontWeight = "bold";
+  header.style.textAlign = "center";
   modal.appendChild(header);
 
-  // Language setting
+  // Selector de idioma
   const langContainer = document.createElement("div");
   langContainer.style.display = "flex";
   langContainer.style.flexDirection = "column";
-  langContainer.style.gap = s(5);
-  
+  langContainer.style.gap = s(6);
+
   const langLabel = document.createElement("label");
   langLabel.innerText = t("languageLabel");
-  langLabel.style.fontSize = s(14);
+  langLabel.style.fontSize = s(13);
   langLabel.style.color = "#ccc";
-  
-  const langInput = document.createElement("div");
-  langInput.style.display = "flex";
-  langInput.style.flexWrap = "wrap";
-  langInput.style.gap = s(8);
-  
-  const langOptions = [
-    { id: "auto", text: t("langAuto") },
-    { id: "en", text: t("langEn") },
-    { id: "es", text: t("langEs") }
-  ];
-  let storedLang = localStorage.getItem("tiktok-stickers-exporter-lang") || "auto";
-  const langBtns: HTMLButtonElement[] = [];
-  
-  langOptions.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.innerText = opt.text;
-    btn.style.padding = `${s(6)} ${s(12)}`;
-    btn.style.borderRadius = s(8);
-    btn.style.fontWeight = "bold";
-    btn.style.fontSize = s(13);
-    btn.style.cursor = "pointer";
-    btn.style.transition = "all 0.2s";
-    
-    const isSelected = opt.id === storedLang;
-    
-    if (isSelected) {
-      btn.style.backgroundColor = "#fe2c55";
-      btn.style.border = "1px solid #fe2c55";
-      btn.style.color = "white";
+
+  const langSelect = document.createElement("select");
+  langSelect.style.padding = s(8);
+  langSelect.style.borderRadius = s(6);
+  langSelect.style.backgroundColor = "#333";
+  langSelect.style.color = "white";
+  langSelect.style.border = "1px solid #555";
+  langSelect.style.fontSize = s(14);
+  langSelect.style.cursor = "pointer";
+
+  const optAuto = document.createElement("option");
+  optAuto.value = "auto";
+  optAuto.innerText = t("langAuto");
+  const optEs = document.createElement("option");
+  optEs.value = "es";
+  optEs.innerText = t("langEs");
+  const optEn = document.createElement("option");
+  optEn.value = "en";
+  optEn.innerText = t("langEn");
+
+  const currentForced = localStorage.getItem("tiktok-stickers-exporter-lang");
+  if (currentForced === "es") optEs.selected = true;
+  else if (currentForced === "en") optEn.selected = true;
+  else optAuto.selected = true;
+
+  langSelect.appendChild(optAuto);
+  langSelect.appendChild(optEs);
+  langSelect.appendChild(optEn);
+
+  langSelect.onchange = () => {
+    if (langSelect.value === "auto") {
+      localStorage.removeItem("tiktok-stickers-exporter-lang");
     } else {
-      btn.style.backgroundColor = "transparent";
-      btn.style.border = "1px solid #fe2c55";
-      btn.style.color = "#fe2c55";
+      localStorage.setItem("tiktok-stickers-exporter-lang", langSelect.value);
     }
-    
-    btn.onclick = () => {
-      if (opt.id === "auto") {
-        localStorage.removeItem("tiktok-stickers-exporter-lang");
-      } else {
-        localStorage.setItem("tiktok-stickers-exporter-lang", opt.id);
-      }
-      location.reload(); // Recargar para aplicar el nuevo idioma instantáneamente
-    };
-    
-    btn.addEventListener("mouseenter", () => {
-      btn.style.transform = "scale(1.05)";
-      if (opt.id !== storedLang) {
-        btn.style.backgroundColor = "rgba(254, 44, 85, 0.1)";
-      }
-    });
-    
-    btn.addEventListener("mouseleave", () => {
-      btn.style.transform = "scale(1)";
-      if (opt.id !== storedLang) {
-        btn.style.backgroundColor = "transparent";
-      }
-    });
-    
-    langBtns.push(btn);
-    langInput.appendChild(btn);
-  });
-  
+    close();
+    addDownloadAllButton();
+  };
+
   langContainer.appendChild(langLabel);
-  langContainer.appendChild(langInput);
+  langContainer.appendChild(langSelect);
   modal.appendChild(langContainer);
 
   // Delay setting
   const delayContainer = document.createElement("div");
   delayContainer.style.display = "flex";
   delayContainer.style.flexDirection = "column";
-  delayContainer.style.gap = s(5);
-  
+  delayContainer.style.gap = s(6);
+
   const delayLabel = document.createElement("label");
   delayLabel.innerText = t("delayLabel");
-  delayLabel.style.fontSize = s(14);
+  delayLabel.style.fontSize = s(13);
   delayLabel.style.color = "#ccc";
-  
-  const delayInput = document.createElement("div");
-  delayInput.style.display = "flex";
-  delayInput.style.flexWrap = "wrap";
-  delayInput.style.gap = s(8);
-  
-  const options = ["0.5", "1.0", "1.5", "2.0", "3.0", "5.0"];
-  let storedDelay = localStorage.getItem("tiktok-stickers-exporter-delay") || "1.5";
-  const optionBtns: HTMLButtonElement[] = [];
-  
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.innerText = `${opt}s`;
-    btn.style.padding = `${s(6)} ${s(12)}`;
-    btn.style.borderRadius = s(8);
-    btn.style.fontWeight = "bold";
-    btn.style.fontSize = s(13);
-    btn.style.cursor = "pointer";
-    btn.style.transition = "all 0.2s";
-    
-    const isSelected = parseFloat(opt) === parseFloat(storedDelay);
-    
-    if (isSelected) {
-      btn.style.backgroundColor = "#fe2c55";
-      btn.style.border = "1px solid #fe2c55";
-      btn.style.color = "white";
-    } else {
-      btn.style.backgroundColor = "transparent";
-      btn.style.border = "1px solid #fe2c55";
-      btn.style.color = "#fe2c55";
-    }
-    
-    btn.onclick = () => {
-      localStorage.setItem("tiktok-stickers-exporter-delay", opt);
-      storedDelay = opt;
-      optionBtns.forEach(b => {
-        if (b === btn) {
-          b.style.backgroundColor = "#fe2c55";
-          b.style.color = "white";
-        } else {
-          b.style.backgroundColor = "transparent";
-          b.style.color = "#fe2c55";
-        }
-      });
-    };
-    
-    btn.addEventListener("mouseenter", () => {
-      btn.style.transform = "scale(1.05)";
-      if (parseFloat(opt) !== parseFloat(storedDelay)) {
-        btn.style.backgroundColor = "rgba(254, 44, 85, 0.1)";
-      }
-    });
-    
-    btn.addEventListener("mouseleave", () => {
-      btn.style.transform = "scale(1)";
-      if (parseFloat(opt) !== parseFloat(storedDelay)) {
-        btn.style.backgroundColor = "transparent";
-      }
-    });
-    
-    optionBtns.push(btn);
-    delayInput.appendChild(btn);
-  });
-  
+
+  const delayInput = document.createElement("input");
+  delayInput.type = "number";
+  delayInput.min = "0.5";
+  delayInput.max = "10";
+  delayInput.step = "0.5";
+  delayInput.value = String(getDelay());
+  delayInput.style.padding = s(8);
+  delayInput.style.borderRadius = s(6);
+  delayInput.style.border = "1px solid #555";
+  delayInput.style.backgroundColor = "#333";
+  delayInput.style.color = "white";
+  delayInput.style.fontSize = s(14);
+
+  delayInput.onchange = () => {
+    localStorage.setItem("tiktok-stickers-exporter-delay", delayInput.value);
+  };
+
   delayContainer.appendChild(delayLabel);
   delayContainer.appendChild(delayInput);
   modal.appendChild(delayContainer);
@@ -675,6 +752,8 @@ const showSettingsModal = () => {
         }
       });
       alert(t("historyCleared"));
+      addDownloadAllButton();
+      addIndividualDownloadButtons();
     }
   };
   modal.appendChild(btnClear);
@@ -688,69 +767,23 @@ const showSettingsModal = () => {
   btnClose.style.color = "white";
   btnClose.style.cursor = "pointer";
   btnClose.style.fontWeight = "bold";
-  btnClose.style.fontSize = s(15);
-  btnClose.style.marginTop = s(5);
-  
-  btnClose.onclick = () => { document.body.removeChild(overlay); };
-  
+  btnClose.style.fontSize = s(14);
+  btnClose.onclick = close;
   modal.appendChild(btnClose);
+
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 };
 
-// Helper para localizar el contenedor de scroll del chat en TikTok Web
-const findChatScrollable = (): HTMLElement | null => {
-  // 1. Intentar desde cualquier sticker visible
-  const stickers = document.querySelectorAll('img[alt="sticker"]');
-  for (const sticker of Array.from(stickers)) {
-    let p = sticker.parentElement;
-    while (p && p !== document.body) {
-      const style = window.getComputedStyle(p);
-      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && p.scrollHeight > p.clientHeight) {
-        return p;
-      }
-      p = p.parentElement;
-    }
-  }
-
-  // 2. Intentar desde mensajes o contenedores del chat
-  const chatElements = document.querySelectorAll('div[class*="Message"], div[class*="Chat"], div[data-e2e*="chat"]');
-  for (const el of Array.from(chatElements)) {
-    let p: HTMLElement | null = el as HTMLElement;
-    while (p && p !== document.body) {
-      const style = window.getComputedStyle(p);
-      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && p.scrollHeight > p.clientHeight) {
-        return p;
-      }
-      p = p.parentElement;
-    }
-  }
-
-  // 3. Fallback: buscar contenedor scrollable dentro del área del header
-  const header = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement;
-  if (header && header.parentElement) {
-    const scrollables = Array.from(header.parentElement.querySelectorAll('div')).filter(el => {
-      const style = window.getComputedStyle(el);
-      return (style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
-    });
-    if (scrollables.length > 0) return scrollables[0];
-  }
-
-  return null;
-};
-
-// Variable para controlar si hay un escaneo de chat en curso
 // Helper para obtener un identificador único de la conversación activa
 const getActiveConversationId = (): string => {
   const headerContainer = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement;
   if (headerContainer) {
-    // 1. Enlace de perfil del usuario (@usuario)
     const profileLink = headerContainer.querySelector('a[href*="/@"]') as HTMLAnchorElement;
     if (profileLink && profileLink.getAttribute('href')) {
       const match = profileLink.getAttribute('href')!.match(/@([^/?#]+)/);
       if (match && match[1]) return match[1];
     }
-    // 2. Cualquier enlace con @
     const anyLink = headerContainer.querySelector('a') as HTMLAnchorElement;
     if (anyLink && anyLink.getAttribute('href')) {
       const href = anyLink.getAttribute('href')!;
@@ -759,19 +792,16 @@ const getActiveConversationId = (): string => {
         if (match && match[1]) return match[1];
       }
     }
-    // 3. Título o nombre mostrado en el header
     const titleEl = headerContainer.querySelector('h1, h2, h3, h4, span[class*="Title"], span[class*="Name"], p[class*="Name"]');
     if (titleEl && titleEl.textContent && titleEl.textContent.trim()) {
       return titleEl.textContent.trim().replace(/\s+/g, '_');
     }
   }
 
-  // 4. Parámetro de la URL
   const urlParams = new URLSearchParams(window.location.search);
   const cid = urlParams.get('conversation_id') || urlParams.get('cid');
   if (cid) return cid;
 
-  // 5. Elemento de chat seleccionado en la barra lateral
   const activeItem = document.querySelector('[class*="ConversationItem"][class*="active"], [class*="ChatRoomItem"][class*="active"], [aria-selected="true"]');
   if (activeItem) {
     const link = activeItem.querySelector('a[href*="/@"]') as HTMLAnchorElement;
@@ -872,7 +902,6 @@ const registerStickersFromDOM = (convId: string): ConversationScanState => {
     const id = getStickerId(img.src);
     const existing = existingMap.get(id);
     if (existing) {
-      // Actualizar con URL fresca firmada si cambió
       if (existing.url !== img.src) {
         existing.url = img.src;
         changed = true;
@@ -898,11 +927,356 @@ const registerStickersFromDOM = (convId: string): ConversationScanState => {
   return state;
 };
 
+interface ProgressModalController {
+  update: (current: number, total: number) => void;
+  setStatus: (statusText: string) => void;
+  complete: (message: string) => void;
+  close: () => void;
+}
+
+const showProgressModal = (title: string, total: number): ProgressModalController => {
+  const isMobile = isMobileDevice();
+  const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
+  const s = (px: number) => isMobile ? (px * scaleFactor) + "px" : px + "px";
+
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.85)";
+  overlay.style.zIndex = "9999999";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+
+  const modal = document.createElement("div");
+  modal.style.position = "relative";
+  modal.style.backgroundColor = "#252525";
+  modal.style.borderRadius = isMobile ? s(16) : "16px";
+  modal.style.padding = isMobile ? `${s(30)} ${s(26)} ${s(26)} ${s(26)}` : "30px 26px 26px 26px";
+  modal.style.width = isMobile ? "85%" : "440px";
+  modal.style.maxWidth = isMobile ? s(460) : "480px";
+  modal.style.display = "flex";
+  modal.style.flexDirection = "column";
+  modal.style.alignItems = "center";
+  modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
+  modal.style.color = "white";
+  modal.style.fontFamily = "sans-serif";
+  modal.style.gap = isMobile ? s(16) : "16px";
+
+  let isClosed = false;
+  let countdownTimer: any = null;
+
+  const close = () => {
+    if (isClosed) return;
+    isClosed = true;
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+  };
+
+  const btnX = document.createElement("button");
+  btnX.title = t("close");
+  btnX.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>`;
+  btnX.style.position = "absolute";
+  btnX.style.top = isMobile ? s(12) : "12px";
+  btnX.style.right = isMobile ? s(12) : "12px";
+  btnX.style.width = isMobile ? s(36) : "36px";
+  btnX.style.height = isMobile ? s(36) : "36px";
+  btnX.style.display = "flex";
+  btnX.style.alignItems = "center";
+  btnX.style.justifyContent = "center";
+  btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+  btnX.style.borderRadius = "50%";
+  btnX.style.border = "none";
+  btnX.style.color = "#ffffff";
+  btnX.style.cursor = "pointer";
+  btnX.style.zIndex = "1000";
+  btnX.style.transition = "background-color 0.2s, transform 0.2s";
+
+  btnX.addEventListener("mouseenter", () => {
+    btnX.style.backgroundColor = "rgba(254, 44, 85, 0.9)";
+    btnX.style.transform = "scale(1.1)";
+  });
+  btnX.addEventListener("mouseleave", () => {
+    btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+    btnX.style.transform = "scale(1)";
+  });
+  btnX.onclick = close;
+  modal.appendChild(btnX);
+
+  const header = document.createElement("h3");
+  header.innerText = title;
+  header.style.margin = "0";
+  header.style.fontSize = isMobile ? s(18) : "18px";
+  header.style.fontWeight = "bold";
+  header.style.textAlign = "center";
+
+  const isZipMode = title.includes("ZIP") || title.includes("omprim");
+  const statusEl = document.createElement("div");
+  statusEl.innerText = isZipMode
+    ? t("compressingProgress", { current: 1, total })
+    : t("downloadingProgress", { current: 1, total });
+  statusEl.style.fontSize = isMobile ? s(14) : "14px";
+  statusEl.style.color = "#ccc";
+  statusEl.style.textAlign = "center";
+
+  const barContainer = document.createElement("div");
+  barContainer.style.width = "100%";
+  barContainer.style.height = isMobile ? s(14) : "14px";
+  barContainer.style.backgroundColor = "#444";
+  barContainer.style.borderRadius = isMobile ? s(7) : "7px";
+  barContainer.style.overflow = "hidden";
+
+  const barFill = document.createElement("div");
+  barFill.style.width = "0%";
+  barFill.style.height = "100%";
+  barFill.style.backgroundColor = "#fe2c55";
+  barFill.style.borderRadius = isMobile ? s(7) : "7px";
+  barFill.style.transition = "width 0.2s";
+  barContainer.appendChild(barFill);
+
+  const percentEl = document.createElement("div");
+  percentEl.innerText = "0%";
+  percentEl.style.fontSize = isMobile ? s(13) : "13px";
+  percentEl.style.color = "#888";
+  percentEl.style.fontWeight = "bold";
+
+  const btnClose = document.createElement("button");
+  btnClose.innerText = t("close");
+  btnClose.style.marginTop = isMobile ? s(10) : "10px";
+  btnClose.style.padding = isMobile ? `${s(10)} ${s(24)}` : "10px 24px";
+  btnClose.style.borderRadius = isMobile ? s(8) : "8px";
+  btnClose.style.border = "none";
+  btnClose.style.backgroundColor = "#fe2c55";
+  btnClose.style.color = "white";
+  btnClose.style.fontWeight = "bold";
+  btnClose.style.fontSize = isMobile ? s(14) : "14px";
+  btnClose.style.cursor = "pointer";
+  btnClose.style.display = "none";
+  btnClose.style.transition = "transform 0.2s, background-color 0.2s";
+
+  btnClose.onclick = close;
+
+  modal.appendChild(header);
+  modal.appendChild(statusEl);
+  modal.appendChild(barContainer);
+  modal.appendChild(percentEl);
+  modal.appendChild(btnClose);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  return {
+    update: (current: number, totalCount: number) => {
+      if (isClosed) return;
+      const pct = Math.round((current / totalCount) * 100);
+      barFill.style.width = `${pct}%`;
+      percentEl.innerText = `${pct}%`;
+      statusEl.innerText = isZipMode
+        ? t("compressingProgress", { current, total: totalCount })
+        : t("downloadingProgress", { current, total: totalCount });
+    },
+    setStatus: (statusText: string) => {
+      if (isClosed) return;
+      statusEl.innerText = statusText;
+    },
+    complete: (message: string) => {
+      if (isClosed) return;
+      barFill.style.width = "100%";
+      percentEl.innerText = "100%";
+      header.innerText = t("completedTitle");
+      statusEl.innerText = message;
+      statusEl.style.color = "#2ed573";
+      
+      let secondsLeft = 5;
+      btnClose.style.display = "block";
+      btnClose.innerText = `${t("close")} (${secondsLeft}s)`;
+
+      countdownTimer = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft > 0) {
+          btnClose.innerText = `${t("close")} (${secondsLeft}s)`;
+        } else {
+          close();
+        }
+      }, 1000);
+    },
+    close
+  };
+};
+
+let isProcessingBatch = false;
+
+// Ejecuta la descarga elegida (ZIP o secuencial) para la lista de stickers seleccionados
+const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) => {
+  if (isProcessingBatch || selectedUrls.length === 0) return;
+  isProcessingBatch = true;
+
+  const isZip = action === 'zip';
+  const progressModal = showProgressModal(
+    isZip ? t("compressingTitle") : t("downloadingTitle"),
+    selectedUrls.length
+  );
+
+  try {
+    if (isZip) {
+      const zip = new JSZip();
+      let index = 1;
+      let successCount = 0;
+
+      for (const stickerUrl of selectedUrls) {
+        try {
+          progressModal.update(index, selectedUrls.length);
+          const res = await fetch(stickerUrl);
+          const ext = getExtension(res);
+          const buffer = await res.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = window.btoa(binary);
+          zip.file(`tiktok-sticker-${index}.${ext}`, base64, { base64: true });
+          markAsDownloaded(stickerUrl);
+          successCount++;
+        } catch (err) {
+          console.error(t("errorDownload"), stickerUrl);
+        }
+        index++;
+      }
+
+      if (successCount > 0) {
+        try {
+          progressModal.setStatus(t("generatingZip"));
+          const content = await zip.generateAsync({ type: "arraybuffer" });
+          const blob = new Blob([content], { type: "application/zip" });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `tiktok-stickers-${Date.now()}.zip`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          
+          addDownloadAllButton();
+          addIndividualDownloadButtons();
+          progressModal.complete(t("completedZip"));
+        } catch (err) {
+          console.error("Error al generar el ZIP:", err);
+          progressModal.close();
+          alert(t("errorZip"));
+        }
+      } else {
+        progressModal.close();
+      }
+    } else {
+      let index = 1;
+      for (const stickerUrl of selectedUrls) {
+        try {
+          progressModal.update(index, selectedUrls.length);
+          const res = await fetch(stickerUrl);
+          const ext = getExtension(res);
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `tiktok-sticker-${Date.now()}-${index}.${ext}`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          
+          markAsDownloaded(stickerUrl);
+          
+          const delayMs = getDelay() * 1000;
+          await new Promise(r => setTimeout(r, delayMs));
+        } catch (err) {
+          console.error(t("errorDownload"), stickerUrl);
+        }
+        index++;
+      }
+      addDownloadAllButton();
+      addIndividualDownloadButtons();
+      progressModal.complete(t("completedSeq"));
+    }
+  } finally {
+    isProcessingBatch = false;
+  }
+};
+
+// Abre el modal visualizador con todos los stickers descubiertos en el chat
+const openStickersModal = async () => {
+  if (isProcessingBatch) return;
+
+  const curConvId = getActiveConversationId();
+  const curState = registerStickersFromDOM(curConvId);
+  const currentImages = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
+  const domUrls = currentImages.map(img => img.src);
+  const storedUrls = curState.stickers.map(s => s.url);
+  const allUrls = deduplicateStickerUrls([...storedUrls, ...domUrls]);
+
+  const freshNew = allUrls.filter(url => !isDownloaded(url));
+  const freshOld = allUrls.filter(url => isDownloaded(url));
+
+  if (freshNew.length === 0 && freshOld.length === 0) {
+    alert(t("noStickersOnScreen"));
+    return;
+  }
+
+  const result = await showCustomConfirm(freshNew, freshOld);
+  if (!result || !result.urls || result.urls.length === 0) return;
+
+  await executeDownload(result.action, result.urls);
+};
+
+// Helper para localizar el contenedor de scroll del chat en TikTok Web
+const findChatScrollable = (): HTMLElement | null => {
+  const stickers = document.querySelectorAll('img[alt="sticker"]');
+  for (const sticker of Array.from(stickers)) {
+    let p = sticker.parentElement;
+    while (p && p !== document.body) {
+      const style = window.getComputedStyle(p);
+      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && p.scrollHeight > p.clientHeight) {
+        return p;
+      }
+      p = p.parentElement;
+    }
+  }
+
+  const chatElements = document.querySelectorAll('div[class*="Message"], div[class*="Chat"], div[data-e2e*="chat"]');
+  for (const el of Array.from(chatElements)) {
+    let p: HTMLElement | null = el as HTMLElement;
+    while (p && p !== document.body) {
+      const style = window.getComputedStyle(p);
+      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && p.scrollHeight > p.clientHeight) {
+        return p;
+      }
+      p = p.parentElement;
+    }
+  }
+
+  const header = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement;
+  if (header && header.parentElement) {
+    const scrollables = Array.from(header.parentElement.querySelectorAll('div')).filter(el => {
+      const style = window.getComputedStyle(el);
+      return (style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
+    });
+    if (scrollables.length > 0) return scrollables[0];
+  }
+
+  return null;
+};
+
 let isChatScanning = false;
 
-// Función para inyectar los botones "Descargar Todos" en el Header del chat
+// Función para inyectar los botones de escaneo y "Ver Stickers" en el Header del chat
 const addDownloadAllButton = () => {
-  // Ubicamos el contenedor del Header del Chat
   const headerContainer = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement;
   if (!headerContainer) return;
 
@@ -913,12 +1287,12 @@ const addDownloadAllButton = () => {
   const domUrls = stickerImages.map(img => img.src);
   const storedUrls = state.stickers.map(s => s.url);
   const allStickers = deduplicateStickerUrls([...storedUrls, ...domUrls]);
+
   const newStickers = allStickers.filter(url => !isDownloaded(url));
-  const oldStickers = allStickers.filter(url => isDownloaded(url));
   const newStickerCount = newStickers.length;
 
   let btnContainer = document.getElementById("tiktok-stickers-exporter-header-btns") as HTMLElement | null;
-  if (btnContainer && btnContainer.dataset.convId !== convId) {
+  if (btnContainer && (btnContainer.dataset.convId !== convId || !btnContainer.querySelector(".btn-view"))) {
     btnContainer.remove();
     btnContainer = null;
   }
@@ -929,7 +1303,7 @@ const addDownloadAllButton = () => {
     btnContainer.dataset.convId = convId;
     btnContainer.style.display = "flex";
     btnContainer.style.gap = "8px";
-    btnContainer.style.marginLeft = "auto"; // Empujar a la derecha
+    btnContainer.style.marginLeft = "auto";
     btnContainer.style.marginRight = "15px";
     btnContainer.style.alignItems = "center";
 
@@ -937,7 +1311,7 @@ const addDownloadAllButton = () => {
       const btn = document.createElement("button");
       btn.innerText = text;
       btn.style.cursor = "pointer";
-      btn.style.padding = "6px 12px";
+      btn.style.padding = "6px 14px";
       btn.style.borderRadius = "8px";
       btn.style.backgroundColor = isPrimary ? "#fe2c55" : "transparent";
       btn.style.border = "1px solid #fe2c55";
@@ -957,315 +1331,15 @@ const addDownloadAllButton = () => {
       return btn;
     };
 
-    const btnSeq = createTextBtn(t("downloadCount", { count: newStickerCount }), true);
-    btnSeq.className = "btn-seq";
-    btnSeq.title = t("download");
-    
-    const btnZip = createTextBtn(t("downloadZip"), false);
-    btnZip.className = "btn-zip";
-    
-    interface ProgressModalController {
-      update: (current: number, total: number) => void;
-      setStatus: (statusText: string) => void;
-      complete: (message: string) => void;
-      close: () => void;
-    }
+    // Botón único "Ver stickers"
+    const viewText = newStickerCount > 0 
+      ? t("viewStickers", { count: newStickerCount }) 
+      : t("viewStickersNoCount");
+    const btnView = createTextBtn("🖼️ " + viewText, true);
+    btnView.className = "btn-view";
+    btnView.title = t("viewStickersTitle");
 
-    const showProgressModal = (title: string, total: number): ProgressModalController => {
-      const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
-      const s = (px: number) => (px * scaleFactor) + "px";
-
-      const overlay = document.createElement("div");
-      overlay.style.position = "fixed";
-      overlay.style.top = "0";
-      overlay.style.left = "0";
-      overlay.style.width = "100vw";
-      overlay.style.height = "100vh";
-      overlay.style.backgroundColor = "rgba(0, 0, 0, 0.85)";
-      overlay.style.zIndex = "9999999";
-      overlay.style.display = "flex";
-      overlay.style.alignItems = "center";
-      overlay.style.justifyContent = "center";
-
-      const modal = document.createElement("div");
-      modal.style.position = "relative";
-      modal.style.backgroundColor = "#252525";
-      modal.style.borderRadius = s(16);
-      modal.style.padding = `${s(30)} ${s(26)} ${s(26)} ${s(26)}`;
-      modal.style.width = "85%";
-      modal.style.maxWidth = s(460);
-      modal.style.display = "flex";
-      modal.style.flexDirection = "column";
-      modal.style.alignItems = "center";
-      modal.style.boxShadow = `0 ${s(10)} ${s(40)} rgba(0,0,0,0.6)`;
-      modal.style.color = "white";
-      modal.style.fontFamily = "sans-serif";
-      modal.style.gap = s(16);
-
-      let isClosed = false;
-      let countdownTimer: any = null;
-
-      const close = () => {
-        if (isClosed) return;
-        isClosed = true;
-        if (countdownTimer) {
-          clearInterval(countdownTimer);
-          countdownTimer = null;
-        }
-        if (overlay.parentElement) {
-          overlay.parentElement.removeChild(overlay);
-        }
-      };
-
-      // Botón "X" grande y cómodo en la esquina superior derecha
-      const btnX = document.createElement("button");
-      btnX.title = t("close");
-      btnX.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>`;
-      btnX.style.position = "absolute";
-      btnX.style.top = s(12);
-      btnX.style.right = s(12);
-      btnX.style.width = s(36);
-      btnX.style.height = s(36);
-      btnX.style.display = "flex";
-      btnX.style.alignItems = "center";
-      btnX.style.justifyContent = "center";
-      btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
-      btnX.style.borderRadius = "50%";
-      btnX.style.border = "none";
-      btnX.style.color = "#ffffff";
-      btnX.style.cursor = "pointer";
-      btnX.style.zIndex = "1000";
-      btnX.style.transition = "background-color 0.2s, transform 0.2s";
-
-      btnX.addEventListener("mouseenter", () => {
-        btnX.style.backgroundColor = "rgba(254, 44, 85, 0.9)";
-        btnX.style.transform = "scale(1.1)";
-      });
-      btnX.addEventListener("mouseleave", () => {
-        btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
-        btnX.style.transform = "scale(1)";
-      });
-      btnX.onclick = close;
-      modal.appendChild(btnX);
-
-      const header = document.createElement("h3");
-      header.innerText = title;
-      header.style.margin = "0";
-      header.style.fontSize = s(18);
-      header.style.fontWeight = "bold";
-      header.style.textAlign = "center";
-
-      const isZipMode = title.includes("ZIP") || title.includes("omprim");
-      const statusEl = document.createElement("div");
-      statusEl.innerText = isZipMode
-        ? t("compressingProgress", { current: 1, total })
-        : t("downloadingProgress", { current: 1, total });
-      statusEl.style.fontSize = s(14);
-      statusEl.style.color = "#ccc";
-      statusEl.style.textAlign = "center";
-
-      const barContainer = document.createElement("div");
-      barContainer.style.width = "100%";
-      barContainer.style.height = s(10);
-      barContainer.style.backgroundColor = "#444";
-      barContainer.style.borderRadius = s(5);
-      barContainer.style.overflow = "hidden";
-
-      const barFill = document.createElement("div");
-      barFill.style.width = "0%";
-      barFill.style.height = "100%";
-      barFill.style.backgroundColor = "#fe2c55";
-      barFill.style.borderRadius = s(5);
-      barFill.style.transition = "width 0.2s ease";
-      barContainer.appendChild(barFill);
-
-      const percentEl = document.createElement("div");
-      percentEl.innerText = "0%";
-      percentEl.style.fontSize = s(13);
-      percentEl.style.fontWeight = "bold";
-      percentEl.style.color = "#fe2c55";
-
-      const btnClose = document.createElement("button");
-      btnClose.innerText = t("close");
-      btnClose.style.marginTop = s(6);
-      btnClose.style.padding = `${s(8)} ${s(24)}`;
-      btnClose.style.borderRadius = s(8);
-      btnClose.style.border = "none";
-      btnClose.style.backgroundColor = "#fe2c55";
-      btnClose.style.color = "white";
-      btnClose.style.fontWeight = "bold";
-      btnClose.style.fontSize = s(14);
-      btnClose.style.cursor = "pointer";
-      btnClose.style.display = "none";
-      btnClose.style.transition = "transform 0.2s, background-color 0.2s";
-
-      btnClose.onclick = close;
-
-      modal.appendChild(header);
-      modal.appendChild(statusEl);
-      modal.appendChild(barContainer);
-      modal.appendChild(percentEl);
-      modal.appendChild(btnClose);
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-
-      return {
-        update: (current: number, totalCount: number) => {
-          if (isClosed) return;
-          const pct = Math.round((current / totalCount) * 100);
-          barFill.style.width = `${pct}%`;
-          percentEl.innerText = `${pct}%`;
-          statusEl.innerText = isZipMode
-            ? t("compressingProgress", { current, total: totalCount })
-            : t("downloadingProgress", { current, total: totalCount });
-        },
-        setStatus: (statusText: string) => {
-          if (isClosed) return;
-          statusEl.innerText = statusText;
-        },
-        complete: (message: string) => {
-          if (isClosed) return;
-          barFill.style.width = "100%";
-          percentEl.innerText = "100%";
-          header.innerText = t("completedTitle");
-          statusEl.innerText = message;
-          statusEl.style.color = "#ffffff"; // Blanco limpio y estético
-
-          let secondsLeft = 3;
-          btnClose.innerText = `${t("close")} (${secondsLeft}s)`;
-          btnClose.style.display = "block";
-
-          countdownTimer = setInterval(() => {
-            secondsLeft--;
-            if (secondsLeft > 0) {
-              btnClose.innerText = `${t("close")} (${secondsLeft}s)`;
-            } else {
-              close();
-            }
-          }, 1000);
-        },
-        close
-      };
-    };
-
-    let isProcessingBatch = false;
-
-    const downloadLogic = async (isZip: boolean) => {
-      if (isProcessingBatch) return;
-
-      // Volvemos a calcular al momento del clic uniendo estado persistente y DOM
-      const curConvId = getActiveConversationId();
-      const curState = registerStickersFromDOM(curConvId);
-      const currentImages = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
-      const domUrls = currentImages.map(img => img.src);
-      const storedUrls = curState.stickers.map(s => s.url);
-      const allUrls = deduplicateStickerUrls([...storedUrls, ...domUrls]);
-      const freshNew = allUrls.filter(url => !isDownloaded(url));
-      const freshOld = allUrls.filter(url => isDownloaded(url));
-
-      if (freshNew.length === 0 && freshOld.length === 0) {
-        alert(t("noStickersOnScreen"));
-        return;
-      }
-      
-      const title = isZip ? t("confirmZipTitle") : t("confirmSeqTitle");
-      
-      // Mostrar el modal y obtener las URLs seleccionadas
-      const selectedUrls = await showCustomConfirm(title, freshNew, freshOld);
-      if (!selectedUrls || selectedUrls.length === 0) return;
-
-      isProcessingBatch = true;
-      const progressModal = showProgressModal(
-        isZip ? t("compressingTitle") : t("downloadingTitle"),
-        selectedUrls.length
-      );
-
-      try {
-        if (isZip) {
-          const zip = new JSZip();
-          let index = 1;
-          let successCount = 0;
-
-          for (const stickerUrl of selectedUrls) {
-            try {
-              progressModal.update(index, selectedUrls.length);
-              const res = await fetch(stickerUrl);
-              const ext = getExtension(res);
-              const buffer = await res.arrayBuffer();
-              const bytes = new Uint8Array(buffer);
-              let binary = '';
-              for (let i = 0; i < bytes.byteLength; i++) {
-                  binary += String.fromCharCode(bytes[i]);
-              }
-              const base64 = window.btoa(binary);
-              zip.file(`tiktok-sticker-${index}.${ext}`, base64, { base64: true });
-              markAsDownloaded(stickerUrl);
-              successCount++;
-            } catch (err) {
-              console.error(t("errorDownload"), stickerUrl);
-            }
-            index++;
-          }
-
-          if (successCount > 0) {
-            try {
-              progressModal.setStatus(t("generatingZip"));
-              const content = await zip.generateAsync({ type: "arraybuffer" });
-              const blob = new Blob([content], { type: "application/zip" });
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `tiktok-stickers-${Date.now()}.zip`;
-              a.click();
-              window.URL.revokeObjectURL(url);
-              
-              addDownloadAllButton();
-              addIndividualDownloadButtons();
-              progressModal.complete(t("completedZip"));
-            } catch (err) {
-              console.error("Error al generar el ZIP:", err);
-              progressModal.close();
-              alert(t("errorZip"));
-            }
-          } else {
-            progressModal.close();
-          }
-        } else {
-          let index = 1;
-          for (const stickerUrl of selectedUrls) {
-            try {
-              progressModal.update(index, selectedUrls.length);
-              const res = await fetch(stickerUrl);
-              const ext = getExtension(res);
-              const blob = await res.blob();
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `tiktok-sticker-${Date.now()}-${index}.${ext}`;
-              a.click();
-              window.URL.revokeObjectURL(url);
-              
-              markAsDownloaded(stickerUrl);
-              
-              const delayMs = getDelay() * 1000;
-              await new Promise(r => setTimeout(r, delayMs));
-            } catch (err) {
-              console.error(t("errorDownload"), stickerUrl);
-            }
-            index++;
-          }
-          addDownloadAllButton();
-          addIndividualDownloadButtons();
-          progressModal.complete(t("completedSeq"));
-        }
-      } finally {
-        isProcessingBatch = false;
-      }
-    };
-
+    // Botón de escaneo automático de chat
     const isFullyExplored = state.hasReachedBeginning;
     const btnScan = createTextBtn(isFullyExplored ? "✓ " + t("chatFullyScanned") : "🔍 " + t("scanChat"), false);
     btnScan.className = "btn-scan";
@@ -1275,7 +1349,9 @@ const addDownloadAllButton = () => {
 
     btnScan.addEventListener("mouseenter", () => {
       btnScan.style.transform = "scale(1.05)";
-      if (!isChatScanning) btnScan.style.backgroundColor = isFullyExplored ? "rgba(46, 213, 115, 0.12)" : "rgba(32, 213, 236, 0.12)";
+      if (!isChatScanning) {
+        btnScan.style.backgroundColor = isFullyExplored ? "rgba(46, 213, 115, 0.12)" : "rgba(32, 213, 236, 0.12)";
+      }
     });
     btnScan.addEventListener("mouseleave", () => {
       btnScan.style.transform = "scale(1)";
@@ -1296,6 +1372,7 @@ const addDownloadAllButton = () => {
 
       const scanConvId = getActiveConversationId();
       let scanState = registerStickersFromDOM(scanConvId);
+
       const knownIdsBeforeScan = new Set(scanState.stickers.map(s => s.id));
       const wasFullyScanned = scanState.hasReachedBeginning;
 
@@ -1307,6 +1384,8 @@ const addDownloadAllButton = () => {
 
       isChatScanning = true;
       btnScan.style.backgroundColor = "rgba(32, 213, 236, 0.25)";
+      btnScan.style.borderColor = "#20d5ec";
+      btnScan.style.color = "#20d5ec";
       btnScan.innerText = "⏹ " + t("stopScan");
 
       let lastCount = 0;
@@ -1316,9 +1395,6 @@ const addDownloadAllButton = () => {
 
       try {
         while (isChatScanning) {
-          container.scrollTop = 0;
-          container.dispatchEvent(new Event('scroll', { bubbles: true }));
-
           if (getActiveConversationId() !== scanConvId) {
             break;
           }
@@ -1327,12 +1403,13 @@ const addDownloadAllButton = () => {
           const totalDiscovered = scanState.stickers.length;
           btnScan.innerText = `⏹ ${t("stopScan")} (${totalDiscovered})`;
 
-
-
           const freshNewCount = scanState.stickers.filter(s => !isDownloaded(s.url)).length;
-          btnSeq.innerText = t("downloadCount", { count: freshNewCount });
+          const freshViewText = freshNewCount > 0 
+            ? t("viewStickers", { count: freshNewCount }) 
+            : t("viewStickersNoCount");
+          btnView.innerText = "🖼️ " + freshViewText;
 
-          // CONDICIÓN DE DETENCIÓN INTELIGENTE (Checkpoint):
+          // Checkpoint inteligente: si ya estaba completado, detener al tocar el historial conocido
           if (wasFullyScanned && knownIdsBeforeScan.size > 0) {
             const currentImgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
             const hitCheckpoint = currentImgs.some(img => knownIdsBeforeScan.has(getStickerId(img.src)));
@@ -1342,6 +1419,8 @@ const addDownloadAllButton = () => {
             }
           }
 
+          container.scrollTop = 0;
+          container.dispatchEvent(new Event('scroll', { bubbles: true }));
 
           if (container.scrollTop === 0 && (container.scrollHeight === lastScrollHeight || totalDiscovered === lastCount)) {
             unchangedTries++;
@@ -1363,15 +1442,17 @@ const addDownloadAllButton = () => {
       } finally {
         isChatScanning = false;
         btnScan.style.backgroundColor = "transparent";
+
         scanState = registerStickersFromDOM(scanConvId);
         scanState.lastScanTimestamp = Date.now();
         saveConversationScanState(scanState);
+
         addDownloadAllButton();
         addIndividualDownloadButtons();
 
-        const finalStickers = scanState.stickers;
-        if (finalStickers.length > 0) {
-          downloadLogic(true);
+        // Al finalizar el análisis, abrir directamente el diálogo de stickers
+        if (scanState.stickers.length > 0) {
+          openStickersModal();
         } else {
           alert(t("noStickersOnScreen"));
         }
@@ -1379,31 +1460,24 @@ const addDownloadAllButton = () => {
     };
 
     btnScan.addEventListener("click", scanChatLogic);
-
-    btnSeq.addEventListener("click", () => downloadLogic(false));
-    btnZip.addEventListener("click", () => downloadLogic(true));
+    btnView.addEventListener("click", openStickersModal);
 
     btnContainer.appendChild(btnScan);
-    btnContainer.appendChild(btnSeq);
-    btnContainer.appendChild(btnZip);
+    btnContainer.appendChild(btnView);
     
-    // Insertamos el contenedor de botones en el header
     if (window.getComputedStyle(headerContainer).display !== "flex") {
       headerContainer.style.display = "flex";
       headerContainer.style.alignItems = "center";
     }
     headerContainer.appendChild(btnContainer);
   } else {
-    // Si no tiene el botón de escaneo, lo recreamos completamente
-    if (!btnContainer.querySelector(".btn-scan")) {
-      btnContainer.remove();
-      addDownloadAllButton();
-      return;
-    }
-    // Si los botones ya existen, simplemente actualizamos el contador de stickers
-    const btnSeq = btnContainer.querySelector(".btn-seq") as HTMLButtonElement;
-    if (btnSeq) {
-      btnSeq.innerText = t("downloadCount", { count: newStickerCount });
+    // Si ya existe el contenedor en pantalla, actualizar el botón "Ver stickers" y el botón de escaneo
+    const btnView = btnContainer.querySelector(".btn-view") as HTMLButtonElement;
+    if (btnView) {
+      const viewText = newStickerCount > 0 
+        ? t("viewStickers", { count: newStickerCount }) 
+        : t("viewStickersNoCount");
+      btnView.innerText = "🖼️ " + viewText;
     }
     const btnScan = btnContainer.querySelector(".btn-scan") as HTMLButtonElement;
     if (btnScan && !isChatScanning) {
@@ -1416,17 +1490,7 @@ const addDownloadAllButton = () => {
   }
 };
 
-// Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS o pantalla táctil)
-const isMobileDevice = (): boolean => {
-  const ua = navigator.userAgent || '';
-  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
-  const hasCoarsePointer = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
-  const isSmallScreen = typeof window !== 'undefined' && window.innerWidth <= 768;
-  return isMobileUA || (hasCoarsePointer && isSmallScreen);
-};
-
-// Función para inyectar un botón de descarga individual en cada sticker
-// Helper para actualizar el aspecto visual del botón individual sobre el sticker
+// Función para inyectar un botón de descarga individual SOBRE cada sticker
 const updateIndivButtonVisual = (btn: HTMLElement, isDone: boolean) => {
   const isMobile = isMobileDevice();
   const iconSize = isMobile ? 18 : 14;
@@ -1437,12 +1501,10 @@ const updateIndivButtonVisual = (btn: HTMLElement, isDone: boolean) => {
   btn.title = isDone ? t("alreadyDownloadedTooltip") : t("downloadThis");
   
   if (isDone) {
-    // Checkmark sutil y nítido
     btn.innerHTML = `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="#2ed573" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"></polyline>
     </svg>`;
   } else {
-    // Flecha de descarga blanca
     btn.innerHTML = `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
       <polyline points="7 10 12 15 17 10"></polyline>
@@ -1451,7 +1513,6 @@ const updateIndivButtonVisual = (btn: HTMLElement, isDone: boolean) => {
   }
 };
 
-// Función para inyectar un botón de descarga individual SOBRE cada sticker
 const addIndividualDownloadButtons = () => {
   const stickerImages = document.querySelectorAll('img[alt="sticker"]');
   
@@ -1460,7 +1521,6 @@ const addIndividualDownloadButtons = () => {
     const parent = htmlImg.parentElement;
     if (!parent) return;
     
-    // Evitar procesar el mismo sticker múltiples veces
     if (htmlImg.dataset.exporterAdded === "true") {
       const existingBtn = parent.querySelector('.tiktok-sticker-indiv-btn') as HTMLElement;
       if (existingBtn) {
@@ -1478,7 +1538,6 @@ const addIndividualDownloadButtons = () => {
     }
     htmlImg.dataset.exporterAdded = "true";
     
-    // Asegurar que el padre tenga position relative para anclar el botón encima del sticker
     const parentStyle = window.getComputedStyle(parent);
     if (parentStyle.position === "static") {
       parent.style.position = "relative";
@@ -1493,7 +1552,6 @@ const addIndividualDownloadButtons = () => {
     btn.role = "button";
     btn.className = "tiktok-sticker-indiv-btn";
     btn.style.position = "absolute";
-    // Posicionar en la esquina inferior derecha del sticker (más amplio en móvil)
     btn.style.bottom = isMobile ? "8px" : "6px";
     btn.style.right = isMobile ? "8px" : "6px";
     btn.style.cursor = "pointer";
@@ -1505,7 +1563,7 @@ const addIndividualDownloadButtons = () => {
     btn.style.justifyContent = "center";
     btn.style.backdropFilter = "blur(4px)";
     btn.style.boxShadow = "0 2px 6px rgba(0,0,0,0.5)";
-    btn.style.zIndex = "25"; // Por encima del sticker
+    btn.style.zIndex = "25";
     btn.style.transition = "transform 0.2s, background-color 0.2s, border-color 0.2s";
     btn.style.touchAction = "manipulation";
     (btn.style as any).webkitTapHighlightColor = "transparent";
@@ -1528,7 +1586,6 @@ const addIndividualDownloadButtons = () => {
       updateIndivButtonVisual(btn, isDownloaded(htmlImg.src));
     });
 
-    // Feedback táctil suave para móvil
     btn.addEventListener("touchstart", () => {
       btn.style.transform = "scale(0.92)";
     }, { passive: true });
@@ -1537,7 +1594,7 @@ const addIndividualDownloadButtons = () => {
     }, { passive: true });
     
     btn.addEventListener("click", async (e) => {
-      e.stopPropagation(); // Evitar que el clic se propague
+      e.stopPropagation();
       e.preventDefault();
       
       const stickerUrl = htmlImg.src;
@@ -1555,7 +1612,6 @@ const addIndividualDownloadButtons = () => {
         markAsDownloaded(stickerUrl);
         updateIndivButtonVisual(btn, true);
         
-        // Actualizar los botones globales
         addDownloadAllButton();
       } catch (err) {
         console.error("Error al descargar el sticker:", stickerUrl);
@@ -1565,7 +1621,6 @@ const addIndividualDownloadButtons = () => {
     parent.appendChild(btn);
   });
 };
-
 
 const addSettingsButton = () => {
   if (document.getElementById('tiktok-stickers-exporter-settings-btn')) return;
@@ -1609,7 +1664,6 @@ const addSettingsButton = () => {
   targetContainer.appendChild(btn);
 };
 
-// Set up MutationObserver con "debounce" para no saturar la página
 let isProcessing = false;
 const observer = new MutationObserver(() => {
   if (isProcessing) return;
@@ -1623,7 +1677,6 @@ const observer = new MutationObserver(() => {
   }, 500);
 });
 
-// Empezamos a observar cambios en todo el body
 observer.observe(document.body, {
   childList: true,
   subtree: true
