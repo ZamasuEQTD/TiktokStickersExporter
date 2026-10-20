@@ -1811,7 +1811,7 @@ const setupMobileEnhancements = () => {
     lastTouchEnd = now;
   }, { passive: false });
 
-  // 2. Estilos para que en /messages la UI se sienta nativa de móvil sin ocultar el contenido principal
+  // 2. Estilos para que en /messages la UI se adapte como una app móvil nativa
   if (!document.getElementById('tt-mobile-enhancement-styles')) {
     const style = document.createElement('style');
     style.id = 'tt-mobile-enhancement-styles';
@@ -1823,44 +1823,80 @@ const setupMobileEnhancements = () => {
       #app-header {
         display: none !important;
       }
-      /* Ocultar los botones de navegación del feed global (Home, Following), preservando el cajón de mensajes */
+      /* Ocultar botones del feed global (Home, Following), manteniendo el cajón de mensajes */
       div[class*="DivFixedContentContainer"],
       div[class*="DivScrollingContentContainer"] {
         display: none !important;
       }
-      /* Proteger el contenedor principal de mensajes para que NUNCA se oculte */
-      #main-content-messages {
-        display: flex !important;
-        flex: 1 1 auto !important;
-        width: 100% !important;
+
+      /* VISTA 1: Lista de conversaciones (cuando NO hay chat individual abierto) */
+      body:not(.tt-chat-active) div[class*="DivSideNavPlaceholderContainer"],
+      body:not(.tt-chat-active) div[class*="DivSideNavContainer"],
+      body:not(.tt-chat-active) div[class*="DivDrawerContainer"],
+      body:not(.tt-chat-active) div[class*="DivMessageDrawerContainer"],
+      body:not(.tt-chat-active) div[class*="DivConversationListContainer"],
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"],
+      body:not(.tt-chat-active) div[class*="DivV3AnimRoot"],
+      body:not(.tt-chat-active) div[class*="DivV3AnimLeftColumn"],
+      body:not(.tt-chat-active) div[class*="DivV3AnimLeftContentArea"] {
+        width: 100vw !important;
         max-width: 100vw !important;
-        margin: 0 !important;
-        padding: 0 !important;
+        min-width: 100vw !important;
+        box-sizing: border-box !important;
       }
-      /* Ajuste responsive de lista de conversaciones y chat */
-      div[class*="DivChatBox"],
-      div[class*="DivMessagesContainer"],
-      div[class*="DivChatRoom"],
-      div[class*="DivChatContainer"] {
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] > div {
         width: 100% !important;
-        max-width: 100vw !important;
-        margin: 0 !important;
-        padding: 0 !important;
+        box-sizing: border-box !important;
       }
-      /* Ocultar la lista de conversaciones únicamente cuando el chat individual está abierto */
-      body.tt-chat-active div[class*="DivConversationListContainer"],
-      body.tt-chat-active div[data-e2e="dm-new-conversation-list"] {
+      body:not(.tt-chat-active) #main-content-messages {
         display: none !important;
       }
-      /* En móvil el chat activo toma el 100% de la pantalla */
-      body.tt-chat-active div[class*="DivChatRoom"] {
-        width: 100% !important;
+
+      /* VISTA 2: Chat activo (al abrir una conversación) */
+      body.tt-chat-active div[class*="DivSideNavPlaceholderContainer"],
+      body.tt-chat-active div[class*="DivSideNavContainer"],
+      body.tt-chat-active div[class*="DivDrawerContainer"],
+      body.tt-chat-active div[class*="DivMessageDrawerContainer"],
+      body.tt-chat-active div[class*="DivConversationListContainer"],
+      body.tt-chat-active div[data-e2e="dm-new-conversation-list"],
+      body.tt-chat-active div[class*="DivV3AnimRoot"],
+      body.tt-chat-active div[class*="DivV3AnimLeftColumn"],
+      body.tt-chat-active div[class*="DivV3AnimLeftContentArea"] {
+        display: none !important;
+      }
+      body.tt-chat-active #main-content-messages,
+      body.tt-chat-active div[class*="DivFullSideNavLayout"],
+      body.tt-chat-active div[class*="DivChatBox"],
+      body.tt-chat-active div[class*="DivMessagesContainer"],
+      body.tt-chat-active div[class*="DivChatRoom"],
+      body.tt-chat-active div[class*="DivChatContainer"] {
+        display: flex !important;
+        width: 100vw !important;
         max-width: 100vw !important;
+        min-width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        flex: 1 1 auto !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Botones de acción del header (Ver stickers / Analizar chat) */
+      #tiktok-stickers-exporter-header-btns {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin-left: auto !important;
       }
       #tiktok-stickers-exporter-header-btns button {
-        padding: 8px 14px !important;
-        font-size: 14px !important;
-        border-radius: 10px !important;
+        padding: 6px 12px !important;
+        font-size: 13px !important;
+        border-radius: 8px !important;
+        white-space: nowrap !important;
+      }
+      #tiktok-stickers-exporter-settings-btn {
+        padding: 6px 12px !important;
+        font-size: 13px !important;
+        border-radius: 8px !important;
       }
     `;
     document.head.appendChild(style);
@@ -1874,7 +1910,7 @@ let userClosedChatMobile = false;
 if (typeof document !== 'undefined') {
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement | null;
-    if (target && target.closest('[data-e2e="dm-new-conversation-list"]')) {
+    if (target && (target.closest('[data-e2e="dm-new-conversation-list"]') || target.closest('[class*="ConversationItem"]'))) {
       userClosedChatMobile = false;
       document.body.classList.add('tt-chat-active');
     }
@@ -1890,7 +1926,7 @@ const updateMobileLayout = () => {
     return;
   }
 
-  const header = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement | null;
+  const header = document.querySelector('div[class*="--DivChatHeader"], div[class*="ChatHeader"], [data-e2e="chat-header"]') as HTMLElement | null;
   if (header) {
     if (header !== lastActiveHeader) {
       lastActiveHeader = header;
