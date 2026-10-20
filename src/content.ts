@@ -1750,6 +1750,7 @@ const enforceDesktopViewport = () => {
 
 // Muestra un diálogo flotante al entrar a TikTok si no estamos en /messages
 const checkAndShowMessagesRedirectDialog = () => {
+  if (!isMobileDevice()) return;
   if (window.location.pathname.startsWith('/messages')) return;
 
   if (document.getElementById('tt-stickers-redirect-dialog')) return;
@@ -1882,16 +1883,20 @@ const checkAndShowMessagesRedirectDialog = () => {
   document.body.appendChild(overlay);
 };
 
-// Inicialización inmediata
-enforceDesktopViewport();
-setTimeout(() => {
-  checkAndShowMessagesRedirectDialog();
-}, 600);
+// Inicialización inmediata (simulación móvil solo en dispositivos móviles)
+if (isMobileDevice()) {
+  enforceDesktopViewport();
+  setTimeout(() => {
+    checkAndShowMessagesRedirectDialog();
+  }, 600);
+}
 
 let isProcessing = false;
 const observer = new MutationObserver(() => {
-  enforceDesktopViewport();
-  checkAndShowMessagesRedirectDialog();
+  if (isMobileDevice()) {
+    enforceDesktopViewport();
+    checkAndShowMessagesRedirectDialog();
+  }
   if (isProcessing) return;
   isProcessing = true;
   
