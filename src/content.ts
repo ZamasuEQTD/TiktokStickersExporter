@@ -37,7 +37,11 @@ const translations = {
     downloadingProgress: "Downloading sticker {current} of {total}...",
     completedTitle: "Completed!",
     completedZip: "ZIP file generated and downloaded successfully.",
-    completedSeq: "Stickers downloaded successfully."
+    completedSeq: "Stickers downloaded successfully.",
+    scanChat: "Scan chat",
+    scanningProgress: "Scanning ({count})...",
+    scanFinished: "Scan complete! Found {count} stickers.",
+    stopScan: "Stop scan",
   },
   es: {
     settings: "Configuración",
@@ -74,7 +78,11 @@ const translations = {
     downloadingProgress: "Descargando sticker {current} de {total}...",
     completedTitle: "¡Completado!",
     completedZip: "Archivo ZIP generado y descargado con éxito.",
-    completedSeq: "Stickers descargados con éxito."
+    completedSeq: "Stickers descargados con éxito.",
+    scanChat: "Analizar chat",
+    scanningProgress: "Analizando ({count})...",
+    scanFinished: "¡Análisis terminado! Se encontraron {count} stickers.",
+    stopScan: "Detener",
   }
 };
 
@@ -686,6 +694,50 @@ const showSettingsModal = () => {
   document.body.appendChild(overlay);
 };
 
+// Helper para localizar el contenedor de scroll del chat en TikTok Web
+const findChatScrollable = (): HTMLElement | null => {
+  // 1. Intentar desde cualquier sticker visible
+  const stickers = document.querySelectorAll('img[alt="sticker"]');
+  for (const sticker of Array.from(stickers)) {
+    let p = sticker.parentElement;
+    while (p && p !== document.body) {
+      const style = window.getComputedStyle(p);
+      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && p.scrollHeight > p.clientHeight) {
+        return p;
+      }
+      p = p.parentElement;
+    }
+  }
+
+  // 2. Intentar desde mensajes o contenedores del chat
+  const chatElements = document.querySelectorAll('div[class*="Message"], div[class*="Chat"], div[data-e2e*="chat"]');
+  for (const el of Array.from(chatElements)) {
+    let p: HTMLElement | null = el as HTMLElement;
+    while (p && p !== document.body) {
+      const style = window.getComputedStyle(p);
+      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && p.scrollHeight > p.clientHeight) {
+        return p;
+      }
+      p = p.parentElement;
+    }
+  }
+
+  // 3. Fallback: buscar contenedor scrollable dentro del área del header
+  const header = document.querySelector('div[class*="--DivChatHeader"]') as HTMLElement;
+  if (header && header.parentElement) {
+    const scrollables = Array.from(header.parentElement.querySelectorAll('div')).filter(el => {
+      const style = window.getComputedStyle(el);
+      return (style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
+    });
+    if (scrollables.length > 0) return scrollables[0];
+  }
+
+  return null;
+};
+
+// Variable para controlar si hay un escaneo de chat en curso
+let isChatScanning = false;
+
 // Función para inyectar los botones "Descargar Todos" en el Header del chat
 const addDownloadAllButton = () => {
   // Ubicamos el contenedor del Header del Chat
@@ -1036,9 +1088,88 @@ const addDownloadAllButton = () => {
       }
     };
 
+    const btnScan = createTextBtn("🔍 " + t("scanChat"), false);
+    btnScan.className = "btn-scan";
+    btnScan.style.borderColor = "#20d5ec";
+    btnScan.style.color = "#20d5ec";
+    btnScan.title = t("scanChat");
+
+    btnScan.addEventListener("mouseenter", () => {
+      btnScan.style.transform = "scale(1.05)";
+      if (!isChatScanning) btnScan.style.backgroundColor = "rgba(32, 213, 236, 0.12)";
+    });
+    btnScan.addEventListener("mouseleave", () => {
+      btnScan.style.transform = "scale(1)";
+      if (!isChatScanning) btnScan.style.backgroundColor = "transparent";
+    });
+
+    const scanChatLogic = async () => {
+      if (isChatScanning) {
+        isChatScanning = false;
+        return;
+      }
+
+      const container = findChatScrollable();
+      if (!container) {
+        alert(t("noStickersOnScreen"));
+        return;
+      }
+
+      isChatScanning = true;
+      btnScan.style.backgroundColor = "rgba(32, 213, 236, 0.25)";
+      btnScan.innerText = "⏹ " + t("stopScan");
+
+      let lastCount = 0;
+      let unchangedTries = 0;
+      const maxUnchanged = 6;
+
+      try {
+        while (isChatScanning) {
+          container.scrollTop = 0;
+          container.dispatchEvent(new Event('scroll', { bubbles: true }));
+
+          const currentStickers = document.querySelectorAll('img[alt="sticker"]');
+          const currentCount = currentStickers.length;
+
+          btnScan.innerText = `⏹ ${t("stopScan")} (${currentCount})`;
+
+          const freshNew = Array.from(currentStickers).filter(img => !isDownloaded((img as HTMLImageElement).src)).length;
+          btnSeq.innerText = t("downloadCount", { count: freshNew });
+
+          if (currentCount === lastCount && container.scrollTop === 0) {
+            unchangedTries++;
+            if (unchangedTries >= maxUnchanged) {
+              break; // Llegó al inicio del historial de mensajes
+            }
+          } else {
+            unchangedTries = 0;
+            lastCount = currentCount;
+          }
+
+          await new Promise(r => setTimeout(r, 250));
+        }
+      } finally {
+        isChatScanning = false;
+        btnScan.style.backgroundColor = "transparent";
+        btnScan.innerText = "🔍 " + t("scanChat");
+        addDownloadAllButton();
+        addIndividualDownloadButtons();
+
+        const finalStickers = document.querySelectorAll('img[alt="sticker"]');
+        if (finalStickers.length > 0) {
+          downloadLogic(true);
+        } else {
+          alert(t("noStickersOnScreen"));
+        }
+      }
+    };
+
+    btnScan.addEventListener("click", scanChatLogic);
+
     btnSeq.addEventListener("click", () => downloadLogic(false));
     btnZip.addEventListener("click", () => downloadLogic(true));
 
+    btnContainer.appendChild(btnScan);
     btnContainer.appendChild(btnSeq);
     btnContainer.appendChild(btnZip);
     
@@ -1049,6 +1180,12 @@ const addDownloadAllButton = () => {
     }
     headerContainer.appendChild(btnContainer);
   } else {
+    // Si no tiene el botón de escaneo, lo recreamos completamente
+    if (!btnContainer.querySelector(".btn-scan")) {
+      btnContainer.remove();
+      addDownloadAllButton();
+      return;
+    }
     // Si los botones ya existen, simplemente actualizamos el contador de stickers
     const btnSeq = btnContainer.querySelector(".btn-seq") as HTMLButtonElement;
     if (btnSeq) {
