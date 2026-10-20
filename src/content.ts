@@ -1079,49 +1079,64 @@ const saveConversationScanState = (state: ConversationScanState) => {
   }
 };
 
-// Encuentra la fecha real del mensaje en el chat de TikTok para un sticker
-const findStickerDateInDOM = (img: HTMLImageElement, scrollContainer: HTMLElement | null): string => {
-  const container = scrollContainer || document.body;
+// Localiza todos los divisores de fecha oficiales de TikTok
+const getAllDateDividers = (): { element: Element; date: string }[] => {
+  const results: { element: Element; date: string }[] = [];
+  
+  // Selector oficial de TikTok data-e2e y clases estándar de fecha
+  const selector = '[data-e2e="dm-new-time-separator"], [class*="DivTimeContainer"], [class*="TimeSeparator"]';
+  const dividers = document.querySelectorAll(selector);
 
-  // 1. Buscamos todos los candidatos a divisores de fecha en el contenedor
-  const allElements = container.querySelectorAll('div, p, span, time');
-  let lastMatchingDate = "";
-
-  for (const node of Array.from(allElements)) {
-    // Si contiene la imagen, no es un divisor anterior a la imagen
-    if (node.contains(img)) break;
-
-    // Solo comprobar si precede al sticker en el árbol del DOM
-    if (node.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_PRECEDING) {
-      // Ignorar contenedores que agrupan muchos elementos
-      if (node.children.length > 2) continue;
-
-      const txt = node.textContent ? node.textContent.trim() : "";
-      if (txt.length > 0 && txt.length < 50 && isDateString(txt)) {
-        lastMatchingDate = cleanDateLabel(txt);
+  for (const div of Array.from(dividers)) {
+    const span = div.querySelector('span') || div;
+    const raw = (span.textContent || div.textContent || '').trim();
+    if (raw) {
+      const clean = cleanDateLabel(raw);
+      if (clean) {
+        results.push({ element: div, date: clean });
       }
-    } else {
-      // Hemos alcanzado o superado el sticker en el DOM
-      break;
     }
   }
 
-  if (lastMatchingDate) return lastMatchingDate;
+  // Si no se encontró ninguno con el selector oficial, fallback con detector universal
+  if (results.length === 0) {
+    const container = findChatScrollable() || document.body;
+    const candidates = container.querySelectorAll('div, p, span, time');
+    for (const el of Array.from(candidates)) {
+      if (el.children.length > 2) continue;
+      const txt = (el.textContent || '').trim();
+      if (txt.length > 0 && txt.length < 50 && isDateString(txt)) {
+        const clean = cleanDateLabel(txt);
+        if (clean) {
+          const last = results[results.length - 1];
+          if (!last || last.date !== clean || !last.element.contains(el)) {
+            results.push({ element: el, date: clean });
+          }
+        }
+      }
+    }
+  }
 
-  // 2. Si no se encontró un divisor anterior, revisar atributos aria o time en el bubble
-  let el: HTMLElement | null = img.parentElement;
-  let depth = 0;
-  while (el && el !== document.body && depth < 6) {
-    const timeEl = el.querySelector('time, [class*="Time"], [class*="Date"]');
-    if (timeEl && timeEl.textContent && isDateString(timeEl.textContent)) {
-      return cleanDateLabel(timeEl.textContent);
+  return results;
+};
+
+// Encuentra la fecha real del mensaje en el chat de TikTok para un sticker
+const findStickerDateInDOM = (img: HTMLImageElement, dateDividers: { element: Element; date: string }[]): string => {
+  let matchedDate = "";
+
+  // Buscamos el último divisor de fecha que precede a la imagen en el documento
+  for (const divider of dateDividers) {
+    if (divider.element.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_PRECEDING) {
+      matchedDate = divider.date;
     }
-    const aria = el.getAttribute('aria-label') || el.getAttribute('title');
-    if (aria && isDateString(aria)) {
-      return cleanDateLabel(aria);
-    }
-    el = el.parentElement;
-    depth++;
+  }
+
+  if (matchedDate) return matchedDate;
+
+  // Si no hay divisor previo en el documento pero hay divisores en la pantalla del chat,
+  // asignamos el primer divisor del grupo
+  if (dateDividers.length > 0) {
+    return dateDividers[0].date;
   }
 
   return "";
@@ -1152,14 +1167,14 @@ const registerStickersFromDOM = (convId: string): ConversationScanState => {
     existingMap.set(s.id, s);
   }
 
-  const scrollContainer = findChatScrollable();
+  const dateDividers = getAllDateDividers();
   const imgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
   let changed = false;
 
   for (const img of imgs) {
     const id = getStickerId(img.src);
     const existing = existingMap.get(id);
-    const detectedDate = findStickerDateInDOM(img, scrollContainer);
+    const detectedDate = findStickerDateInDOM(img, dateDividers);
 
     if (existing) {
       if (existing.url !== img.src) {
