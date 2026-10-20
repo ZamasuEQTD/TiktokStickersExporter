@@ -1351,7 +1351,7 @@ const addDownloadAllButton = () => {
     const viewText = newStickerCount > 0 
       ? t("viewStickers", { count: newStickerCount }) 
       : t("viewStickersNoCount");
-    const btnView = createTextBtn("🖼️ " + viewText, true);
+    const btnView = createTextBtn(viewText, true);
     btnView.className = "btn-view";
     btnView.title = t("viewStickersTitle");
 
@@ -1423,7 +1423,7 @@ const addDownloadAllButton = () => {
           const freshViewText = freshNewCount > 0 
             ? t("viewStickers", { count: freshNewCount }) 
             : t("viewStickersNoCount");
-          btnView.innerText = "🖼️ " + freshViewText;
+          btnView.innerText = freshViewText;
 
           // Checkpoint inteligente: si ya estaba completado, detener al tocar el historial conocido
           if (wasFullyScanned && knownIdsBeforeScan.size > 0) {
@@ -1493,7 +1493,7 @@ const addDownloadAllButton = () => {
       const viewText = newStickerCount > 0 
         ? t("viewStickers", { count: newStickerCount }) 
         : t("viewStickersNoCount");
-      btnView.innerText = "🖼️ " + viewText;
+      btnView.innerText = viewText;
     }
     const btnScan = btnContainer.querySelector(".btn-scan") as HTMLButtonElement;
     if (btnScan && !isChatScanning) {
