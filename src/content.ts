@@ -859,16 +859,11 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       // Encabezado global de la sección
       const sectionHeader = document.createElement("div");
       sectionHeader.style.display = "flex";
-      sectionHeader.style.justifyContent = "space-between";
+      sectionHeader.style.justifyContent = "flex-end";
       sectionHeader.style.alignItems = "center";
       sectionHeader.style.marginBottom = isMobile ? s(12) : "14px";
       sectionHeader.style.paddingBottom = isMobile ? s(8) : "10px";
       sectionHeader.style.borderBottom = "1px solid rgba(255, 255, 255, 0.08)";
-
-      const totalCountLabel = document.createElement("span");
-      totalCountLabel.style.fontSize = isMobile ? s(13) : "13px";
-      totalCountLabel.style.color = "#aaa";
-      totalCountLabel.innerText = `${urls.length} stickers`;
 
       const btnToggleGlobal = document.createElement("button");
       btnToggleGlobal.style.padding = isMobile ? `${s(5)} ${s(12)}` : "6px 14px";
@@ -908,7 +903,6 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
         updateActionButtons();
       };
 
-      sectionHeader.appendChild(totalCountLabel);
       sectionHeader.appendChild(btnToggleGlobal);
       section.appendChild(sectionHeader);
 
@@ -946,26 +940,23 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
         const titleWrapper = document.createElement("div");
         titleWrapper.style.display = "flex";
         titleWrapper.style.alignItems = "center";
-        titleWrapper.style.gap = isMobile ? s(6) : "8px";
-
-        const calIcon = document.createElement("span");
-        calIcon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fe2c55" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+        titleWrapper.style.gap = isMobile ? s(8) : "10px";
 
         const dateTitle = document.createElement("span");
         dateTitle.innerText = dateKey;
-        dateTitle.style.fontWeight = "600";
-        dateTitle.style.fontSize = isMobile ? s(13) : "14px";
+        dateTitle.style.fontWeight = "bold";
+        dateTitle.style.fontSize = isMobile ? s(16) : "16px";
         dateTitle.style.color = "#ffffff";
 
         const countBadge = document.createElement("span");
         countBadge.innerText = String(groupUrls.length);
-        countBadge.style.fontSize = isMobile ? s(11) : "11px";
+        countBadge.style.fontSize = isMobile ? s(12) : "12px";
+        countBadge.style.fontWeight = "600";
         countBadge.style.color = "#aaa";
         countBadge.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-        countBadge.style.padding = isMobile ? `${s(1)} ${s(6)}` : "1px 6px";
-        countBadge.style.borderRadius = "10px";
+        countBadge.style.padding = isMobile ? `${s(2)} ${s(8)}` : "2px 8px";
+        countBadge.style.borderRadius = "12px";
 
-        titleWrapper.appendChild(calIcon);
         titleWrapper.appendChild(dateTitle);
         titleWrapper.appendChild(countBadge);
 
