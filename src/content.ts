@@ -1172,7 +1172,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       btnDownloadMobile.style.alignItems = "center";
       btnDownloadMobile.style.justifyContent = "center";
       btnDownloadMobile.style.gap = "8px";
-      btnDownloadMobile.style.boxShadow = "0 4px 18px rgba(254, 0, 79, 0.45)";
+      btnDownloadMobile.style.boxShadow = "none";
       btnDownloadMobile.style.transition = "background-color 0.2s, transform 0.15s";
 
       const updateMobileDownloadBtn = () => {
@@ -3367,7 +3367,7 @@ const checkAndShowMessagesRedirectDialog = () => {
   btnGo.style.alignItems = 'center';
   btnGo.style.justifyContent = 'center';
   btnGo.style.gap = '8px';
-  btnGo.style.boxShadow = '0 4px 18px rgba(254, 0, 79, 0.45)';
+  btnGo.style.boxShadow = 'none';
   btnGo.style.transition = 'transform 0.15s, background-color 0.15s';
   btnGo.addEventListener('mouseenter', () => {
     btnGo.style.setProperty('background-color', '#ff1a63', 'important');
