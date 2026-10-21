@@ -469,32 +469,38 @@ const showCancelScanConfirmationDialog = (
   subtitle.style.color = "rgba(255, 255, 255, 0.7)";
   card.appendChild(subtitle);
 
-  // Botón 1: Cancelar escaneo (Rojo neon TikTok / Acción destructiva)
+  // Botón 1: Cancelar escaneo (Botón outline rojo estilo nativo de TikTok)
   const btnCancelScan = document.createElement("button");
   btnCancelScan.innerText = t("cancelScanConfirm");
   btnCancelScan.style.width = "100%";
-  btnCancelScan.style.padding = "13px";
-  btnCancelScan.style.borderRadius = "12px";
-  btnCancelScan.style.backgroundColor = "rgba(254, 0, 79, 0.15)";
-  btnCancelScan.style.border = "1px solid rgba(254, 0, 79, 0.35)";
-  btnCancelScan.style.color = "#ff4d6d";
+  btnCancelScan.style.padding = "12px";
+  btnCancelScan.style.borderRadius = "10px";
+  btnCancelScan.style.backgroundColor = "transparent";
+  btnCancelScan.style.border = "1.5px solid #FE004F";
+  btnCancelScan.style.color = "#FE004F";
   btnCancelScan.style.fontWeight = "600";
   btnCancelScan.style.fontSize = "15px";
   btnCancelScan.style.cursor = "pointer";
   btnCancelScan.style.marginBottom = "10px";
   btnCancelScan.style.transition = "background-color 0.15s, transform 0.1s";
+  btnCancelScan.addEventListener("mouseenter", () => {
+    btnCancelScan.style.backgroundColor = "rgba(254, 0, 79, 0.08)";
+  });
+  btnCancelScan.addEventListener("mouseleave", () => {
+    btnCancelScan.style.backgroundColor = "transparent";
+  });
   btnCancelScan.onclick = () => {
     overlay.remove();
     onConfirmCancel();
   };
   card.appendChild(btnCancelScan);
 
-  // Botón 2: Continuar escaneando (Mantener escaneo)
+  // Botón 2: Continuar escaneando (Gris neutro estilo TikTok)
   const btnContinue = document.createElement("button");
   btnContinue.innerText = t("continueScanning");
   btnContinue.style.width = "100%";
-  btnContinue.style.padding = "13px";
-  btnContinue.style.borderRadius = "12px";
+  btnContinue.style.padding = "12px";
+  btnContinue.style.borderRadius = "10px";
   btnContinue.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
   btnContinue.style.border = "none";
   btnContinue.style.color = "#ffffff";
@@ -502,6 +508,12 @@ const showCancelScanConfirmationDialog = (
   btnContinue.style.fontSize = "15px";
   btnContinue.style.cursor = "pointer";
   btnContinue.style.transition = "background-color 0.15s, transform 0.1s";
+  btnContinue.addEventListener("mouseenter", () => {
+    btnContinue.style.backgroundColor = "rgba(255, 255, 255, 0.14)";
+  });
+  btnContinue.addEventListener("mouseleave", () => {
+    btnContinue.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+  });
   btnContinue.onclick = () => {
     overlay.remove();
     onContinue();
@@ -1813,13 +1825,38 @@ executeChatScan = async () => {
       return;
     }
 
-    // Interceptar cualquier clic fuera del área del escaneo
+    // 1. Identificar si el clic fue en un elemento interactivo que realmente cambiaría de chat o navegaría
+    const pendingClickable = target.closest('a, button, [role="button"], [data-conversation-id]') as HTMLElement | null;
+    if (!pendingClickable) {
+      // Clic en espacio vacío, margen o contenedor no interactivo: NO hacer nada, NO mostrar diálogo
+      return;
+    }
+
+    // 2. Si se hizo clic en la misma conversación activa que ya se está escaneando, no cancelar
+    const convRow = target.closest('[data-conversation-id]') as HTMLElement | null;
+    if (convRow) {
+      const convIdAttr = convRow.getAttribute('data-conversation-id');
+      if (convIdAttr && scanConvId && convIdAttr === scanConvId) {
+        return;
+      }
+    }
+    if (pendingClickable.tagName === 'A') {
+      const href = (pendingClickable as HTMLAnchorElement).href || '';
+      if (href && scanConvId && href.includes(scanConvId)) {
+        return;
+      }
+    }
+
+    // 3. Si ya está abierto el diálogo de confirmación, prevenir acción adicional
+    if (document.getElementById('tt-cancel-scan-dialog')) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // 4. Se hizo clic en un elemento que provocaría navegación o cambio de chat: interceptar y preguntar
     e.preventDefault();
     e.stopPropagation();
-
-    if (document.getElementById('tt-cancel-scan-dialog')) return;
-
-    const pendingClickable = target.closest('a, button, [role="button"], [data-conversation-id]') as HTMLElement | null;
 
     showCancelScanConfirmationDialog(
       () => {
