@@ -2224,15 +2224,21 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
           const itemIndex = i + 1;
 
           try {
-            // Tomar de memoria / caché local siempre que esté disponible
-            const res = await fetch(stickerUrl, { cache: "force-cache" });
+            // Intentar force-cache primero, con fallback a fetch normal
+            let res: Response;
+            try {
+              res = await fetch(stickerUrl, { cache: "force-cache" });
+            } catch {
+              res = await fetch(stickerUrl);
+            }
             if (progressModal.isCancelled()) return;
             const ext = getExtension(res);
             const buffer = await res.arrayBuffer();
             if (progressModal.isCancelled()) return;
 
-            // Pasar el ArrayBuffer binario puro directamente a JSZip (sin base64 ni bucle de bytes)
-            zip.file(`tiktok-sticker-${itemIndex}.${ext}`, buffer);
+            // En Firefox/Gecko, instanciar Uint8Array local para evitar incompatibilidades de realm/Xray
+            const bytes = new Uint8Array(buffer);
+            zip.file(`tiktok-sticker-${itemIndex}.${ext}`, bytes, { binary: true });
             markAsDownloaded(stickerUrl);
             successCount++;
           } catch (err) {
@@ -2260,27 +2266,32 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
       if (successCount > 0) {
         try {
           progressModal.setStatus(t("generatingZip"));
-          // Empaquetado instantáneo con compression: "STORE" (evita recalcular compresión sobre WebPs)
-          const content = await zip.generateAsync({
-            type: "arraybuffer",
+          // Empaquetado instantáneo con type: "blob" (crea el Blob directamente sin duplicar ArrayBuffer en heap)
+          const blob = await zip.generateAsync({
+            type: "blob",
+            mimeType: "application/zip",
             compression: "STORE"
           });
           if (progressModal.isCancelled()) return;
-          const blob = new Blob([content], { type: "application/zip" });
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
           a.download = `tiktok-stickers-${Date.now()}.zip`;
+          a.style.display = "none";
+          document.body.appendChild(a);
           a.click();
-          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          // Revocar URL tras 60s para no romper la descarga asíncrona en Android
+          setTimeout(() => window.URL.revokeObjectURL(url), 60000);
           
           addDownloadAllButton();
           addIndividualDownloadButtons();
           progressModal.complete(t("completedZip"));
-        } catch (err) {
+        } catch (err: any) {
           console.error("Error al generar el ZIP:", err);
           progressModal.close();
-          alert(t("errorZip"));
+          const detail = err && (err.message || String(err)) ? (err.message || String(err)) : "";
+          alert(detail ? `${t("errorZip")}\n(${detail})` : t("errorZip"));
         }
       } else {
         progressModal.close();
@@ -2293,7 +2304,12 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
         }
         try {
           progressModal.update(index, selectedUrls.length);
-          const res = await fetch(stickerUrl, { cache: "force-cache" });
+          let res: Response;
+          try {
+            res = await fetch(stickerUrl, { cache: "force-cache" });
+          } catch {
+            res = await fetch(stickerUrl);
+          }
           if (progressModal.isCancelled()) break;
           const ext = getExtension(res);
           const blob = await res.blob();
@@ -2302,8 +2318,11 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
           const a = document.createElement("a");
           a.href = url;
           a.download = `tiktok-sticker-${Date.now()}-${index}.${ext}`;
+          a.style.display = "none";
+          document.body.appendChild(a);
           a.click();
-          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          setTimeout(() => window.URL.revokeObjectURL(url), 60000);
           
           markAsDownloaded(stickerUrl);
           
@@ -2903,8 +2922,11 @@ const addIndividualDownloadButtons = () => {
         const a = document.createElement("a");
         a.href = url;
         a.download = `tiktok-sticker-${Date.now()}.${ext}`;
+        a.style.display = "none";
+        document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setTimeout(() => window.URL.revokeObjectURL(url), 60000);
         
         markAsDownloaded(stickerUrl);
         updateIndivButtonVisual(btn, true);
