@@ -745,8 +745,9 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       btnDownloadMobile.style.width = "100%";
       btnDownloadMobile.style.padding = s(12);
       btnDownloadMobile.style.borderRadius = s(10);
-      btnDownloadMobile.style.backgroundColor = "#fe2c55";
-      btnDownloadMobile.style.color = "#ffffff";
+      btnDownloadMobile.style.setProperty('background-color', '#FE004F', 'important');
+      btnDownloadMobile.style.setProperty('background', '#FE004F', 'important');
+      btnDownloadMobile.style.setProperty('color', '#ffffff', 'important');
       btnDownloadMobile.style.border = "none";
       btnDownloadMobile.style.fontWeight = "bold";
       btnDownloadMobile.style.fontSize = s(15);
@@ -755,7 +756,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       btnDownloadMobile.style.alignItems = "center";
       btnDownloadMobile.style.justifyContent = "center";
       btnDownloadMobile.style.gap = "8px";
-      btnDownloadMobile.style.boxShadow = "0 4px 16px rgba(254, 44, 85, 0.4)";
+      btnDownloadMobile.style.boxShadow = "0 4px 18px rgba(254, 0, 79, 0.45)";
       btnDownloadMobile.style.transition = "background-color 0.2s, transform 0.15s";
 
       const updateMobileDownloadBtn = () => {
@@ -2523,8 +2524,9 @@ const checkAndShowMessagesRedirectDialog = () => {
 
   const btnGo = document.createElement('button');
   btnGo.style.width = '100%';
-  btnGo.style.backgroundColor = '#fe2c55';
-  btnGo.style.color = '#ffffff';
+  btnGo.style.setProperty('background-color', '#FE004F', 'important');
+  btnGo.style.setProperty('background', '#FE004F', 'important');
+  btnGo.style.setProperty('color', '#ffffff', 'important');
   btnGo.style.border = 'none';
   btnGo.style.borderRadius = '10px';
   btnGo.style.padding = '12px 20px';
@@ -2535,8 +2537,18 @@ const checkAndShowMessagesRedirectDialog = () => {
   btnGo.style.alignItems = 'center';
   btnGo.style.justifyContent = 'center';
   btnGo.style.gap = '8px';
-  btnGo.style.boxShadow = '0 4px 16px rgba(254, 44, 85, 0.45)';
+  btnGo.style.boxShadow = '0 4px 18px rgba(254, 0, 79, 0.45)';
   btnGo.style.transition = 'transform 0.15s, background-color 0.15s';
+  btnGo.addEventListener('mouseenter', () => {
+    btnGo.style.setProperty('background-color', '#ff1a63', 'important');
+    btnGo.style.setProperty('background', '#ff1a63', 'important');
+    btnGo.style.transform = 'scale(1.02)';
+  });
+  btnGo.addEventListener('mouseleave', () => {
+    btnGo.style.setProperty('background-color', '#FE004F', 'important');
+    btnGo.style.setProperty('background', '#FE004F', 'important');
+    btnGo.style.transform = 'scale(1)';
+  });
   btnGo.innerHTML = `<span>${t("goToMessages")}</span>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
       <line x1="5" y1="12" x2="19" y2="12"></line>
