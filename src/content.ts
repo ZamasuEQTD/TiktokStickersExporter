@@ -66,6 +66,10 @@ const translations = {
     redirectSubtitle: "Go to your TikTok messages to view, scan, and download all your stickers.",
     goToMessages: "Go to Messages",
     notNow: "Not now",
+    cancelScanTitle: "Cancel scan?",
+    cancelScanSubtitle: "A scan is in progress. Switching chats or leaving will cancel the current scan.",
+    cancelScanConfirm: "Cancel scan",
+    continueScanning: "Keep scanning",
   },
   es: {
     settings: "Configuración",
@@ -131,6 +135,10 @@ const translations = {
     redirectSubtitle: "Entra a tus Mensajes de TikTok para ver, escanear y descargar todos tus stickers.",
     goToMessages: "Ir a Mensajes",
     notNow: "Ahora no",
+    cancelScanTitle: "¿Cancelar escaneo?",
+    cancelScanSubtitle: "Hay un escaneo en curso. Si cambias de chat o sales, se cancelará el escaneo actual.",
+    cancelScanConfirm: "Cancelar escaneo",
+    continueScanning: "Continuar escaneando",
   }
 };
 
@@ -377,6 +385,130 @@ const showMobileDownloadOptionsBottomSheet = (
   };
 
   overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+};
+
+// Diálogo / Bottom Sheet de confirmación si el usuario intenta cambiar de chat o salir durante un escaneo
+const showCancelScanConfirmationDialog = (
+  onConfirmCancel: () => void,
+  onContinue: () => void
+) => {
+  ensureModalAnimationsStyle();
+
+  if (document.getElementById('tt-cancel-scan-dialog')) return;
+
+  const isMobile = isMobileDevice();
+  const overlay = document.createElement("div");
+  overlay.id = "tt-cancel-scan-dialog";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+  overlay.style.zIndex = "100000005";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = isMobile ? "flex-end" : "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.padding = isMobile ? "0" : "20px";
+  overlay.style.boxSizing = "border-box";
+  overlay.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
+  const card = document.createElement("div");
+  card.style.position = "relative";
+  card.style.backgroundColor = "#1a1a1a";
+  card.style.borderRadius = isMobile ? "16px 16px 0 0" : "16px";
+  card.style.padding = isMobile ? "12px 16px 20px 16px" : "24px 22px 20px 22px";
+  card.style.width = isMobile ? "100%" : "380px";
+  card.style.maxWidth = isMobile ? "100%" : "380px";
+  card.style.boxSizing = "border-box";
+  card.style.color = "white";
+  card.style.textAlign = "center";
+  card.style.boxShadow = isMobile ? "0 -4px 30px rgba(0, 0, 0, 0.8)" : "0 10px 40px rgba(0, 0, 0, 0.8)";
+  
+  if (isMobile) {
+    card.style.animation = "ttSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1)";
+    const dragHandle = document.createElement("div");
+    dragHandle.style.width = "36px";
+    dragHandle.style.height = "4px";
+    dragHandle.style.borderRadius = "2px";
+    dragHandle.style.backgroundColor = "rgba(255, 255, 255, 0.25)";
+    dragHandle.style.margin = "0 auto 16px auto";
+    card.appendChild(dragHandle);
+  }
+
+  // Ícono de alerta estilo TikTok
+  const icon = document.createElement("div");
+  icon.style.margin = "0 auto 14px auto";
+  icon.style.display = "flex";
+  icon.style.alignItems = "center";
+  icon.style.justifyContent = "center";
+  icon.style.width = "48px";
+  icon.style.height = "48px";
+  icon.style.borderRadius = "50%";
+  icon.style.backgroundColor = "rgba(254, 0, 79, 0.12)";
+  icon.style.color = "#FE004F";
+  icon.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+  card.appendChild(icon);
+
+  // Título
+  const title = document.createElement("h3");
+  title.innerText = t("cancelScanTitle");
+  title.style.margin = "0 0 8px 0";
+  title.style.fontSize = "17px";
+  title.style.fontWeight = "700";
+  title.style.color = "#ffffff";
+  card.appendChild(title);
+
+  // Subtítulo explicativo
+  const subtitle = document.createElement("p");
+  subtitle.innerText = t("cancelScanSubtitle");
+  subtitle.style.margin = "0 0 20px 0";
+  subtitle.style.fontSize = "14px";
+  subtitle.style.lineHeight = "1.45";
+  subtitle.style.color = "rgba(255, 255, 255, 0.7)";
+  card.appendChild(subtitle);
+
+  // Botón 1: Cancelar escaneo (Rojo neon TikTok / Acción destructiva)
+  const btnCancelScan = document.createElement("button");
+  btnCancelScan.innerText = t("cancelScanConfirm");
+  btnCancelScan.style.width = "100%";
+  btnCancelScan.style.padding = "13px";
+  btnCancelScan.style.borderRadius = "12px";
+  btnCancelScan.style.backgroundColor = "rgba(254, 0, 79, 0.15)";
+  btnCancelScan.style.border = "1px solid rgba(254, 0, 79, 0.35)";
+  btnCancelScan.style.color = "#ff4d6d";
+  btnCancelScan.style.fontWeight = "600";
+  btnCancelScan.style.fontSize = "15px";
+  btnCancelScan.style.cursor = "pointer";
+  btnCancelScan.style.marginBottom = "10px";
+  btnCancelScan.style.transition = "background-color 0.15s, transform 0.1s";
+  btnCancelScan.onclick = () => {
+    overlay.remove();
+    onConfirmCancel();
+  };
+  card.appendChild(btnCancelScan);
+
+  // Botón 2: Continuar escaneando (Mantener escaneo)
+  const btnContinue = document.createElement("button");
+  btnContinue.innerText = t("continueScanning");
+  btnContinue.style.width = "100%";
+  btnContinue.style.padding = "13px";
+  btnContinue.style.borderRadius = "12px";
+  btnContinue.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+  btnContinue.style.border = "none";
+  btnContinue.style.color = "#ffffff";
+  btnContinue.style.fontWeight = "600";
+  btnContinue.style.fontSize = "15px";
+  btnContinue.style.cursor = "pointer";
+  btnContinue.style.transition = "background-color 0.15s, transform 0.1s";
+  btnContinue.onclick = () => {
+    overlay.remove();
+    onContinue();
+  };
+  card.appendChild(btnContinue);
+
+  overlay.appendChild(card);
   document.body.appendChild(overlay);
 };
 
@@ -1658,6 +1790,67 @@ executeChatScan = async () => {
     saveConversationScanState(scanState);
   }
 
+    let wasScanAbortedByUser = false;
+
+  const handleScanIntercept = (e: MouseEvent) => {
+    if (!isChatScanning) return;
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+
+    // Permitir clics dentro del overlay de escaneo o dentro del propio diálogo de confirmación
+    if (target.closest('#tt-stickers-scanning-overlay') || target.closest('#tt-cancel-scan-dialog')) {
+      return;
+    }
+
+    // Interceptar cualquier clic fuera del área del escaneo
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (document.getElementById('tt-cancel-scan-dialog')) return;
+
+    const pendingClickable = target.closest('a, button, [role="button"], [data-conversation-id]') as HTMLElement | null;
+
+    showCancelScanConfirmationDialog(
+      () => {
+        // Usuario confirmó cancelar el escaneo
+        wasScanAbortedByUser = true;
+        isChatScanning = false;
+        if (pendingClickable) {
+          setTimeout(() => {
+            pendingClickable.click();
+          }, 100);
+        }
+      },
+      () => {
+        // Usuario decidió continuar escaneando
+      }
+    );
+  };
+
+  document.addEventListener('click', handleScanIntercept, true);
+
+  const handlePopState = () => {
+    if (!isChatScanning) return;
+    showCancelScanConfirmationDialog(
+      () => {
+        wasScanAbortedByUser = true;
+        isChatScanning = false;
+      },
+      () => {
+        window.history.forward();
+      }
+    );
+  };
+  window.addEventListener('popstate', handlePopState);
+
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (isChatScanning) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
+  window.addEventListener('beforeunload', handleBeforeUnload);
+
   isChatScanning = true;
 
   // Cubrir únicamente el área del chat para eliminar la carga gráfica de la GPU y bloquear scroll manual sin tapar toda la pantalla en PC
@@ -1798,6 +1991,13 @@ executeChatScan = async () => {
       await new Promise(r => setTimeout(r, 350));
     }
   } finally {
+    document.removeEventListener('click', handleScanIntercept, true);
+    window.removeEventListener('popstate', handlePopState);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+
+    const existingConfirm = document.getElementById('tt-cancel-scan-dialog');
+    if (existingConfirm) existingConfirm.remove();
+
     isChatScanning = false;
     window.removeEventListener("resize", updateScanOverlayBounds);
     scanOverlay.remove();
@@ -1809,10 +2009,12 @@ executeChatScan = async () => {
     addDownloadAllButton();
     addIndividualDownloadButtons();
 
-    if (scanState.stickers.length > 0) {
-      openStickersModal();
-    } else {
-      alert(t("noStickersOnScreen"));
+    if (!wasScanAbortedByUser) {
+      if (scanState.stickers.length > 0) {
+        openStickersModal();
+      } else {
+        alert(t("noStickersOnScreen"));
+      }
     }
   }
 };
