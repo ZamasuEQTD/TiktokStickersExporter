@@ -2661,25 +2661,20 @@ const ensureGlobalMessagesLayoutStyles = () => {
     style.textContent = `
       /* ========================================================================== */
       /* 1. UNIFICACIÓN DE COLOR DE FONDO ENTRE HEADER Y LISTA (#121212)             */
+      /* Exclusivamente dentro del contenedor de mensajes / lista de chats           */
       /* ========================================================================== */
-      div[class*="DivSideNavContainer"],
-      div[class*="DivDrawerContainer"],
       div[class*="DivMessageDrawerContainer"],
       div[class*="DivConversationListContainer"],
       div[data-e2e="dm-new-conversation-list"],
-      div[class*="DivV3AnimRoot"],
-      div[class*="DivV3AnimLeftColumn"],
-      div[class*="DivV3AnimLeftContentArea"],
-      div[class*="BaseBodyContainer"],
-      div[class*="DivHeaderContainer"],
-      div[class*="DivNavigationContainer"],
-      div[class*="DivTitleContainer"],
-      div[class*="DivDrawerHeader"],
       div[class*="DivConversationListHeader"],
       div[class*="DivChatRoomListHeader"],
-      header[class*="Drawer"],
-      header[class*="Header"],
-      header {
+      div[class*="DivDrawerHeader"],
+      div[class*="DivMessageDrawerContainer"] div[class*="DivHeaderContainer"],
+      div[class*="DivMessageDrawerContainer"] div[class*="DivTitleContainer"],
+      div[class*="DivConversationListContainer"] div[class*="DivHeaderContainer"],
+      div[class*="DivConversationListContainer"] div[class*="DivTitleContainer"],
+      div[class*="DivDrawerContainer"] header,
+      div[class*="DivMessageDrawerContainer"] header {
         background-color: #121212 !important;
         background: #121212 !important;
         border-color: transparent !important;
@@ -2687,15 +2682,13 @@ const ensureGlobalMessagesLayoutStyles = () => {
         box-shadow: none !important;
       }
 
-      /* Eliminar pseudo-elementos de sombra o gradiente bajo el header */
-      div[class*="DivHeaderContainer"]::after,
-      div[class*="DivHeaderContainer"]::before,
-      div[class*="DivTitleContainer"]::after,
-      div[class*="DivTitleContainer"]::before,
+      /* Eliminar pseudo-elementos de sombra o gradiente bajo el header de mensajes */
+      div[class*="DivMessageDrawerContainer"] div[class*="DivHeaderContainer"]::after,
+      div[class*="DivMessageDrawerContainer"] div[class*="DivHeaderContainer"]::before,
+      div[class*="DivConversationListContainer"] div[class*="DivHeaderContainer"]::after,
+      div[class*="DivConversationListContainer"] div[class*="DivHeaderContainer"]::before,
       div[class*="DivDrawerHeader"]::after,
-      div[class*="DivDrawerHeader"]::before,
-      header::after,
-      header::before {
+      div[class*="DivDrawerHeader"]::before {
         display: none !important;
         box-shadow: none !important;
         background: none !important;
@@ -2761,13 +2754,13 @@ const ensureGlobalMessagesLayoutStyles = () => {
 const syncHeaderAndConversationCards = () => {
   ensureGlobalMessagesLayoutStyles();
 
-  // 1. Unificar fondo del header de mensajes a #121212 (recorrer hacia arriba todos los niveles contenedores)
+  // 1. Unificar fondo del header de mensajes a #121212 (recorrer hacia arriba sin afectar la barra lateral de navegación)
   const h2s = Array.from(document.querySelectorAll('h2'));
   const messagesH2 = h2s.find(h2 => h2.innerText.includes("Messages") || h2.innerText.includes("Mensajes") || (h2.className && h2.className.includes("H2Semibold")));
   if (messagesH2 && messagesH2.parentElement) {
     let curr: HTMLElement | null = messagesH2.parentElement;
-    for (let i = 0; i < 6 && curr; i++) {
-      if (curr === document.body || curr.id === 'main-content-messages') break;
+    for (let i = 0; i < 4 && curr; i++) {
+      if (curr === document.body || curr.id === 'main-content-messages' || curr.matches('[class*="SideNav"], [class*="BaseBody"], [class*="Navigation"]')) break;
       curr.style.setProperty("background-color", "#121212", "important");
       curr.style.setProperty("background", "#121212", "important");
       curr.style.setProperty("box-shadow", "none", "important");
@@ -3042,20 +3035,13 @@ const setupMobileEnhancements = () => {
         box-sizing: border-box !important;
       }
 
-      /* UNIFICACIÓN DE COLOR DE FONDO ENTRE HEADER Y LISTA (#121212) */
-      body:not(.tt-chat-active) div[class*="DivSideNavContainer"],
-      body:not(.tt-chat-active) div[class*="DivDrawerContainer"],
+      /* UNIFICACIÓN DE COLOR DE FONDO ENTRE HEADER Y LISTA (#121212) SOLO EN MENSAJES */
       body:not(.tt-chat-active) div[class*="DivMessageDrawerContainer"],
       body:not(.tt-chat-active) div[class*="DivConversationListContainer"],
       body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"],
-      body:not(.tt-chat-active) div[class*="DivV3AnimRoot"],
-      body:not(.tt-chat-active) div[class*="DivV3AnimLeftColumn"],
-      body:not(.tt-chat-active) div[class*="DivV3AnimLeftContentArea"],
-      body:not(.tt-chat-active) div[class*="BaseBodyContainer"],
-      body:not(.tt-chat-active) div[class*="DivHeaderContainer"],
-      body:not(.tt-chat-active) div[class*="DivNavigationContainer"],
-      body:not(.tt-chat-active) div[class*="DivTitleContainer"],
-      body:not(.tt-chat-active) header {
+      body:not(.tt-chat-active) div[class*="DivConversationListHeader"],
+      body:not(.tt-chat-active) div[class*="DivChatRoomListHeader"],
+      body:not(.tt-chat-active) div[class*="DivDrawerHeader"] {
         background-color: #121212 !important;
       }
 
