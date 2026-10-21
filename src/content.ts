@@ -1681,14 +1681,11 @@ executeChatScan = async () => {
 
   isChatScanning = true;
 
-  // Pantalla completa oscura para eliminar la carga gráfica de la GPU y bloquear scroll manual
+  // Cubrir únicamente el área del chat para eliminar la carga gráfica de la GPU y bloquear scroll manual sin tapar toda la pantalla en PC
+  const chatArea = (container ? (container.closest('#main-content-messages, div[class*="DivChatBox"], div[class*="DivChatRoom"], div[class*="DivMessagesContainer"], div[class*="DivChatContainer"]') as HTMLElement | null) : null) || container;
+
   const scanOverlay = document.createElement("div");
   scanOverlay.id = "tt-stickers-scanning-overlay";
-  scanOverlay.style.position = "fixed";
-  scanOverlay.style.top = "0";
-  scanOverlay.style.left = "0";
-  scanOverlay.style.width = "100vw";
-  scanOverlay.style.height = "100vh";
   scanOverlay.style.backgroundColor = "#121212";
   scanOverlay.style.zIndex = "99999999";
   scanOverlay.style.display = "flex";
@@ -1700,6 +1697,29 @@ executeChatScan = async () => {
   scanOverlay.style.touchAction = "none";
   scanOverlay.style.color = "white";
   scanOverlay.style.fontFamily = "sans-serif";
+
+  const updateScanOverlayBounds = () => {
+    if (chatArea && chatArea !== document.body) {
+      const rect = chatArea.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        scanOverlay.style.position = "fixed";
+        scanOverlay.style.top = `${rect.top}px`;
+        scanOverlay.style.left = `${rect.left}px`;
+        scanOverlay.style.width = `${rect.width}px`;
+        scanOverlay.style.height = `${rect.height}px`;
+        scanOverlay.style.borderLeft = isMobileDevice() ? "none" : "1px solid rgba(255, 255, 255, 0.08)";
+        return;
+      }
+    }
+    scanOverlay.style.position = "fixed";
+    scanOverlay.style.top = "0";
+    scanOverlay.style.left = "0";
+    scanOverlay.style.width = "100vw";
+    scanOverlay.style.height = "100vh";
+  };
+
+  updateScanOverlayBounds();
+  window.addEventListener("resize", updateScanOverlayBounds);
 
   if (!document.getElementById("tt-scanner-spin-style")) {
     const spinStyle = document.createElement("style");
@@ -1800,6 +1820,7 @@ executeChatScan = async () => {
     }
   } finally {
     isChatScanning = false;
+    window.removeEventListener("resize", updateScanOverlayBounds);
     scanOverlay.remove();
 
     scanState = registerStickersFromDOM(scanConvId);
