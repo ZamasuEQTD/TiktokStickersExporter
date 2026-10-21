@@ -73,6 +73,9 @@ const translations = {
     clearAllData: "Reset All App Data",
     confirmClearAllData: "Are you sure you want to reset all app data? This will clear download history, scan records, and custom settings.",
     allDataCleared: "All app data has been reset to defaults.",
+    otherDates: "Other dates",
+    selectDay: "Select day",
+    deselectDay: "Deselect day",
   },
   es: {
     settings: "Configuración",
@@ -145,6 +148,9 @@ const translations = {
     clearAllData: "Borrar todos los datos de la app",
     confirmClearAllData: "¿Estás seguro de que quieres borrar todos los datos de la app? Se eliminará el historial de stickers descargados, registros de escaneo e idioma/retraso guardados.",
     allDataCleared: "Se han restablecido todos los datos de la aplicación.",
+    otherDates: "Otras fechas",
+    selectDay: "Seleccionar día",
+    deselectDay: "Deseleccionar",
   }
 };
 
@@ -602,6 +608,16 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
   const newStickers = deduplicateStickerUrls(rawNewStickers);
   const oldStickers = deduplicateStickerUrls(rawOldStickers);
 
+  const effectiveConvId = convId || getActiveConversationId();
+  const scanState = effectiveConvId ? loadConversationScanState(effectiveConvId) : null;
+  const stickerRecordMap = new Map<string, ScannedStickerRecord>();
+  if (scanState && Array.isArray(scanState.stickers)) {
+    for (const rec of scanState.stickers) {
+      stickerRecordMap.set(rec.id, rec);
+      stickerRecordMap.set(rec.url, rec);
+    }
+  }
+
   return new Promise((resolve) => {
     const isMobile = isMobileDevice();
     const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
@@ -775,33 +791,54 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
         return section;
       }
 
+      // Agrupar las URLs por su dateKey
+      const dateGroups = new Map<string, string[]>();
+      for (const url of urls) {
+        const id = getStickerId(url);
+        const rec = stickerRecordMap.get(id);
+        const key = rec?.dateKey || t("otherDates");
+        if (!dateGroups.has(key)) dateGroups.set(key, []);
+        dateGroups.get(key)!.push(url);
+      }
+
+      // Encabezado global de la sección
       const sectionHeader = document.createElement("div");
       sectionHeader.style.display = "flex";
       sectionHeader.style.justifyContent = "space-between";
       sectionHeader.style.alignItems = "center";
-      sectionHeader.style.marginBottom = isMobile ? s(10) : "12px";
+      sectionHeader.style.marginBottom = isMobile ? s(12) : "14px";
+      sectionHeader.style.paddingBottom = isMobile ? s(8) : "10px";
+      sectionHeader.style.borderBottom = "1px solid rgba(255, 255, 255, 0.08)";
 
-      const btnToggle = document.createElement("button");
-      btnToggle.style.padding = isMobile ? `${s(5)} ${s(10)}` : "6px 14px";
-      btnToggle.style.borderRadius = isMobile ? s(6) : "6px";
-      btnToggle.style.cursor = "pointer";
-      btnToggle.style.fontSize = isMobile ? s(12) : "13px";
-      btnToggle.style.fontWeight = "bold";
-      btnToggle.style.transition = "all 0.2s";
+      const totalCountLabel = document.createElement("span");
+      totalCountLabel.style.fontSize = isMobile ? s(13) : "13px";
+      totalCountLabel.style.color = "#aaa";
+      totalCountLabel.innerText = `${urls.length} stickers`;
+
+      const btnToggleGlobal = document.createElement("button");
+      btnToggleGlobal.style.padding = isMobile ? `${s(5)} ${s(12)}` : "6px 14px";
+      btnToggleGlobal.style.borderRadius = isMobile ? s(6) : "6px";
+      btnToggleGlobal.style.cursor = "pointer";
+      btnToggleGlobal.style.fontSize = isMobile ? s(12) : "13px";
+      btnToggleGlobal.style.fontWeight = "bold";
+      btnToggleGlobal.style.transition = "all 0.2s";
 
       const isAllSelected = () => urls.every(u => selectedUrls.has(u));
 
-      const updateToggleBtn = () => {
+      const updateGlobalToggleBtn = () => {
         const allSel = isAllSelected();
-        btnToggle.innerText = allSel ? t("cancelSelection") : t("selectAll");
-        btnToggle.style.border = allSel ? "1px solid #fe2c55" : "1px solid #888";
-        btnToggle.style.color = allSel ? "#fe2c55" : "#ccc";
-        btnToggle.style.backgroundColor = allSel ? "rgba(254, 44, 85, 0.1)" : "transparent";
+        btnToggleGlobal.innerText = allSel ? t("cancelSelection") : t("selectAll");
+        btnToggleGlobal.style.border = allSel ? "1px solid #fe2c55" : "1px solid #888";
+        btnToggleGlobal.style.color = allSel ? "#fe2c55" : "#ccc";
+        btnToggleGlobal.style.backgroundColor = allSel ? "rgba(254, 44, 85, 0.1)" : "transparent";
       };
 
-      updateToggleBtn();
+      updateGlobalToggleBtn();
 
-      btnToggle.onclick = () => {
+      // Callbacks para sincronizar botones de selección por día
+      const dayUpdateCallbacks: (() => void)[] = [];
+
+      btnToggleGlobal.onclick = () => {
         const shouldSelectAll = !isAllSelected();
         urls.forEach(url => {
           if (shouldSelectAll) {
@@ -811,61 +848,154 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
           }
           setUrlVisualState(url, shouldSelectAll);
         });
-        updateToggleBtn();
+        updateGlobalToggleBtn();
+        dayUpdateCallbacks.forEach(cb => cb());
         updateActionButtons();
       };
 
-      sectionHeader.appendChild(btnToggle);
+      sectionHeader.appendChild(totalCountLabel);
+      sectionHeader.appendChild(btnToggleGlobal);
       section.appendChild(sectionHeader);
 
-      const grid = document.createElement("div");
-      grid.style.display = "grid";
-      // En PC mostrar cuadrícula espaciosa y grande (min 88px), en móvil compacta
-      grid.style.gridTemplateColumns = isMobile 
-        ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
-        : "repeat(auto-fill, minmax(88px, 1fr))";
-      grid.style.gap = isMobile ? s(8) : "12px";
+      // Contenedor de grupos por fecha
+      const groupsContainer = document.createElement("div");
+      groupsContainer.style.display = "flex";
+      groupsContainer.style.flexDirection = "column";
+      groupsContainer.style.gap = isMobile ? s(18) : "22px";
 
-      urls.forEach(url => {
-        const container = document.createElement("div");
-        container.style.position = "relative";
-        container.style.cursor = "pointer";
+      dateGroups.forEach((groupUrls, dateKey) => {
+        const groupBlock = document.createElement("div");
+        groupBlock.style.display = "flex";
+        groupBlock.style.flexDirection = "column";
+        groupBlock.style.gap = isMobile ? s(8) : "10px";
 
-        const img = document.createElement("img");
-        img.src = url;
-        img.style.width = "100%";
-        img.style.aspectRatio = "1/1";
-        img.style.objectFit = "cover";
-        img.style.borderRadius = isMobile ? s(8) : "8px";
-        img.style.backgroundColor = "#181818";
-        img.style.transition = "all 0.2s";
+        // Encabezado del grupo de fecha
+        const dateHeader = document.createElement("div");
+        dateHeader.style.display = "flex";
+        dateHeader.style.justifyContent = "space-between";
+        dateHeader.style.alignItems = "center";
+        dateHeader.style.padding = isMobile ? `${s(4)} 0` : "4px 0";
 
-        if (!initiallySelected) {
-          img.style.opacity = "0.3";
-          img.style.transform = "scale(0.9)";
-          img.style.filter = "grayscale(100%)";
-        }
+        const titleWrapper = document.createElement("div");
+        titleWrapper.style.display = "flex";
+        titleWrapper.style.alignItems = "center";
+        titleWrapper.style.gap = isMobile ? s(6) : "8px";
 
-        container.appendChild(img);
-        grid.appendChild(container);
-        const existing = imageElements.get(url) || [];
-        existing.push(img);
-        imageElements.set(url, existing);
+        const calIcon = document.createElement("span");
+        calIcon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fe2c55" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
 
-        container.onclick = () => {
-          const nextSelected = !selectedUrls.has(url);
-          if (nextSelected) {
-            selectedUrls.add(url);
-          } else {
-            selectedUrls.delete(url);
-          }
-          setUrlVisualState(url, nextSelected);
-          updateToggleBtn();
+        const dateTitle = document.createElement("span");
+        dateTitle.innerText = dateKey;
+        dateTitle.style.fontWeight = "600";
+        dateTitle.style.fontSize = isMobile ? s(13) : "14px";
+        dateTitle.style.color = "#ffffff";
+
+        const countBadge = document.createElement("span");
+        countBadge.innerText = String(groupUrls.length);
+        countBadge.style.fontSize = isMobile ? s(11) : "11px";
+        countBadge.style.color = "#aaa";
+        countBadge.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+        countBadge.style.padding = isMobile ? `${s(1)} ${s(6)}` : "1px 6px";
+        countBadge.style.borderRadius = "10px";
+
+        titleWrapper.appendChild(calIcon);
+        titleWrapper.appendChild(dateTitle);
+        titleWrapper.appendChild(countBadge);
+
+        // Botón toggle de este grupo de fecha específico
+        const btnDayToggle = document.createElement("button");
+        btnDayToggle.style.padding = isMobile ? `${s(3)} ${s(8)}` : "3px 10px";
+        btnDayToggle.style.borderRadius = isMobile ? s(4) : "4px";
+        btnDayToggle.style.cursor = "pointer";
+        btnDayToggle.style.fontSize = isMobile ? s(11) : "12px";
+        btnDayToggle.style.fontWeight = "600";
+        btnDayToggle.style.transition = "all 0.2s";
+
+        const isDayAllSelected = () => groupUrls.every(u => selectedUrls.has(u));
+
+        const updateDayToggle = () => {
+          const allDay = isDayAllSelected();
+          btnDayToggle.innerText = allDay ? t("deselectDay") : t("selectDay");
+          btnDayToggle.style.border = allDay ? "1px solid #fe2c55" : "1px solid #666";
+          btnDayToggle.style.color = allDay ? "#fe2c55" : "#bbb";
+          btnDayToggle.style.backgroundColor = allDay ? "rgba(254, 44, 85, 0.1)" : "transparent";
+        };
+
+        updateDayToggle();
+        dayUpdateCallbacks.push(updateDayToggle);
+
+        btnDayToggle.onclick = () => {
+          const shouldSelect = !isDayAllSelected();
+          groupUrls.forEach(url => {
+            if (shouldSelect) {
+              selectedUrls.add(url);
+            } else {
+              selectedUrls.delete(url);
+            }
+            setUrlVisualState(url, shouldSelect);
+          });
+          updateDayToggle();
+          updateGlobalToggleBtn();
           updateActionButtons();
         };
+
+        dateHeader.appendChild(titleWrapper);
+        dateHeader.appendChild(btnDayToggle);
+        groupBlock.appendChild(dateHeader);
+
+        // Grid para los stickers de esta fecha
+        const grid = document.createElement("div");
+        grid.style.display = "grid";
+        grid.style.gridTemplateColumns = isMobile 
+          ? `repeat(auto-fill, minmax(${s(70)}, 1fr))` 
+          : "repeat(auto-fill, minmax(88px, 1fr))";
+        grid.style.gap = isMobile ? s(8) : "12px";
+
+        groupUrls.forEach(url => {
+          const container = document.createElement("div");
+          container.style.position = "relative";
+          container.style.cursor = "pointer";
+
+          const img = document.createElement("img");
+          img.src = url;
+          img.style.width = "100%";
+          img.style.aspectRatio = "1/1";
+          img.style.objectFit = "cover";
+          img.style.borderRadius = isMobile ? s(8) : "8px";
+          img.style.backgroundColor = "#181818";
+          img.style.transition = "all 0.2s";
+
+          if (!initiallySelected) {
+            img.style.opacity = "0.3";
+            img.style.transform = "scale(0.9)";
+            img.style.filter = "grayscale(100%)";
+          }
+
+          container.appendChild(img);
+          grid.appendChild(container);
+          const existing = imageElements.get(url) || [];
+          existing.push(img);
+          imageElements.set(url, existing);
+
+          container.onclick = () => {
+            const nextSelected = !selectedUrls.has(url);
+            if (nextSelected) {
+              selectedUrls.add(url);
+            } else {
+              selectedUrls.delete(url);
+            }
+            setUrlVisualState(url, nextSelected);
+            updateDayToggle();
+            updateGlobalToggleBtn();
+            updateActionButtons();
+          };
+        });
+
+        groupBlock.appendChild(grid);
+        groupsContainer.appendChild(groupBlock);
       });
 
-      section.appendChild(grid);
+      section.appendChild(groupsContainer);
       return section;
     };
 
@@ -1422,6 +1552,7 @@ interface ScannedStickerRecord {
   url: string;         // URL completa del sticker (con token firmado más reciente)
   text?: string;       // Texto o comentario que acompaña al sticker si existe
   time?: string;       // Hora o fecha del mensaje si se muestra en el DOM
+  dateKey?: string;    // Fecha normalizada del día (ej. "15 de octubre de 2026")
   discoveredAt: number;// Timestamp de cuándo se descubrió
 }
 
@@ -1487,6 +1618,28 @@ const getStickerMessageContext = (img: HTMLImageElement): { text?: string; time?
   return context;
 };
 
+// Helper para normalizar el texto del separador de tiempo de TikTok (ej. "15 de octubre de 2026 12:26" -> { dateKey: "15 de octubre de 2026", time: "12:26" })
+const parseSeparatorDate = (rawText: string): { dateKey: string; time?: string } => {
+  const text = rawText.replace(/\s+/g, ' ').trim();
+  if (!text) return { dateKey: t("otherDates") };
+
+  // Detectar la hora al final: ej. "12:26", "12:26 PM", "12:26:00", etc.
+  const timeRegex = /(?:at\s+|a las\s+)?(\d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:AM|PM|am|pm))?)\s*$/i;
+  const match = text.match(timeRegex);
+
+  if (match) {
+    const time = match[1].trim();
+    let datePart = text.replace(timeRegex, "").trim();
+    datePart = datePart.replace(/[,·\-\s]+$/, "").trim();
+    if (datePart) {
+      datePart = datePart.charAt(0).toUpperCase() + datePart.slice(1);
+      return { dateKey: datePart, time };
+    }
+  }
+
+  return { dateKey: text.charAt(0).toUpperCase() + text.slice(1) };
+};
+
 // Registra todos los stickers que estén en el DOM actualmente en la base de datos de la conversación
 const registerStickersFromDOM = (convId: string): ConversationScanState => {
   const state = loadConversationScanState(convId);
@@ -1495,29 +1648,54 @@ const registerStickersFromDOM = (convId: string): ConversationScanState => {
     existingMap.set(s.id, s);
   }
 
-  const imgs = Array.from(document.querySelectorAll('img[alt="sticker"]')) as HTMLImageElement[];
+  // Traer tanto separadores como stickers en el orden estricto de aparición en el DOM
+  const items = Array.from(document.querySelectorAll('[data-e2e="dm-new-time-separator"], img[alt="sticker"]'));
+  let currentDateKey: string | undefined = undefined;
+  let currentRawTime: string | undefined = undefined;
   let changed = false;
 
-  for (const img of imgs) {
-    const id = getStickerId(img.src);
-    const existing = existingMap.get(id);
-    if (existing) {
-      if (existing.url !== img.src) {
-        existing.url = img.src;
+  for (const item of items) {
+    if (item.matches('[data-e2e="dm-new-time-separator"]') || item.closest('[data-e2e="dm-new-time-separator"]')) {
+      const sepEl = item.matches('[data-e2e="dm-new-time-separator"]') ? item : item.closest('[data-e2e="dm-new-time-separator"]');
+      const text = sepEl?.textContent?.trim() || '';
+      if (text) {
+        const parsed = parseSeparatorDate(text);
+        currentDateKey = parsed.dateKey;
+        currentRawTime = parsed.time;
+      }
+      continue;
+    }
+
+    if (item.tagName === 'IMG' && (item as HTMLImageElement).alt === 'sticker') {
+      const img = item as HTMLImageElement;
+      const id = getStickerId(img.src);
+      const existing = existingMap.get(id);
+      if (existing) {
+        let recChanged = false;
+        if (existing.url !== img.src) {
+          existing.url = img.src;
+          recChanged = true;
+        }
+        if (!existing.dateKey && currentDateKey) {
+          existing.dateKey = currentDateKey;
+          if (currentRawTime && !existing.time) existing.time = currentRawTime;
+          recChanged = true;
+        }
+        if (recChanged) changed = true;
+      } else {
+        const ctx = getStickerMessageContext(img);
+        const record: ScannedStickerRecord = {
+          id,
+          url: img.src,
+          text: ctx.text,
+          time: ctx.time || currentRawTime,
+          dateKey: currentDateKey,
+          discoveredAt: Date.now()
+        };
+        state.stickers.push(record);
+        existingMap.set(id, record);
         changed = true;
       }
-    } else {
-      const ctx = getStickerMessageContext(img);
-      const record: ScannedStickerRecord = {
-        id,
-        url: img.src,
-        text: ctx.text,
-        time: ctx.time,
-        discoveredAt: Date.now()
-      };
-      state.stickers.push(record);
-      existingMap.set(id, record);
-      changed = true;
     }
   }
 
