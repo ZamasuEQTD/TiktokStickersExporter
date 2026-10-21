@@ -7,7 +7,7 @@ module.exports = (env = {}) => {
 
   return {
     mode: env.production ? 'production' : 'development',
-    devtool: 'source-map',
+    devtool: env.production ? false : 'source-map',
     entry: {
       background: './src/background.ts',
       content: './src/content.ts',
