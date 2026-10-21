@@ -2024,34 +2024,45 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
   try {
     if (isZip) {
       const zip = new JSZip();
-      let index = 1;
+      let completedCount = 0;
       let successCount = 0;
+      let activeIndex = 0;
+      const CONCURRENCY = 6;
 
-      for (const stickerUrl of selectedUrls) {
-        if (progressModal.isCancelled()) {
-          break;
-        }
-        try {
-          progressModal.update(index, selectedUrls.length);
-          const res = await fetch(stickerUrl);
-          if (progressModal.isCancelled()) break;
-          const ext = getExtension(res);
-          const buffer = await res.arrayBuffer();
-          if (progressModal.isCancelled()) break;
-          const bytes = new Uint8Array(buffer);
-          let binary = '';
-          for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
+      const fetchWorker = async () => {
+        while (activeIndex < selectedUrls.length) {
+          if (progressModal.isCancelled()) return;
+          const i = activeIndex++;
+          const stickerUrl = selectedUrls[i];
+          const itemIndex = i + 1;
+
+          try {
+            // Tomar de memoria / caché local siempre que esté disponible
+            const res = await fetch(stickerUrl, { cache: "force-cache" });
+            if (progressModal.isCancelled()) return;
+            const ext = getExtension(res);
+            const buffer = await res.arrayBuffer();
+            if (progressModal.isCancelled()) return;
+
+            // Pasar el ArrayBuffer binario puro directamente a JSZip (sin base64 ni bucle de bytes)
+            zip.file(`tiktok-sticker-${itemIndex}.${ext}`, buffer);
+            markAsDownloaded(stickerUrl);
+            successCount++;
+          } catch (err) {
+            console.error(t("errorDownload"), stickerUrl);
+          } finally {
+            completedCount++;
+            progressModal.update(completedCount, selectedUrls.length);
           }
-          const base64 = window.btoa(binary);
-          zip.file(`tiktok-sticker-${index}.${ext}`, base64, { base64: true });
-          markAsDownloaded(stickerUrl);
-          successCount++;
-        } catch (err) {
-          console.error(t("errorDownload"), stickerUrl);
         }
-        index++;
-      }
+      };
+
+      // Descarga concurrente en paralelo (hasta 6 descargas simultáneas)
+      const workers = Array.from(
+        { length: Math.min(CONCURRENCY, selectedUrls.length) },
+        () => fetchWorker()
+      );
+      await Promise.all(workers);
 
       if (progressModal.isCancelled()) {
         addDownloadAllButton();
@@ -2062,7 +2073,11 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
       if (successCount > 0) {
         try {
           progressModal.setStatus(t("generatingZip"));
-          const content = await zip.generateAsync({ type: "arraybuffer" });
+          // Empaquetado instantáneo con compression: "STORE" (evita recalcular compresión sobre WebPs)
+          const content = await zip.generateAsync({
+            type: "arraybuffer",
+            compression: "STORE"
+          });
           if (progressModal.isCancelled()) return;
           const blob = new Blob([content], { type: "application/zip" });
           const url = window.URL.createObjectURL(blob);
@@ -2091,7 +2106,7 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
         }
         try {
           progressModal.update(index, selectedUrls.length);
-          const res = await fetch(stickerUrl);
+          const res = await fetch(stickerUrl, { cache: "force-cache" });
           if (progressModal.isCancelled()) break;
           const ext = getExtension(res);
           const blob = await res.blob();
