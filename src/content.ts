@@ -624,13 +624,34 @@ const MONTH_NAMES_MAP: Record<string, number> = {
   jan: 0, apr: 3, aug: 7, dec: 11
 };
 
+const MONTHS_ES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+];
+
+const MONTHS_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+// Formatea un objeto Date en cadena de fecha con calendario completo (ej. "20 de octubre de 2026" / "October 20, 2026")
+const formatDateToCalendarString = (date: Date, lang: 'es' | 'en'): string => {
+  const day = date.getDate();
+  const year = date.getFullYear();
+  if (lang === 'es') {
+    return `${day} de ${MONTHS_ES[date.getMonth()]} de ${year}`;
+  } else {
+    return `${MONTHS_EN[date.getMonth()]} ${day}, ${year}`;
+  }
+};
+
 // Helper para detectar si un texto representa únicamente una hora (ej. "23:04", "11:04 PM")
 const isPureTime = (str: string): boolean => {
   if (!str) return false;
   return /^(?:at\s+|a las\s+)?\d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:AM|PM|am|pm))?$/i.test(str.trim());
 };
 
-// Normaliza el título de fecha de un grupo para que fechas de hoy o cadenas de sólo hora aparezcan unificadas como "Hoy" / "Today"
+// Normaliza el dateKey a una fecha de calendario real (ej. si era sólo hora o "hoy", se asigna la fecha del día en que se procesó)
 const normalizeDateKey = (rawKey?: string): string => {
   if (!rawKey) return t("otherDates");
   const trimmed = rawKey.trim();
@@ -638,10 +659,59 @@ const normalizeDateKey = (rawKey?: string): string => {
     return t("otherDates");
   }
   const lower = trimmed.toLowerCase();
+  const lang = getLang();
   if (lower === "hoy" || lower === "today" || isPureTime(trimmed)) {
-    return t("today");
+    return formatDateToCalendarString(new Date(), lang);
+  }
+  if (lower === "ayer" || lower === "yesterday") {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    return formatDateToCalendarString(y, lang);
   }
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+};
+
+// Devuelve el título amigable y dinámico para el encabezado de fecha en el diálogo
+const getDisplayDateTitle = (dateKey: string, lang: 'es' | 'en'): string => {
+  if (!dateKey || dateKey === t("otherDates")) return t("otherDates");
+  const ts = parseDateToTimestamp(dateKey);
+  if (ts <= 0) return dateKey;
+
+  const d = new Date(ts);
+  const now = new Date();
+  const isCurrentYear = d.getFullYear() === now.getFullYear();
+
+  let formattedDate = "";
+  if (lang === 'es') {
+    const m = MONTHS_ES[d.getMonth()];
+    formattedDate = isCurrentYear ? `${d.getDate()} de ${m}` : `${d.getDate()} de ${m} de ${d.getFullYear()}`;
+  } else {
+    const m = MONTHS_EN[d.getMonth()];
+    formattedDate = isCurrentYear ? `${m} ${d.getDate()}` : `${m} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  // Si coincide con hoy
+  if (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  ) {
+    return `${t("today")} (${formattedDate})`;
+  }
+
+  // Si coincide con ayer
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate()
+  ) {
+    const yesterdayText = lang === 'es' ? "Ayer" : "Yesterday";
+    return `${yesterdayText} (${formattedDate})`;
+  }
+
+  return formattedDate;
 };
 
 // Convierte un texto de fecha ("15 de octubre de 2026", "Ayer", etc.) en timestamp numérico para ordenar cronológicamente
@@ -650,14 +720,7 @@ const parseDateToTimestamp = (dateStr: string): number => {
   const str = dateStr.toLowerCase().trim();
   const now = new Date();
 
-  if (str.includes("hoy") || str.includes("today") || isPureTime(str)) {
-    return now.getTime();
-  }
-  if (str.includes("ayer") || str.includes("yesterday")) {
-    return now.getTime() - 24 * 60 * 60 * 1000;
-  }
-
-  // Patrón español: '15 de octubre de 2026' o '15 de octubre'
+  // 1. Patrón español: '15 de octubre de 2026' o '15 de octubre'
   const esMatch = str.match(/(\d{1,2})\s+de\s+([a-záéíóúñ]+)(?:\s+de\s+(\d{4}))?/i);
   if (esMatch) {
     const day = parseInt(esMatch[1], 10);
@@ -668,15 +731,23 @@ const parseDateToTimestamp = (dateStr: string): number => {
     }
   }
 
-  // Patrón inglés: 'October 15, 2026' o 'October 15'
+  // 2. Patrón inglés: 'October 15, 2026' o 'October 15'
   const enMatch = str.match(/([a-z]+)\s+(\d{1,2})(?:,?\s+(\d{4}))?/i);
-  if (enMatch) {
+  if (enMatch && enMatch[1].toLowerCase() !== "ayer" && enMatch[1].toLowerCase() !== "hoy") {
     const month = MONTH_NAMES_MAP[enMatch[1].toLowerCase()];
     const day = parseInt(enMatch[2], 10);
     const year = enMatch[3] ? parseInt(enMatch[3], 10) : now.getFullYear();
     if (month !== undefined) {
       return new Date(year, month, day, 12, 0, 0).getTime();
     }
+  }
+
+  // 3. Fallback a referencias relativas si no tienen día/mes explícito
+  if (str.includes("hoy") || str.includes("today") || isPureTime(str)) {
+    return now.getTime();
+  }
+  if (str.includes("ayer") || str.includes("yesterday")) {
+    return now.getTime() - 24 * 60 * 60 * 1000;
   }
 
   const parsed = Date.parse(dateStr);
@@ -969,7 +1040,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
         titleWrapper.style.gap = isMobile ? s(8) : "10px";
 
         const dateTitle = document.createElement("span");
-        dateTitle.innerText = dateKey;
+        dateTitle.innerText = getDisplayDateTitle(dateKey, getLang());
         dateTitle.style.fontWeight = "bold";
         dateTitle.style.fontSize = isMobile ? s(16) : "16px";
         dateTitle.style.color = "#ffffff";
@@ -1775,6 +1846,7 @@ const parseSeparatorDate = (rawText: string): { dateKey: string; time?: string }
   const text = rawText.replace(/\s+/g, ' ').trim();
   if (!text) return { dateKey: t("otherDates") };
 
+  const lang = getLang();
   // Detectar la hora al final: ej. "12:26", "12:26 PM", "12:26:00", etc.
   const timeRegex = /(?:at\s+|a las\s+)?(\d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:AM|PM|am|pm))?)\s*$/i;
   const match = text.match(timeRegex);
@@ -1786,22 +1858,32 @@ const parseSeparatorDate = (rawText: string): { dateKey: string; time?: string }
     if (datePart) {
       const lower = datePart.toLowerCase();
       if (lower === "hoy" || lower === "today") {
-        return { dateKey: t("today"), time };
+        return { dateKey: formatDateToCalendarString(new Date(), lang), time };
+      }
+      if (lower === "ayer" || lower === "yesterday") {
+        const y = new Date();
+        y.setDate(y.getDate() - 1);
+        return { dateKey: formatDateToCalendarString(y, lang), time };
       }
       datePart = datePart.charAt(0).toUpperCase() + datePart.slice(1);
       return { dateKey: datePart, time };
     }
-    // Si solo había una hora sin texto de fecha previo (ej: "23:04"), corresponde al día de hoy
-    return { dateKey: t("today"), time };
+    // Si solo había una hora sin texto de fecha previo (ej: "23:04"), corresponde al día en que se procesó (hoy)
+    return { dateKey: formatDateToCalendarString(new Date(), lang), time };
   }
 
   if (isPureTime(text)) {
-    return { dateKey: t("today"), time: text };
+    return { dateKey: formatDateToCalendarString(new Date(), lang), time: text };
   }
 
   const lower = text.toLowerCase();
   if (lower === "hoy" || lower === "today") {
-    return { dateKey: t("today") };
+    return { dateKey: formatDateToCalendarString(new Date(), lang) };
+  }
+  if (lower === "ayer" || lower === "yesterday") {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    return { dateKey: formatDateToCalendarString(y, lang) };
   }
 
   return { dateKey: text.charAt(0).toUpperCase() + text.slice(1) };
