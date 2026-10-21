@@ -211,21 +211,21 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 
 // Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS, o probando con resolución móvil)
 const isMobileDevice = (): boolean => {
-  // 1. Detección estándar si el User-Agent contiene indicadores móviles:
+  // 1. Si explícitamente es un sistema operativo de PC de escritorio, NUNCA es móvil
   const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '';
+  if (/Windows NT|Macintosh|Mac OS X|X11; Linux x86_64/i.test(ua) && !/Android|iPhone|iPad|Mobile/i.test(ua)) {
+    return false;
+  }
+
+  // 2. Detección estándar si el User-Agent contiene indicadores móviles:
   if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) {
     return true;
   }
 
-  // 2. Detección por hardware para smartphones físicos:
+  // 3. Detección por hardware para smartphones físicos:
   const hasTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
   const isPhoneScreen = typeof window !== 'undefined' && typeof window.screen !== 'undefined' && Math.min(window.screen.width, window.screen.height) <= 600;
   if (hasTouch && isPhoneScreen) {
-    return true;
-  }
-
-  // 3. Detección por ancho de viewport para pruebas en Chrome en PC (resolución <= 650px):
-  if (typeof window !== 'undefined' && window.innerWidth > 0 && window.innerWidth <= 650) {
     return true;
   }
 
@@ -3732,6 +3732,11 @@ const checkAndShowMessagesRedirectDialog = () => {
 
 // Limpieza completa del modo móvil al volver al tamaño de PC
 const cleanupMobileEnhancements = () => {
+  const dialog = document.getElementById('tt-stickers-redirect-dialog');
+  if (dialog) {
+    dialog.remove();
+  }
+
   const styleEl = document.getElementById('tt-mobile-enhancement-styles');
   if (styleEl) {
     styleEl.remove();
