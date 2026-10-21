@@ -2098,6 +2098,19 @@ const addSettingsButton = () => {
   });
   btn.onclick = () => showSettingsModal();
   
+  if (isMobileDevice()) {
+    targetContainer.style.setProperty("background-color", "#121212", "important");
+    if (targetContainer.parentElement) {
+      targetContainer.parentElement.style.setProperty("background-color", "#121212", "important");
+      if (targetContainer.parentElement.parentElement) {
+        targetContainer.parentElement.parentElement.style.setProperty("background-color", "#121212", "important");
+      }
+    }
+  }
+
+  btn.style.setProperty("background-color", "#FE004F", "important");
+  btn.style.setProperty("border", "1px solid #FE004F", "important");
+
   targetContainer.style.display = "flex";
   targetContainer.style.alignItems = "center";
   targetContainer.style.justifyContent = "space-between";
@@ -2238,12 +2251,45 @@ const setupMobileEnhancements = () => {
         box-sizing: border-box !important;
       }
 
-      /* ESTILOS PERSONALIZADOS DE LA LISTA DE CHATS EN MÓVIL */
-      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] {
-        padding: 6px 10px !important;
+      /* UNIFICACIÓN DE COLOR DE FONDO ENTRE HEADER Y LISTA (#121212) */
+      body:not(.tt-chat-active) div[class*="DivSideNavContainer"],
+      body:not(.tt-chat-active) div[class*="DivDrawerContainer"],
+      body:not(.tt-chat-active) div[class*="DivMessageDrawerContainer"],
+      body:not(.tt-chat-active) div[class*="DivConversationListContainer"],
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"],
+      body:not(.tt-chat-active) div[class*="DivV3AnimRoot"],
+      body:not(.tt-chat-active) div[class*="DivV3AnimLeftColumn"],
+      body:not(.tt-chat-active) div[class*="DivV3AnimLeftContentArea"],
+      body:not(.tt-chat-active) div[class*="BaseBodyContainer"],
+      body:not(.tt-chat-active) div[class*="DivHeaderContainer"],
+      body:not(.tt-chat-active) div[class*="DivNavigationContainer"],
+      body:not(.tt-chat-active) div[class*="DivTitleContainer"],
+      body:not(.tt-chat-active) header {
         background-color: #121212 !important;
       }
-      /* Items de conversación estilizados como tarjetas táctiles modernas */
+
+      /* ESTILOS PERSONALIZADOS DE LA LISTA DE CHATS EN MÓVIL */
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] {
+        padding: 8px 12px !important;
+        background-color: #121212 !important;
+        box-sizing: border-box !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+      }
+      /* Items de conversación: EXPANDIR AL 100% DEL ANCHO */
+      body:not(.tt-chat-active) div[class*="DivConversationWrap"],
+      body:not(.tt-chat-active) div[class*="DivConversationList"],
+      body:not(.tt-chat-active) div[class*="DivItemContainer"],
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] > div,
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] a,
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] [role="listitem"],
+      body:not(.tt-chat-active) [class*="ConversationItem"],
+      body:not(.tt-chat-active) [data-e2e="conversation-item"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+      }
       body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] a,
       body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] [role="listitem"],
       body:not(.tt-chat-active) [class*="ConversationItem"] {
@@ -2257,6 +2303,14 @@ const setupMobileEnhancements = () => {
         align-items: center !important;
         cursor: pointer !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+      }
+      /* Contenido textual interno de la tarjeta expandido */
+      body:not(.tt-chat-active) [class*="ConversationItem"] > div,
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] a > div,
+      body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] [role="listitem"] > div {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        width: auto !important;
       }
       body:not(.tt-chat-active) div[data-e2e="dm-new-conversation-list"] a:active,
       body:not(.tt-chat-active) [class*="ConversationItem"]:active {
