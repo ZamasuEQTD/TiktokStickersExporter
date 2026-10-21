@@ -240,7 +240,7 @@ const ensureModalAnimationsStyle = () => {
   }
 };
 
-// Bottom Sheet para seleccionar el formato de descarga en móvil (ZIP o Secuencial)
+// Bottom Sheet minimalista idéntico al menú nativo de TikTok para seleccionar el tipo de descarga
 const showMobileDownloadOptionsBottomSheet = (
   selectedCount: number,
   onSelect: (action: 'seq' | 'zip') => void
@@ -265,131 +265,110 @@ const showMobileDownloadOptionsBottomSheet = (
 
   const sheet = document.createElement("div");
   sheet.style.position = "relative";
-  sheet.style.backgroundColor = "#252525";
-  sheet.style.borderRadius = "20px 20px 0 0";
-  sheet.style.padding = "14px 20px 24px 20px";
+  sheet.style.backgroundColor = "#1a1a1a";
+  sheet.style.borderRadius = "16px 16px 0 0";
+  sheet.style.padding = "12px 16px 20px 16px";
   sheet.style.width = "100%";
   sheet.style.maxWidth = "100%";
   sheet.style.boxSizing = "border-box";
   sheet.style.color = "white";
-  sheet.style.fontFamily = "sans-serif";
-  sheet.style.animation = "ttSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
+  sheet.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+  sheet.style.animation = "ttSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1)";
   sheet.style.boxShadow = "0 -4px 30px rgba(0, 0, 0, 0.8)";
 
-  // Barra de arrastre (drag handle)
+  // Barra de arrastre superior
   const handle = document.createElement("div");
-  handle.style.width = "40px";
+  handle.style.width = "36px";
   handle.style.height = "4px";
   handle.style.borderRadius = "2px";
-  handle.style.backgroundColor = "rgba(255, 255, 255, 0.28)";
-  handle.style.margin = "0 auto 14px auto";
+  handle.style.backgroundColor = "rgba(255, 255, 255, 0.25)";
+  handle.style.margin = "0 auto 16px auto";
   sheet.appendChild(handle);
 
-  const title = document.createElement("h3");
-  title.innerText = t("chooseDownloadFormat");
-  title.style.margin = "0 0 16px 0";
-  title.style.fontSize = "17px";
-  title.style.fontWeight = "bold";
-  title.style.textAlign = "center";
-  sheet.appendChild(title);
+  // Contenedor agrupado de opciones estilo tarjeta nativa de TikTok
+  const group = document.createElement("div");
+  group.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
+  group.style.borderRadius = "14px";
+  group.style.overflow = "hidden";
+  group.style.marginBottom = "10px";
 
-  const createOption = (
+  const createTikTokRow = (
     iconSvg: string,
-    accentColor: string,
-    accentBg: string,
-    optTitle: string,
-    optDesc: string,
+    label: string,
+    hasDivider: boolean,
     onClick: () => void
   ) => {
-    const btn = document.createElement("div");
-    btn.style.display = "flex";
-    btn.style.alignItems = "center";
-    btn.style.padding = "13px 15px";
-    btn.style.borderRadius = "12px";
-    btn.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
-    btn.style.border = "1px solid rgba(255, 255, 255, 0.1)";
-    btn.style.marginBottom = "10px";
-    btn.style.cursor = "pointer";
-    btn.style.transition = "background-color 0.15s, transform 0.1s";
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.padding = "15px 18px";
+    row.style.cursor = "pointer";
+    row.style.userSelect = "none";
+    row.style.transition = "background-color 0.15s";
+    if (hasDivider) {
+      row.style.borderBottom = "1px solid rgba(255, 255, 255, 0.06)";
+    }
 
-    const iconBox = document.createElement("div");
-    iconBox.style.width = "40px";
-    iconBox.style.height = "40px";
-    iconBox.style.borderRadius = "10px";
-    iconBox.style.backgroundColor = accentBg;
-    iconBox.style.color = accentColor;
-    iconBox.style.display = "flex";
-    iconBox.style.alignItems = "center";
-    iconBox.style.justifyContent = "center";
-    iconBox.style.flexShrink = "0";
-    iconBox.style.marginRight = "14px";
-    iconBox.innerHTML = iconSvg;
-    btn.appendChild(iconBox);
+    const iconEl = document.createElement("div");
+    iconEl.style.display = "flex";
+    iconEl.style.alignItems = "center";
+    iconEl.style.justifyContent = "center";
+    iconEl.style.marginRight = "14px";
+    iconEl.style.color = "#ffffff";
+    iconEl.style.flexShrink = "0";
+    iconEl.innerHTML = iconSvg;
+    row.appendChild(iconEl);
 
-    const textCol = document.createElement("div");
-    textCol.style.display = "flex";
-    textCol.style.flexDirection = "column";
-    textCol.style.gap = "2px";
+    const labelEl = document.createElement("div");
+    labelEl.innerText = label;
+    labelEl.style.fontSize = "15px";
+    labelEl.style.fontWeight = "500";
+    labelEl.style.color = "#ffffff";
+    row.appendChild(labelEl);
 
-    const itemTitle = document.createElement("div");
-    itemTitle.innerText = optTitle;
-    itemTitle.style.fontSize = "15px";
-    itemTitle.style.fontWeight = "bold";
-    itemTitle.style.color = "#ffffff";
-    textCol.appendChild(itemTitle);
+    row.addEventListener("touchstart", () => {
+      row.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+    }, { passive: true });
+    row.addEventListener("touchend", () => {
+      row.style.backgroundColor = "transparent";
+    }, { passive: true });
 
-    const itemDesc = document.createElement("div");
-    itemDesc.innerText = optDesc;
-    itemDesc.style.fontSize = "12px";
-    itemDesc.style.color = "rgba(255, 255, 255, 0.65)";
-    itemDesc.style.lineHeight = "1.3";
-    textCol.appendChild(itemDesc);
-
-    btn.appendChild(textCol);
-
-    btn.onclick = () => {
+    row.onclick = () => {
       overlay.remove();
       onClick();
     };
-    return btn;
+
+    return row;
   };
 
-  const svgZip = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
-  const svgDownload = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+  // Ícono de archivo ZIP (paquete minimalista con trazo fino como TikTok)
+  const svgZip = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path></svg>`;
 
-  const optZip = createOption(
-    svgZip,
-    "#fe2c55",
-    "rgba(254, 44, 85, 0.16)",
-    t("downloadZipOption"),
-    t("downloadZipOptionDesc"),
-    () => onSelect('zip')
-  );
-  sheet.appendChild(optZip);
+  // Ícono de Descarga individual (flecha minimalista estilo guardar de TikTok)
+  const svgDownload = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
 
-  const optSeq = createOption(
-    svgDownload,
-    "#20d5ec",
-    "rgba(32, 213, 236, 0.16)",
-    t("downloadSeqOption"),
-    t("downloadSeqOptionDesc"),
-    () => onSelect('seq')
-  );
-  sheet.appendChild(optSeq);
+  const rowZip = createTikTokRow(svgZip, t("downloadZipOption"), true, () => onSelect('zip'));
+  const rowSeq = createTikTokRow(svgDownload, t("downloadSeqOption"), false, () => onSelect('seq'));
 
+  group.appendChild(rowZip);
+  group.appendChild(rowSeq);
+  sheet.appendChild(group);
+
+  // Botón Cancelar separado estilo tarjeta TikTok
   const btnCancel = document.createElement("button");
   btnCancel.innerText = t("cancel");
   btnCancel.style.width = "100%";
-  btnCancel.style.padding = "12px";
-  btnCancel.style.borderRadius = "10px";
-  btnCancel.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
-  btnCancel.style.color = "rgba(255, 255, 255, 0.75)";
+  btnCancel.style.padding = "14px";
+  btnCancel.style.borderRadius = "14px";
+  btnCancel.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
+  btnCancel.style.color = "#ffffff";
   btnCancel.style.border = "none";
-  btnCancel.style.fontSize = "14px";
+  btnCancel.style.fontSize = "15px";
   btnCancel.style.fontWeight = "600";
   btnCancel.style.cursor = "pointer";
-  btnCancel.style.marginTop = "6px";
+  btnCancel.style.transition = "background-color 0.15s";
   btnCancel.onclick = () => overlay.remove();
+
   sheet.appendChild(btnCancel);
 
   overlay.onclick = (e) => {
