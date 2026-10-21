@@ -76,6 +76,8 @@ const translations = {
     otherDates: "Other dates",
     selectDay: "Select day",
     deselectDay: "Deselect day",
+    cancelZip: "Cancel compression",
+    cancelSeq: "Cancel download",
   },
   es: {
     settings: "Configuración",
@@ -151,6 +153,8 @@ const translations = {
     otherDates: "Otras fechas",
     selectDay: "Seleccionar día",
     deselectDay: "Deseleccionar",
+    cancelZip: "Cancelar compresión",
+    cancelSeq: "Cancelar descarga",
   }
 };
 
@@ -1768,9 +1772,10 @@ interface ProgressModalController {
   setStatus: (statusText: string) => void;
   complete: (message: string) => void;
   close: () => void;
+  isCancelled: () => boolean;
 }
 
-const showProgressModal = (title: string, total: number): ProgressModalController => {
+const showProgressModal = (title: string, total: number, onCancel?: () => void): ProgressModalController => {
   const isMobile = isMobileDevice();
   const scaleFactor = Math.max(1, window.innerWidth / window.screen.width);
   const s = (px: number) => isMobile ? (px * scaleFactor) + "px" : px + "px";
@@ -1791,8 +1796,31 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
   overlay.style.padding = isMobile ? "0" : "20px";
   overlay.style.boxSizing = "border-box";
 
+  let wasCancelled = false;
+  let isClosed = false;
+  let countdownTimer: any = null;
+
+  const close = () => {
+    if (isClosed) return;
+    isClosed = true;
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+  };
+
+  const cancel = () => {
+    if (wasCancelled || isClosed) return;
+    wasCancelled = true;
+    close();
+    if (onCancel) onCancel();
+  };
+
   overlay.onclick = (e) => {
-    if (e.target === overlay) close();
+    if (e.target === overlay) cancel();
   };
 
   const modal = document.createElement("div");
@@ -1820,21 +1848,6 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
     dragHandle.style.margin = "0 auto 12px auto";
     modal.appendChild(dragHandle);
   }
-
-  let isClosed = false;
-  let countdownTimer: any = null;
-
-  const close = () => {
-    if (isClosed) return;
-    isClosed = true;
-    if (countdownTimer) {
-      clearInterval(countdownTimer);
-      countdownTimer = null;
-    }
-    if (overlay.parentElement) {
-      overlay.parentElement.removeChild(overlay);
-    }
-  };
 
   const btnX = document.createElement("button");
   btnX.title = t("close");
@@ -1866,7 +1879,7 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
     btnX.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
     btnX.style.transform = "scale(1)";
   });
-  btnX.onclick = close;
+  btnX.onclick = cancel;
   modal.appendChild(btnX);
 
   const header = document.createElement("h3");
@@ -1906,6 +1919,28 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
   percentEl.style.color = "#888";
   percentEl.style.fontWeight = "bold";
 
+  const btnCancel = document.createElement("button");
+  btnCancel.innerText = isZipMode ? t("cancelZip") : t("cancelSeq");
+  btnCancel.style.marginTop = isMobile ? s(10) : "10px";
+  btnCancel.style.padding = isMobile ? `${s(9)} ${s(22)}` : "9px 22px";
+  btnCancel.style.borderRadius = isMobile ? s(8) : "8px";
+  btnCancel.style.border = "1.5px solid #fe2c55";
+  btnCancel.style.backgroundColor = "transparent";
+  btnCancel.style.color = "#fe2c55";
+  btnCancel.style.fontWeight = "bold";
+  btnCancel.style.fontSize = isMobile ? s(13) : "14px";
+  btnCancel.style.cursor = "pointer";
+  btnCancel.style.boxShadow = "none";
+  btnCancel.style.transition = "background-color 0.2s";
+
+  btnCancel.addEventListener("mouseenter", () => {
+    btnCancel.style.backgroundColor = "rgba(254, 44, 85, 0.1)";
+  });
+  btnCancel.addEventListener("mouseleave", () => {
+    btnCancel.style.backgroundColor = "transparent";
+  });
+  btnCancel.onclick = cancel;
+
   const btnClose = document.createElement("button");
   btnClose.innerText = t("close");
   btnClose.style.marginTop = isMobile ? s(10) : "10px";
@@ -1918,6 +1953,7 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
   btnClose.style.fontSize = isMobile ? s(14) : "14px";
   btnClose.style.cursor = "pointer";
   btnClose.style.display = "none";
+  btnClose.style.boxShadow = "none";
   btnClose.style.transition = "transform 0.2s, background-color 0.2s";
 
   btnClose.onclick = close;
@@ -1926,6 +1962,7 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
   modal.appendChild(statusEl);
   modal.appendChild(barContainer);
   modal.appendChild(percentEl);
+  modal.appendChild(btnCancel);
   modal.appendChild(btnClose);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -1952,6 +1989,7 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
       statusEl.innerText = message;
       statusEl.style.color = "#2ed573";
       
+      btnCancel.style.display = "none";
       let secondsLeft = 5;
       btnClose.style.display = "block";
       btnClose.innerText = `${t("close")} (${secondsLeft}s)`;
@@ -1965,7 +2003,8 @@ const showProgressModal = (title: string, total: number): ProgressModalControlle
         }
       }, 1000);
     },
-    close
+    close,
+    isCancelled: () => wasCancelled
   };
 };
 
@@ -1989,11 +2028,16 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
       let successCount = 0;
 
       for (const stickerUrl of selectedUrls) {
+        if (progressModal.isCancelled()) {
+          break;
+        }
         try {
           progressModal.update(index, selectedUrls.length);
           const res = await fetch(stickerUrl);
+          if (progressModal.isCancelled()) break;
           const ext = getExtension(res);
           const buffer = await res.arrayBuffer();
+          if (progressModal.isCancelled()) break;
           const bytes = new Uint8Array(buffer);
           let binary = '';
           for (let i = 0; i < bytes.byteLength; i++) {
@@ -2009,10 +2053,17 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
         index++;
       }
 
+      if (progressModal.isCancelled()) {
+        addDownloadAllButton();
+        addIndividualDownloadButtons();
+        return;
+      }
+
       if (successCount > 0) {
         try {
           progressModal.setStatus(t("generatingZip"));
           const content = await zip.generateAsync({ type: "arraybuffer" });
+          if (progressModal.isCancelled()) return;
           const blob = new Blob([content], { type: "application/zip" });
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -2035,11 +2086,16 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
     } else {
       let index = 1;
       for (const stickerUrl of selectedUrls) {
+        if (progressModal.isCancelled()) {
+          break;
+        }
         try {
           progressModal.update(index, selectedUrls.length);
           const res = await fetch(stickerUrl);
+          if (progressModal.isCancelled()) break;
           const ext = getExtension(res);
           const blob = await res.blob();
+          if (progressModal.isCancelled()) break;
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
@@ -2050,7 +2106,11 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
           markAsDownloaded(stickerUrl);
           
           const delayMs = getDelay() * 1000;
-          await new Promise(r => setTimeout(r, delayMs));
+          const startDelay = Date.now();
+          while (Date.now() - startDelay < delayMs) {
+            if (progressModal.isCancelled()) break;
+            await new Promise(r => setTimeout(r, 100));
+          }
         } catch (err) {
           console.error(t("errorDownload"), stickerUrl);
         }
@@ -2058,6 +2118,11 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
       }
       addDownloadAllButton();
       addIndividualDownloadButtons();
+
+      if (progressModal.isCancelled()) {
+        return;
+      }
+
       progressModal.complete(t("completedSeq"));
     }
   } finally {
@@ -3116,7 +3181,7 @@ const setupMobileEnhancements = () => {
         font-size: 13px !important;
         border-radius: 10px !important;
         white-space: nowrap !important;
-        box-shadow: 0 2px 8px rgba(254, 44, 85, 0.4) !important;
+        box-shadow: none !important;
       }
       #tiktok-stickers-exporter-settings-btn {
         background-color: #fe2c55 !important;
@@ -3126,7 +3191,7 @@ const setupMobileEnhancements = () => {
         font-size: 13px !important;
         font-weight: 600 !important;
         border-radius: 16px !important;
-        box-shadow: 0 2px 8px rgba(254, 44, 85, 0.35) !important;
+        box-shadow: none !important;
       }
     `;
     document.head.appendChild(style);
