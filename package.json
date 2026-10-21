@@ -1,6 +1,6 @@
 {
   "name": "tiktok-stickers-exporter",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "Firefox Extension for Tiktok Stickers",
   "scripts": {
     "build": "npm run build:all",

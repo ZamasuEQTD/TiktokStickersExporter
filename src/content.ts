@@ -2033,6 +2033,179 @@ const addIndividualDownloadButtons = () => {
   });
 };
 
+// Inyecta estilos globales permanentes para unificar el fondo del header (#121212) y expandir tarjetas de conversación al 100% de la columna (en PC y móvil)
+const ensureGlobalMessagesLayoutStyles = () => {
+  if (typeof document === 'undefined') return;
+  if (!document.getElementById("tt-messages-layout-styles")) {
+    const style = document.createElement("style");
+    style.id = "tt-messages-layout-styles";
+    style.textContent = `
+      /* ========================================================================== */
+      /* 1. UNIFICACIÓN DE COLOR DE FONDO ENTRE HEADER Y LISTA (#121212)             */
+      /* ========================================================================== */
+      div[class*="DivSideNavContainer"],
+      div[class*="DivDrawerContainer"],
+      div[class*="DivMessageDrawerContainer"],
+      div[class*="DivConversationListContainer"],
+      div[data-e2e="dm-new-conversation-list"],
+      div[class*="DivV3AnimRoot"],
+      div[class*="DivV3AnimLeftColumn"],
+      div[class*="DivV3AnimLeftContentArea"],
+      div[class*="BaseBodyContainer"],
+      div[class*="DivHeaderContainer"],
+      div[class*="DivNavigationContainer"],
+      div[class*="DivTitleContainer"],
+      div[class*="DivDrawerHeader"],
+      div[class*="DivConversationListHeader"],
+      div[class*="DivChatRoomListHeader"],
+      header[class*="Drawer"],
+      header[class*="Header"],
+      header {
+        background-color: #121212 !important;
+        background: #121212 !important;
+        border-color: transparent !important;
+        border-bottom: none !important;
+        box-shadow: none !important;
+      }
+
+      /* Eliminar pseudo-elementos de sombra o gradiente bajo el header */
+      div[class*="DivHeaderContainer"]::after,
+      div[class*="DivHeaderContainer"]::before,
+      div[class*="DivTitleContainer"]::after,
+      div[class*="DivTitleContainer"]::before,
+      div[class*="DivDrawerHeader"]::after,
+      div[class*="DivDrawerHeader"]::before,
+      header::after,
+      header::before {
+        display: none !important;
+        box-shadow: none !important;
+        background: none !important;
+      }
+
+      /* ========================================================================== */
+      /* 2. EXPANSIÓN DE TARJETAS DE CONVERSACIÓN AL 100% DEL ANCHO DE LA COLUMNA   */
+      /* ========================================================================== */
+      div[data-e2e="dm-new-conversation-list"],
+      div[data-e2e="dm-new-conversation-list"] > div,
+      div[data-e2e="dm-new-conversation-list"] > div > div,
+      div[data-e2e="dm-new-conversation-list"] ul,
+      div[data-e2e="dm-new-conversation-list"] li,
+      div[data-e2e="dm-new-conversation-list"] [style*="width"],
+      div[class*="DivConversationWrap"],
+      div[class*="DivConversationList"],
+      div[class*="DivItemContainer"],
+      [data-e2e*="conversation"],
+      [data-e2e*="chat-item"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Elemento interactivo de la tarjeta de chat (enlace o item) */
+      div[data-e2e="dm-new-conversation-list"] a,
+      div[data-e2e="dm-new-conversation-list"] [role="listitem"],
+      div[data-e2e="dm-new-conversation-list"] [class*="ConversationItem"],
+      div[data-e2e="dm-new-conversation-list"] [class*="ItemContainer"],
+      [class*="ConversationItem"],
+      [class*="DivItemContainer"],
+      [data-e2e="conversation-item"],
+      a[href*="/messages?"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+
+      /* Contenedor textual interno de la tarjeta expandido */
+      div[data-e2e="dm-new-conversation-list"] a > div,
+      div[data-e2e="dm-new-conversation-list"] [role="listitem"] > div,
+      div[data-e2e="dm-new-conversation-list"] [class*="ConversationItem"] > div,
+      [class*="ConversationItem"] > div,
+      [class*="DivItemContainer"] > div {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        width: auto !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+};
+
+// Sincroniza dinámicamente el fondo del header y expande las tarjetas de conversación en el DOM
+const syncHeaderAndConversationCards = () => {
+  ensureGlobalMessagesLayoutStyles();
+
+  // 1. Unificar fondo del header de mensajes a #121212 (recorrer hacia arriba todos los niveles contenedores)
+  const h2s = Array.from(document.querySelectorAll('h2'));
+  const messagesH2 = h2s.find(h2 => h2.innerText.includes("Messages") || h2.innerText.includes("Mensajes") || (h2.className && h2.className.includes("H2Semibold")));
+  if (messagesH2 && messagesH2.parentElement) {
+    let curr: HTMLElement | null = messagesH2.parentElement;
+    for (let i = 0; i < 6 && curr; i++) {
+      if (curr === document.body || curr.id === 'main-content-messages') break;
+      curr.style.setProperty("background-color", "#121212", "important");
+      curr.style.setProperty("background", "#121212", "important");
+      curr.style.setProperty("box-shadow", "none", "important");
+      curr.style.setProperty("border", "none", "important");
+      curr.style.setProperty("border-bottom", "none", "important");
+      curr = curr.parentElement;
+    }
+  }
+
+  // 2. Expandir el contenedor de la lista y asegurar fondo uniforme #121212
+  const convList = document.querySelector('[data-e2e="dm-new-conversation-list"], div[class*="DivConversationList"], div[class*="DivMessageDrawerContainer"]') as HTMLElement | null;
+  if (convList) {
+    convList.style.setProperty("background-color", "#121212", "important");
+    convList.style.setProperty("background", "#121212", "important");
+    convList.style.setProperty("width", "100%", "important");
+    convList.style.setProperty("box-sizing", "border-box", "important");
+  }
+
+  // 3. Expandir todas las tarjetas de conversación al 100% de la columna
+  const items = document.querySelectorAll(
+    '[data-e2e="dm-new-conversation-list"] a, ' +
+    '[data-e2e="dm-new-conversation-list"] [role="listitem"], ' +
+    '[data-e2e="dm-new-conversation-list"] [class*="ConversationItem"], ' +
+    '[data-e2e="dm-new-conversation-list"] [class*="ItemContainer"], ' +
+    '[data-e2e="conversation-item"], ' +
+    '[class*="ConversationItem"], ' +
+    '[class*="DivItemContainer"], ' +
+    'a[href*="/messages?"]'
+  );
+
+  items.forEach((item) => {
+    const el = item as HTMLElement;
+    el.style.setProperty("width", "100%", "important");
+    el.style.setProperty("max-width", "100%", "important");
+    el.style.setProperty("min-width", "0", "important");
+    el.style.setProperty("box-sizing", "border-box", "important");
+    el.style.setProperty("display", "flex", "important");
+    el.style.setProperty("align-items", "center", "important");
+
+    // Expandir contenedores padre inmediatos (wrappers de virtual scroller como react-window)
+    let p = el.parentElement;
+    for (let j = 0; j < 3 && p; j++) {
+      if (p === convList || p === document.body) break;
+      p.style.setProperty("width", "100%", "important");
+      p.style.setProperty("max-width", "100%", "important");
+      p.style.setProperty("box-sizing", "border-box", "important");
+      p = p.parentElement;
+    }
+
+    // Expandir el contenedor interno de texto para empujar los 3 puntos a la derecha
+    const childDivs = Array.from(el.children) as HTMLElement[];
+    for (const child of childDivs) {
+      if (!child.querySelector('img') && (child.innerText || child.children.length > 0)) {
+        child.style.setProperty("flex", "1 1 auto", "important");
+        child.style.setProperty("min-width", "0", "important");
+        child.style.setProperty("width", "auto", "important");
+      }
+    }
+  });
+};
+
 const addSettingsButton = () => {
   const h2s = Array.from(document.querySelectorAll('h2'));
   const messagesH2 = h2s.find(h2 => h2.innerText.includes("Messages") || h2.innerText.includes("Mensajes") || (h2.className && h2.className.includes("H2Semibold")));
@@ -2098,14 +2271,16 @@ const addSettingsButton = () => {
   });
   btn.onclick = () => showSettingsModal();
   
-  if (isMobileDevice()) {
-    targetContainer.style.setProperty("background-color", "#121212", "important");
-    if (targetContainer.parentElement) {
-      targetContainer.parentElement.style.setProperty("background-color", "#121212", "important");
-      if (targetContainer.parentElement.parentElement) {
-        targetContainer.parentElement.parentElement.style.setProperty("background-color", "#121212", "important");
-      }
-    }
+  // Unificar color de fondo del header al mismo #121212 que la lista (en PC y móvil)
+  let headerParent: HTMLElement | null = targetContainer;
+  for (let i = 0; i < 6 && headerParent; i++) {
+    if (headerParent === document.body || headerParent.id === 'main-content-messages') break;
+    headerParent.style.setProperty("background-color", "#121212", "important");
+    headerParent.style.setProperty("background", "#121212", "important");
+    headerParent.style.setProperty("box-shadow", "none", "important");
+    headerParent.style.setProperty("border", "none", "important");
+    headerParent.style.setProperty("border-bottom", "none", "important");
+    headerParent = headerParent.parentElement;
   }
 
   btn.style.setProperty("background-color", "#FE004F", "important");
@@ -2115,6 +2290,8 @@ const addSettingsButton = () => {
   targetContainer.style.alignItems = "center";
   targetContainer.style.justifyContent = "space-between";
   targetContainer.appendChild(btn);
+
+  syncHeaderAndConversationCards();
 };
 
 
@@ -2662,6 +2839,8 @@ const cleanupMobileEnhancements = () => {
 
 // Sincronización dinámica según tamaño de pantalla / dispositivo
 const syncResponsiveMode = () => {
+  ensureGlobalMessagesLayoutStyles();
+  syncHeaderAndConversationCards();
   if (isMobileDevice()) {
     enforceDesktopViewport();
     setupMobileEnhancements();
@@ -2672,6 +2851,8 @@ const syncResponsiveMode = () => {
   }
 };
 
+ensureGlobalMessagesLayoutStyles();
+syncHeaderAndConversationCards();
 syncResponsiveMode();
 setTimeout(syncResponsiveMode, 300);
 setTimeout(syncResponsiveMode, 800);
@@ -2683,6 +2864,8 @@ if (typeof window !== 'undefined') {
 
 let isProcessing = false;
 const observer = new MutationObserver(() => {
+  ensureGlobalMessagesLayoutStyles();
+  syncHeaderAndConversationCards();
   if (isMobileDevice()) {
     enforceDesktopViewport();
     setupMobileEnhancements();
@@ -2698,6 +2881,8 @@ const observer = new MutationObserver(() => {
   isProcessing = true;
   
   setTimeout(() => {
+    ensureGlobalMessagesLayoutStyles();
+    syncHeaderAndConversationCards();
     addDownloadAllButton();
     addIndividualDownloadButtons();
     addSettingsButton();
