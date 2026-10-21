@@ -3214,7 +3214,7 @@ const addSettingsButton = () => {
 
 // En dispositivos móviles (p.ej. Firefox Android o Chrome con emulación móvil), desactiva completamente el zoom sin distorsionar la resolución
 const enforceDesktopViewport = () => {
-  if (!isMobileDevice()) return;
+  if (!isMobileDevice() || !window.location.pathname.startsWith('/messages')) return;
   try {
     let meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
     if (!meta) {
@@ -3662,8 +3662,13 @@ const checkAndShowMessagesRedirectDialog = () => {
   desc.style.margin = '0 0 20px 0';
   card.appendChild(desc);
 
-  const btnGo = document.createElement('button');
+  const btnGo = document.createElement('a');
+  btnGo.href = 'https://www.tiktok.com/messages';
+  btnGo.target = '_blank';
+  btnGo.rel = 'noopener noreferrer';
+  btnGo.setAttribute('role', 'button');
   btnGo.style.width = '100%';
+  btnGo.style.boxSizing = 'border-box';
   btnGo.style.setProperty('background-color', '#FE004F', 'important');
   btnGo.style.setProperty('background', '#FE004F', 'important');
   btnGo.style.setProperty('color', '#ffffff', 'important');
@@ -3678,6 +3683,7 @@ const checkAndShowMessagesRedirectDialog = () => {
   btnGo.style.justifyContent = 'center';
   btnGo.style.gap = '8px';
   btnGo.style.boxShadow = 'none';
+  btnGo.style.textDecoration = 'none';
   btnGo.style.transition = 'transform 0.15s, background-color 0.15s';
   btnGo.addEventListener('mouseenter', () => {
     btnGo.style.setProperty('background-color', '#ff1a63', 'important');
@@ -3695,7 +3701,10 @@ const checkAndShowMessagesRedirectDialog = () => {
       <polyline points="12 5 19 12 12 19"></polyline>
     </svg>`;
   btnGo.onclick = () => {
-    window.location.href = 'https://www.tiktok.com/messages';
+    overlay.remove();
+    try {
+      browser.runtime.sendMessage({ action: "openMessagesTab" });
+    } catch (e) {}
   };
   card.appendChild(btnGo);
 
