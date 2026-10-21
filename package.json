@@ -1,13 +1,13 @@
 {
-  "name": "tiktok-stickers-exporter",
-  "version": "1.8.19",
-  "description": "Firefox Extension for Tiktok Stickers",
+  "name": "sticky-tiktok-stickers-exporter",
+  "version": "1.8.20",
+  "description": "Sticky: TikTok Stickers Exporter",
   "scripts": {
     "build": "npm run build:all",
     "build:chrome": "webpack --mode production --env production --env browser=chrome",
     "build:firefox": "webpack --mode production --env production --env browser=firefox",
     "build:all": "npm run build:chrome && npm run build:firefox",
-    "pack": "web-ext build --source-dir dist/firefox --artifacts-dir dist/artifacts --filename tiktok_stickers_exporter-firefox-1.8.19.zip --overwrite-dest && web-ext build --source-dir dist/chrome --artifacts-dir dist/artifacts --filename tiktok_stickers_exporter-chrome-1.8.19.zip --overwrite-dest",
+    "pack": "web-ext build --source-dir dist/firefox --artifacts-dir dist/artifacts --filename sticky_tiktok_stickers_exporter-firefox-1.8.20.zip --overwrite-dest && web-ext build --source-dir dist/chrome --artifacts-dir dist/artifacts --filename sticky_tiktok_stickers_exporter-chrome-1.8.20.zip --overwrite-dest",
     "watch:chrome": "webpack --watch --env browser=chrome",
     "watch:firefox": "webpack --watch --env browser=firefox",
     "start:chrome": "web-ext run --source-dir dist/chrome -t chromium",

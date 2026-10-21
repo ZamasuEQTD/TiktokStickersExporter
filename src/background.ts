@@ -2,7 +2,7 @@ import browser from 'webextension-polyfill';
 
 // Listen for installation
 browser.runtime.onInstalled.addListener(() => {
-  console.log("TikTok Stickers Exporter installed.");
+  console.log("Sticky: TikTok Stickers Exporter installed.");
 });
 
 // User-Agent de escritorio para simular Modo PC exclusivamente en /messages

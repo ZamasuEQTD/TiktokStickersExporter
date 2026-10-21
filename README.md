@@ -1,10 +1,10 @@
 <div align="center">
-  <img src="src/icons/icon-128.png" alt="TikTok Stickers Exporter Logo" width="120" height="120" />
-  <h1>TikTok Stickers Exporter</h1>
+  <img src="src/icons/icon-128.png" alt="Sticky: TikTok Stickers Exporter Logo" width="120" height="120" />
+  <h1>Sticky: TikTok Stickers Exporter</h1>
   <p><strong>Effortlessly save, manage, and bulk-export stickers from TikTok directly in your browser.</strong></p>
 
   <p>
-    <img src="https://img.shields.io/badge/version-1.2.0-blue.svg" alt="Version 1.2.0" />
+    <img src="https://img.shields.io/badge/version-1.8.20-blue.svg" alt="Version 1.8.20" />
     <img src="https://img.shields.io/badge/Manifest-V3-success.svg" alt="Manifest V3" />
     <img src="https://img.shields.io/badge/Chrome-Supported-4285F4?logo=googlechrome&logoColor=white" alt="Chrome" />
     <img src="https://img.shields.io/badge/Firefox-Desktop_%26_Android-FF7139?logo=firefoxbrowser&logoColor=white" alt="Firefox" />

@@ -61,7 +61,7 @@ const translations = {
     downloadSeqTooltip: "Download selected stickers one by one",
     downloadZipTooltip: "Compress and download all selected stickers in a single ZIP",
   
-    redirectTitle: "TikTok Stickers Exporter",
+    redirectTitle: "Sticky: TikTok Stickers Exporter",
     redirectQuestion: "Do you want to download stickers?",
     redirectSubtitle: "Go to your TikTok messages to view, scan, and download all your stickers.",
     goToMessages: "Go to Messages",
@@ -139,7 +139,7 @@ const translations = {
     downloadSeqTooltip: "Descargar los stickers seleccionados uno por uno",
     downloadZipTooltip: "Comprimir y descargar todos los stickers seleccionados en un archivo ZIP",
   
-    redirectTitle: "TikTok Stickers Exporter",
+    redirectTitle: "Sticky: TikTok Stickers Exporter",
     redirectQuestion: "¿Quieres descargar tus stickers?",
     redirectSubtitle: "Entra a tus Mensajes de TikTok para ver, escanear y descargar todos tus stickers.",
     goToMessages: "Ir a Mensajes",
@@ -178,7 +178,7 @@ const t = (key: keyof typeof translations['en'], params?: Record<string, string 
   return text;
 };
 
-console.log("TikTok Stickers Exporter content script loaded!");
+console.log("Sticky: TikTok Stickers Exporter content script loaded!");
 
 const getExtension = (res: Response): string => {
   const contentType = res.headers.get("content-type");
