@@ -45,8 +45,8 @@ const translations = {
     scanningTitle: "Scanning stickers...",
     scanningSubtitle: "Searching chat history for stickers...",
     stickersFound: "{count} stickers found",
-    chatFullyScanned: "Up to date",
-    chatFullyScannedTooltip: "Chat history is fully scanned. Click to check for newer stickers.",
+    chatFullyScanned: "Full history",
+    chatFullyScannedTooltip: "Entire chat history has been scanned from the beginning. Click to re-scan.",
     viewStickers: "View stickers ({count})",
     viewStickersNoCount: "View stickers",
     viewStickersTitle: "TikTok Stickers",
@@ -114,8 +114,8 @@ const translations = {
     scanningTitle: "Escaneando stickers...",
     scanningSubtitle: "Buscando stickers en el historial del chat...",
     stickersFound: "{count} stickers encontrados",
-    chatFullyScanned: "Al día",
-    chatFullyScannedTooltip: "Historial completamente analizado. Clic para buscar nuevos stickers.",
+    chatFullyScanned: "Historial completo",
+    chatFullyScannedTooltip: "Se ha analizado todo el historial del chat desde el inicio. Clic para volver a escanear.",
     viewStickers: "Ver stickers ({count})",
     viewStickersNoCount: "Ver stickers",
     viewStickersTitle: "Stickers de TikTok",
@@ -842,12 +842,23 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     const svgCheckModal = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2ed573" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
     if (isAlreadyAtBeginning) {
-      btnScanInModal.disabled = true;
+      btnScanInModal.disabled = false;
       btnScanInModal.innerHTML = `${svgCheckModal}<span>${t("chatFullyScanned")}</span>`;
       btnScanInModal.title = t("chatFullyScannedTooltip");
-      btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
-      btnScanInModal.style.color = "rgba(255, 255, 255, 0.45)";
-      btnScanInModal.style.cursor = "default";
+      btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+      btnScanInModal.style.color = "rgba(255, 255, 255, 0.75)";
+      btnScanInModal.style.cursor = "pointer";
+      btnScanInModal.addEventListener("mouseenter", () => {
+        btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
+      });
+      btnScanInModal.addEventListener("mouseleave", () => {
+        btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+      });
+      btnScanInModal.onclick = () => {
+        document.body.removeChild(overlay);
+        resolve(null);
+        executeChatScan();
+      };
     } else {
       btnScanInModal.disabled = false;
       btnScanInModal.innerHTML = `${svgSearchModal}<span>${t("scanChat")}</span>`;
@@ -1901,7 +1912,7 @@ executeChatScan = async () => {
   }
 
   const spinner = document.createElement("div");
-  spinner.innerHTML = `<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#20d5ec" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="animation: ttSpin 1s linear infinite;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+  spinner.innerHTML = `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" style="animation: ttSpin 0.75s linear infinite;"><circle cx="24" cy="24" r="20" stroke="rgba(255, 255, 255, 0.12)" stroke-width="4"></circle><path d="M 24 4 A 20 20 0 0 1 44 24" stroke="#FE004F" stroke-width="4" stroke-linecap="round"></path></svg>`;
   scanOverlay.appendChild(spinner);
 
   const scanTitle = document.createElement("h3");
@@ -1914,7 +1925,7 @@ executeChatScan = async () => {
   const counterEl = document.createElement("div");
   counterEl.innerText = t("stickersFound", { count: scanState.stickers.length });
   counterEl.style.fontSize = "15px";
-  counterEl.style.color = "#20d5ec";
+  counterEl.style.color = "#FE004F";
   counterEl.style.fontWeight = "600";
   counterEl.style.marginBottom = "14px";
   scanOverlay.appendChild(counterEl);
