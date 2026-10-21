@@ -74,6 +74,7 @@ const translations = {
     confirmClearAllData: "Are you sure you want to reset all app data? This will clear download history, scan records, and custom settings.",
     allDataCleared: "All app data has been reset to defaults.",
     otherDates: "Other dates",
+    today: "Today",
     selectDay: "Select day",
     deselectDay: "Deselect day",
     cancelZip: "Cancel compression",
@@ -151,6 +152,7 @@ const translations = {
     confirmClearAllData: "¿Estás seguro de que quieres borrar todos los datos de la app? Se eliminará el historial de stickers descargados, registros de escaneo e idioma/retraso guardados.",
     allDataCleared: "Se han restablecido todos los datos de la aplicación.",
     otherDates: "Otras fechas",
+    today: "Hoy",
     selectDay: "Seleccionar día",
     deselectDay: "Deseleccionar",
     cancelZip: "Cancelar compresión",
@@ -622,13 +624,33 @@ const MONTH_NAMES_MAP: Record<string, number> = {
   jan: 0, apr: 3, aug: 7, dec: 11
 };
 
+// Helper para detectar si un texto representa únicamente una hora (ej. "23:04", "11:04 PM")
+const isPureTime = (str: string): boolean => {
+  if (!str) return false;
+  return /^(?:at\s+|a las\s+)?\d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:AM|PM|am|pm))?$/i.test(str.trim());
+};
+
+// Normaliza el título de fecha de un grupo para que fechas de hoy o cadenas de sólo hora aparezcan unificadas como "Hoy" / "Today"
+const normalizeDateKey = (rawKey?: string): string => {
+  if (!rawKey) return t("otherDates");
+  const trimmed = rawKey.trim();
+  if (!trimmed || trimmed === t("otherDates") || trimmed.toLowerCase() === "other dates" || trimmed.toLowerCase() === "otras fechas") {
+    return t("otherDates");
+  }
+  const lower = trimmed.toLowerCase();
+  if (lower === "hoy" || lower === "today" || isPureTime(trimmed)) {
+    return t("today");
+  }
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+};
+
 // Convierte un texto de fecha ("15 de octubre de 2026", "Ayer", etc.) en timestamp numérico para ordenar cronológicamente
 const parseDateToTimestamp = (dateStr: string): number => {
   if (!dateStr) return -1;
   const str = dateStr.toLowerCase().trim();
   const now = new Date();
 
-  if (str.includes("hoy") || str.includes("today")) {
+  if (str.includes("hoy") || str.includes("today") || isPureTime(str)) {
     return now.getTime();
   }
   if (str.includes("ayer") || str.includes("yesterday")) {
@@ -855,7 +877,7 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       for (const url of urls) {
         const id = getStickerId(url);
         const rec = stickerRecordMap.get(id);
-        const key = rec?.dateKey || t("otherDates");
+        const key = normalizeDateKey(rec?.dateKey);
         if (!dateGroups.has(key)) dateGroups.set(key, []);
         dateGroups.get(key)!.push(url);
       }
@@ -1485,18 +1507,102 @@ const showSettingsModal = () => {
     btnClear.style.backgroundColor = "transparent";
   });
   
-  btnClear.onclick = () => {
-    if (confirm(t("confirmClear"))) {
-      if (downloadedIdsSet) {
-        downloadedIdsSet.clear();
-      }
-      localStorage.removeItem(STORAGE_KEY_DOWNLOADED_IDS);
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith("tiktok-sticker-downloaded-") || key.startsWith("tiktok-chat-scan-")) {
+  const clearDownloadHistory = () => {
+    if (downloadedIdsSet) {
+      downloadedIdsSet.clear();
+    }
+    downloadedIdsSet = new Set<string>();
+    localStorage.removeItem(STORAGE_KEY_DOWNLOADED_IDS);
+    localStorage.removeItem("tiktok-stickers-downloaded-ids");
+
+    try {
+      const allKeys = Object.keys(localStorage);
+      for (const key of allKeys) {
+        const lower = key.toLowerCase();
+        if (
+          lower.startsWith("tiktok-sticker-downloaded-") ||
+          lower.startsWith("tiktok-chat-scan-")
+        ) {
           localStorage.removeItem(key);
         }
-      });
+      }
+    } catch (e) {
+      console.error("Error al limpiar historial en localStorage:", e);
+    }
+
+    try {
+      const indivBtns = document.querySelectorAll('.tiktok-sticker-indiv-btn') as NodeListOf<HTMLElement>;
+      indivBtns.forEach(btn => updateIndivButtonVisual(btn, false));
+    } catch (e) {
+      console.warn("Error actualizando botones en DOM:", e);
+    }
+  };
+
+  const clearAllAppData = () => {
+    // 1. Resetear el conjunto en memoria
+    if (downloadedIdsSet) {
+      downloadedIdsSet.clear();
+    }
+    downloadedIdsSet = new Set<string>();
+
+    // 2. Eliminar explícitamente todas las claves conocidas
+    localStorage.removeItem(STORAGE_KEY_DOWNLOADED_IDS);
+    localStorage.removeItem("tiktok-stickers-downloaded-ids");
+    localStorage.removeItem("tiktok-stickers-exporter-delay");
+    localStorage.removeItem("tiktok-stickers-exporter-lang");
+
+    // 3. Eliminar exhaustivamente cualquier clave relacionada en localStorage usando Object.keys
+    try {
+      const allLocalKeys = Object.keys(localStorage);
+      for (const key of allLocalKeys) {
+        const lower = key.toLowerCase();
+        if (
+          lower.startsWith("tiktok-sticker") ||
+          lower.startsWith("tiktok-chat-scan") ||
+          lower.includes("stickers-exporter") ||
+          lower.includes("tiktok-chat-scan") ||
+          lower.includes("tiktok-sticker")
+        ) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {
+      console.error("Error al limpiar localStorage:", e);
+    }
+
+    // 4. Limpiar también en sessionStorage si existiese algo
+    try {
+      const allSessionKeys = Object.keys(sessionStorage);
+      for (const key of allSessionKeys) {
+        const lower = key.toLowerCase();
+        if (
+          lower.startsWith("tiktok-sticker") ||
+          lower.startsWith("tiktok-chat-scan") ||
+          lower.includes("stickers-exporter") ||
+          lower.includes("tiktok-chat-scan") ||
+          lower.includes("tiktok-sticker")
+        ) {
+          sessionStorage.removeItem(key);
+        }
+      }
+    } catch (e) {
+      console.error("Error al limpiar sessionStorage:", e);
+    }
+
+    // 5. Actualizar visualmente los botones individuales en el DOM para que vuelvan a estado no descargado
+    try {
+      const indivBtns = document.querySelectorAll('.tiktok-sticker-indiv-btn') as NodeListOf<HTMLElement>;
+      indivBtns.forEach(btn => updateIndivButtonVisual(btn, false));
+    } catch (e) {
+      console.warn("Error actualizando botones en DOM:", e);
+    }
+  };
+
+  btnClear.onclick = () => {
+    if (confirm(t("confirmClear"))) {
+      clearDownloadHistory();
       alert(t("historyCleared"));
+      close();
       addDownloadAllButton();
       addIndividualDownloadButtons();
     }
@@ -1525,23 +1631,7 @@ const showSettingsModal = () => {
 
   btnClearAll.onclick = () => {
     if (confirm(t("confirmClearAllData"))) {
-      if (downloadedIdsSet) {
-        downloadedIdsSet.clear();
-      }
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (
-          key.startsWith("tiktok-sticker-") ||
-          key.startsWith("tiktok-stickers-") ||
-          key.startsWith("tiktok-chat-scan-")
-        )) {
-          keysToRemove.push(key);
-        }
-      }
-      for (const k of keysToRemove) {
-        localStorage.removeItem(k);
-      }
+      clearAllAppData();
       alert(t("allDataCleared"));
       close();
       addDownloadAllButton();
@@ -1694,9 +1784,24 @@ const parseSeparatorDate = (rawText: string): { dateKey: string; time?: string }
     let datePart = text.replace(timeRegex, "").trim();
     datePart = datePart.replace(/[,·\-\s]+$/, "").trim();
     if (datePart) {
+      const lower = datePart.toLowerCase();
+      if (lower === "hoy" || lower === "today") {
+        return { dateKey: t("today"), time };
+      }
       datePart = datePart.charAt(0).toUpperCase() + datePart.slice(1);
       return { dateKey: datePart, time };
     }
+    // Si solo había una hora sin texto de fecha previo (ej: "23:04"), corresponde al día de hoy
+    return { dateKey: t("today"), time };
+  }
+
+  if (isPureTime(text)) {
+    return { dateKey: t("today"), time: text };
+  }
+
+  const lower = text.toLowerCase();
+  if (lower === "hoy" || lower === "today") {
+    return { dateKey: t("today") };
   }
 
   return { dateKey: text.charAt(0).toUpperCase() + text.slice(1) };
@@ -1738,7 +1843,7 @@ const registerStickersFromDOM = (convId: string): ConversationScanState => {
           existing.url = img.src;
           recChanged = true;
         }
-        if ((!existing.dateKey || existing.dateKey === t("otherDates")) && currentDateKey) {
+        if ((!existing.dateKey || existing.dateKey === t("otherDates") || isPureTime(existing.dateKey)) && currentDateKey) {
           existing.dateKey = currentDateKey;
           if (currentRawTime && !existing.time) existing.time = currentRawTime;
           recChanged = true;
