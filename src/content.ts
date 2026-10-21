@@ -70,6 +70,9 @@ const translations = {
     cancelScanSubtitle: "A scan is in progress. Switching chats or leaving will cancel the current scan.",
     cancelScanConfirm: "Cancel scan",
     continueScanning: "Keep scanning",
+    clearAllData: "Reset All App Data",
+    confirmClearAllData: "Are you sure you want to reset all app data? This will clear download history, scan records, and custom settings.",
+    allDataCleared: "All app data has been reset to defaults.",
   },
   es: {
     settings: "Configuración",
@@ -139,6 +142,9 @@ const translations = {
     cancelScanSubtitle: "Hay un escaneo en curso. Si cambias de chat o sales, se cancelará el escaneo actual.",
     cancelScanConfirm: "Cancelar escaneo",
     continueScanning: "Continuar escaneando",
+    clearAllData: "Borrar todos los datos de la app",
+    confirmClearAllData: "¿Estás seguro de que quieres borrar todos los datos de la app? Se eliminará el historial de stickers descargados, registros de escaneo e idioma/retraso guardados.",
+    allDataCleared: "Se han restablecido todos los datos de la aplicación.",
   }
 };
 
@@ -194,7 +200,70 @@ const isMobileDevice = (): boolean => {
   return false;
 };
 
-// Funciones para manejar el historial de descargas en localStorage
+// Funciones para manejar el historial de descargas en localStorage mediante HashSet (Set en memoria)
+const STORAGE_KEY_DOWNLOADED_IDS = "tiktok-stickers-downloaded-ids";
+let downloadedIdsSet: Set<string> | null = null;
+
+const getDownloadedSet = (): Set<string> => {
+  if (downloadedIdsSet !== null) {
+    return downloadedIdsSet;
+  }
+  downloadedIdsSet = new Set<string>();
+
+  // 1. Cargar lista de IDs desde la clave única en localStorage
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DOWNLOADED_IDS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        for (const id of parsed) {
+          if (typeof id === "string" && id) {
+            downloadedIdsSet.add(id);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Error reading downloaded stickers set from localStorage", e);
+  }
+
+  // 2. Migración automática de keys heredadas: "tiktok-sticker-downloaded-*"
+  try {
+    let migrated = false;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("tiktok-sticker-downloaded-")) {
+        const id = key.substring("tiktok-sticker-downloaded-".length);
+        if (id) {
+          downloadedIdsSet.add(id);
+          migrated = true;
+          keysToRemove.push(key);
+        }
+      }
+    }
+    if (migrated) {
+      for (const k of keysToRemove) {
+        localStorage.removeItem(k);
+      }
+      saveDownloadedSet();
+    }
+  } catch (e) {
+    console.warn("Error migrating legacy sticker download keys", e);
+  }
+
+  return downloadedIdsSet;
+};
+
+const saveDownloadedSet = () => {
+  if (!downloadedIdsSet) return;
+  try {
+    localStorage.setItem(STORAGE_KEY_DOWNLOADED_IDS, JSON.stringify(Array.from(downloadedIdsSet)));
+  } catch (e) {
+    console.warn("Error saving downloaded stickers set to localStorage", e);
+  }
+};
+
 const getStickerId = (url: string): string => {
   try {
     return url.split('?')[0]; // La base de la URL es única y estable, los query params caducan
@@ -204,11 +273,16 @@ const getStickerId = (url: string): string => {
 };
 
 const isDownloaded = (url: string): boolean => {
-  return localStorage.getItem(`tiktok-sticker-downloaded-${getStickerId(url)}`) === "true";
+  return getDownloadedSet().has(getStickerId(url));
 };
 
 const markAsDownloaded = (url: string) => {
-  localStorage.setItem(`tiktok-sticker-downloaded-${getStickerId(url)}`, "true");
+  const set = getDownloadedSet();
+  const id = getStickerId(url);
+  if (!set.has(id)) {
+    set.add(id);
+    saveDownloadedSet();
+  }
 };
 
 const deduplicateStickerUrls = (urls: string[]): string[] => {
@@ -1204,15 +1278,27 @@ const showSettingsModal = () => {
   btnClear.innerText = t("clearHistory");
   btnClear.style.padding = s(12);
   btnClear.style.borderRadius = s(8);
-  btnClear.style.border = "1px solid #fe2c55";
+  btnClear.style.border = "1.5px solid #fe2c55";
   btnClear.style.backgroundColor = "transparent";
   btnClear.style.color = "#fe2c55";
   btnClear.style.cursor = "pointer";
   btnClear.style.fontWeight = "bold";
   btnClear.style.fontSize = s(14);
+  btnClear.style.transition = "background-color 0.2s, color 0.2s";
+
+  btnClear.addEventListener("mouseenter", () => {
+    btnClear.style.backgroundColor = "rgba(254, 44, 85, 0.12)";
+  });
+  btnClear.addEventListener("mouseleave", () => {
+    btnClear.style.backgroundColor = "transparent";
+  });
   
   btnClear.onclick = () => {
     if (confirm(t("confirmClear"))) {
+      if (downloadedIdsSet) {
+        downloadedIdsSet.clear();
+      }
+      localStorage.removeItem(STORAGE_KEY_DOWNLOADED_IDS);
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith("tiktok-sticker-downloaded-") || key.startsWith("tiktok-chat-scan-")) {
           localStorage.removeItem(key);
@@ -1224,6 +1310,53 @@ const showSettingsModal = () => {
     }
   };
   modal.appendChild(btnClear);
+
+  // Reset all app data button
+  const btnClearAll = document.createElement("button");
+  btnClearAll.innerText = t("clearAllData");
+  btnClearAll.style.padding = s(12);
+  btnClearAll.style.borderRadius = s(8);
+  btnClearAll.style.border = "1.5px solid #FE004F";
+  btnClearAll.style.backgroundColor = "transparent";
+  btnClearAll.style.color = "#FE004F";
+  btnClearAll.style.cursor = "pointer";
+  btnClearAll.style.fontWeight = "bold";
+  btnClearAll.style.fontSize = s(14);
+  btnClearAll.style.transition = "background-color 0.2s, color 0.2s";
+
+  btnClearAll.addEventListener("mouseenter", () => {
+    btnClearAll.style.backgroundColor = "rgba(254, 0, 79, 0.12)";
+  });
+  btnClearAll.addEventListener("mouseleave", () => {
+    btnClearAll.style.backgroundColor = "transparent";
+  });
+
+  btnClearAll.onclick = () => {
+    if (confirm(t("confirmClearAllData"))) {
+      if (downloadedIdsSet) {
+        downloadedIdsSet.clear();
+      }
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith("tiktok-sticker-") ||
+          key.startsWith("tiktok-stickers-") ||
+          key.startsWith("tiktok-chat-scan-")
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const k of keysToRemove) {
+        localStorage.removeItem(k);
+      }
+      alert(t("allDataCleared"));
+      close();
+      addDownloadAllButton();
+      addIndividualDownloadButtons();
+    }
+  };
+  modal.appendChild(btnClearAll);
 
   const btnClose = document.createElement("button");
   btnClose.innerText = t("close");
