@@ -211,18 +211,14 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 
 // Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS, o probando con resolución móvil)
 const isMobileDevice = (): boolean => {
-  // 1. Si explícitamente es un sistema operativo de PC de escritorio, NUNCA es móvil
+  // 1. Detección estándar si el User-Agent contiene indicadores móviles (feed, perfiles, etc.):
   const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '';
-  if (/Windows NT|Macintosh|Mac OS X|X11; Linux x86_64/i.test(ua) && !/Android|iPhone|iPad|Mobile/i.test(ua)) {
-    return false;
-  }
-
-  // 2. Detección estándar si el User-Agent contiene indicadores móviles:
   if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) {
     return true;
   }
 
-  // 3. Detección por hardware para smartphones físicos:
+  // 2. Detección por hardware para smartphones físicos:
+  // Esencial para /messages donde se falsea el User-Agent a escritorio pero la pantalla física es un celular
   const hasTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
   const isPhoneScreen = typeof window !== 'undefined' && typeof window.screen !== 'undefined' && Math.min(window.screen.width, window.screen.height) <= 600;
   if (hasTouch && isPhoneScreen) {
