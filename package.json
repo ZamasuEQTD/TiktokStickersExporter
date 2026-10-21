@@ -7,6 +7,7 @@
     "build:chrome": "webpack --mode production --env production --env browser=chrome",
     "build:firefox": "webpack --mode production --env production --env browser=firefox",
     "build:all": "npm run build:chrome && npm run build:firefox",
+    "pack": "web-ext build --source-dir dist/firefox --artifacts-dir dist/artifacts --filename tiktok_stickers_exporter-firefox-1.8.19.zip --overwrite-dest && web-ext build --source-dir dist/chrome --artifacts-dir dist/artifacts --filename tiktok_stickers_exporter-chrome-1.8.19.zip --overwrite-dest",
     "watch:chrome": "webpack --watch --env browser=chrome",
     "watch:firefox": "webpack --watch --env browser=firefox",
     "start:chrome": "web-ext run --source-dir dist/chrome -t chromium",
