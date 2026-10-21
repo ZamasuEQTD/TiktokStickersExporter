@@ -710,25 +710,13 @@ const getDisplayDateTitle = (dateKey: string, lang: 'es' | 'en'): string => {
     formattedDate = isCurrentYear ? `${m} ${d.getDate()}` : `${m} ${d.getDate()}, ${d.getFullYear()}`;
   }
 
-  // Si coincide con hoy
+  // Solo si coincide con hoy
   if (
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate()
   ) {
     return `${t("today")} (${formattedDate})`;
-  }
-
-  // Si coincide con ayer
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (
-    d.getFullYear() === yesterday.getFullYear() &&
-    d.getMonth() === yesterday.getMonth() &&
-    d.getDate() === yesterday.getDate()
-  ) {
-    const yesterdayText = lang === 'es' ? "Ayer" : "Yesterday";
-    return `${yesterdayText} (${formattedDate})`;
   }
 
   return formattedDate;
