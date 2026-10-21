@@ -2086,48 +2086,52 @@ const ensureGlobalMessagesLayoutStyles = () => {
       /* 2. EXPANSIÓN DE TARJETAS DE CONVERSACIÓN AL 100% DEL ANCHO DE LA COLUMNA   */
       /* ========================================================================== */
       div[data-e2e="dm-new-conversation-list"],
-      div[data-e2e="dm-new-conversation-list"] > div,
-      div[data-e2e="dm-new-conversation-list"] > div > div,
-      div[data-e2e="dm-new-conversation-list"] ul,
-      div[data-e2e="dm-new-conversation-list"] li,
-      div[data-e2e="dm-new-conversation-list"] [style*="width"],
-      div[class*="DivConversationWrap"],
-      div[class*="DivConversationList"],
-      div[class*="DivItemContainer"],
-      [data-e2e*="conversation"],
-      [data-e2e*="chat-item"] {
+      div[data-e2e="dm-new-conversation-list"] [class*="DivListContent"],
+      div[data-conversation-id] {
         width: 100% !important;
         max-width: 100% !important;
-        min-width: 0 !important;
         box-sizing: border-box !important;
       }
 
-      /* Elemento interactivo de la tarjeta de chat (enlace o item) */
-      div[data-e2e="dm-new-conversation-list"] a,
-      div[data-e2e="dm-new-conversation-list"] [role="listitem"],
-      div[data-e2e="dm-new-conversation-list"] [class*="ConversationItem"],
-      div[data-e2e="dm-new-conversation-list"] [class*="ItemContainer"],
-      [class*="ConversationItem"],
-      [class*="DivItemContainer"],
-      [data-e2e="conversation-item"],
-      a[href*="/messages?"] {
+      /* La tarjeta de conversación dentro de cada fila */
+      div[data-conversation-id] > * {
         width: 100% !important;
         max-width: 100% !important;
-        min-width: 0 !important;
         box-sizing: border-box !important;
         display: flex !important;
         align-items: center !important;
       }
 
-      /* Contenedor textual interno de la tarjeta expandido */
-      div[data-e2e="dm-new-conversation-list"] a > div,
-      div[data-e2e="dm-new-conversation-list"] [role="listitem"] > div,
-      div[data-e2e="dm-new-conversation-list"] [class*="ConversationItem"] > div,
-      [class*="ConversationItem"] > div,
-      [class*="DivItemContainer"] > div {
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-        width: auto !important;
+      /* Avatares: tamaño fijo estrictamente circular (nunca deformar ni estirar) */
+      div[data-conversation-id] [class*="Avatar"],
+      div[data-conversation-id] [class*="avatar"],
+      div[data-conversation-id] [role="img"] {
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        min-height: 48px !important;
+        max-width: 48px !important;
+        max-height: 48px !important;
+        border-radius: 50% !important;
+        flex: 0 0 48px !important;
+        flex-shrink: 0 !important;
+        flex-grow: 0 !important;
+      }
+
+      div[data-conversation-id] img {
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        min-height: 48px !important;
+        max-width: 48px !important;
+        max-height: 48px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        flex-shrink: 0 !important;
+      }
+
+      div[data-conversation-id] svg {
+        flex-shrink: 0 !important;
       }
     `;
     document.head.appendChild(style);
@@ -2163,44 +2167,35 @@ const syncHeaderAndConversationCards = () => {
     convList.style.setProperty("box-sizing", "border-box", "important");
   }
 
-  // 3. Expandir todas las tarjetas de conversación al 100% de la columna
-  const items = document.querySelectorAll(
-    '[data-e2e="dm-new-conversation-list"] a, ' +
-    '[data-e2e="dm-new-conversation-list"] [role="listitem"], ' +
-    '[data-e2e="dm-new-conversation-list"] [class*="ConversationItem"], ' +
-    '[data-e2e="dm-new-conversation-list"] [class*="ItemContainer"], ' +
-    '[data-e2e="conversation-item"], ' +
-    '[class*="ConversationItem"], ' +
-    '[class*="DivItemContainer"], ' +
-    'a[href*="/messages?"]'
-  );
+  // 3. Expandir las tarjetas de conversación usando data-conversation-id
+  const rows = document.querySelectorAll('div[data-conversation-id]');
+  rows.forEach((row) => {
+    const rowEl = row as HTMLElement;
+    rowEl.style.setProperty("width", "100%", "important");
+    rowEl.style.setProperty("max-width", "100%", "important");
+    rowEl.style.setProperty("box-sizing", "border-box", "important");
 
-  items.forEach((item) => {
-    const el = item as HTMLElement;
-    el.style.setProperty("width", "100%", "important");
-    el.style.setProperty("max-width", "100%", "important");
-    el.style.setProperty("min-width", "0", "important");
-    el.style.setProperty("box-sizing", "border-box", "important");
-    el.style.setProperty("display", "flex", "important");
-    el.style.setProperty("align-items", "center", "important");
+    // Tarjeta directa dentro de la fila virtual
+    const card = rowEl.firstElementChild as HTMLElement | null;
+    if (card) {
+      card.style.setProperty("width", "100%", "important");
+      card.style.setProperty("max-width", "100%", "important");
+      card.style.setProperty("box-sizing", "border-box", "important");
+      card.style.setProperty("display", "flex", "important");
+      card.style.setProperty("align-items", "center", "important");
 
-    // Expandir contenedores padre inmediatos (wrappers de virtual scroller como react-window)
-    let p = el.parentElement;
-    for (let j = 0; j < 3 && p; j++) {
-      if (p === convList || p === document.body) break;
-      p.style.setProperty("width", "100%", "important");
-      p.style.setProperty("max-width", "100%", "important");
-      p.style.setProperty("box-sizing", "border-box", "important");
-      p = p.parentElement;
-    }
-
-    // Expandir el contenedor interno de texto para empujar los 3 puntos a la derecha
-    const childDivs = Array.from(el.children) as HTMLElement[];
-    for (const child of childDivs) {
-      if (!child.querySelector('img') && (child.innerText || child.children.length > 0)) {
-        child.style.setProperty("flex", "1 1 auto", "important");
-        child.style.setProperty("min-width", "0", "important");
-        child.style.setProperty("width", "auto", "important");
+      // Restaurar y proteger el avatar (tamaño fijo 48px, estrictamente circular)
+      const avatarEl = card.querySelector('img, [class*="Avatar"], [class*="avatar"]') as HTMLElement | null;
+      if (avatarEl) {
+        avatarEl.style.setProperty("width", "48px", "important");
+        avatarEl.style.setProperty("height", "48px", "important");
+        avatarEl.style.setProperty("min-width", "48px", "important");
+        avatarEl.style.setProperty("min-height", "48px", "important");
+        avatarEl.style.setProperty("max-width", "48px", "important");
+        avatarEl.style.setProperty("max-height", "48px", "important");
+        avatarEl.style.setProperty("border-radius", "50%", "important");
+        avatarEl.style.setProperty("flex", "0 0 48px", "important");
+        avatarEl.style.setProperty("flex-shrink", "0", "important");
       }
     }
   });
