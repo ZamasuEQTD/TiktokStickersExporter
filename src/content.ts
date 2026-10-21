@@ -189,6 +189,26 @@ const getExtension = (res: Response): string => {
   return "webp";
 };
 
+// Convierte un Blob a Base64 usando FileReader nativo en C++ del navegador (rápido, <1ms y compatible con sandboxes/Xray de Firefox Android)
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const res = reader.result as string;
+      if (!res) {
+        resolve('');
+        return;
+      }
+      const commaIdx = res.indexOf(',');
+      resolve(commaIdx !== -1 ? res.slice(commaIdx + 1) : res);
+    };
+    reader.onerror = () => {
+      reject(reader.error || new Error('Failed to convert blob to base64'));
+    };
+    reader.readAsDataURL(blob);
+  });
+};
+
 // Helper para detectar si estamos en un dispositivo móvil (Firefox Android, Chrome Android/iOS, o probando con resolución móvil)
 const isMobileDevice = (): boolean => {
   // 1. Detección estándar si el User-Agent contiene indicadores móviles:
@@ -2233,12 +2253,13 @@ const executeDownload = async (action: 'zip' | 'seq', selectedUrls: string[]) =>
             }
             if (progressModal.isCancelled()) return;
             const ext = getExtension(res);
-            const buffer = await res.arrayBuffer();
+            const blob = await res.blob();
             if (progressModal.isCancelled()) return;
 
-            // En Firefox/Gecko, instanciar Uint8Array local para evitar incompatibilidades de realm/Xray
-            const bytes = new Uint8Array(buffer);
-            zip.file(`tiktok-sticker-${itemIndex}.${ext}`, bytes, { binary: true });
+            // En Firefox Android (GeckoView sandbox / Xray wrappers), pasar Base64 string es 100% inmune
+            // a fallos de instanceof ArrayBuffer/Uint8Array dentro de JSZip
+            const base64 = await blobToBase64(blob);
+            zip.file(`tiktok-sticker-${itemIndex}.${ext}`, base64, { base64: true });
             markAsDownloaded(stickerUrl);
             successCount++;
           } catch (err) {
