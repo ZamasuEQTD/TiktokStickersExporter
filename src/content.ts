@@ -604,6 +604,61 @@ const showCancelScanConfirmationDialog = (
   document.body.appendChild(overlay);
 };
 
+// Diccionario de nombres de meses en español e inglés para normalizar y ordenar fechas
+const MONTH_NAMES_MAP: Record<string, number> = {
+  // Español completo
+  enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+  julio: 6, agosto: 7, septiembre: 8, setiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
+  // Español abreviado
+  ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11,
+  // Inglés completo
+  january: 0, february: 1, march: 2, april: 3, june: 5,
+  july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+  // Inglés abreviado exclusivo
+  jan: 0, apr: 3, aug: 7, dec: 11
+};
+
+// Convierte un texto de fecha ("15 de octubre de 2026", "Ayer", etc.) en timestamp numérico para ordenar cronológicamente
+const parseDateToTimestamp = (dateStr: string): number => {
+  if (!dateStr) return -1;
+  const str = dateStr.toLowerCase().trim();
+  const now = new Date();
+
+  if (str.includes("hoy") || str.includes("today")) {
+    return now.getTime();
+  }
+  if (str.includes("ayer") || str.includes("yesterday")) {
+    return now.getTime() - 24 * 60 * 60 * 1000;
+  }
+
+  // Patrón español: '15 de octubre de 2026' o '15 de octubre'
+  const esMatch = str.match(/(\d{1,2})\s+de\s+([a-záéíóúñ]+)(?:\s+de\s+(\d{4}))?/i);
+  if (esMatch) {
+    const day = parseInt(esMatch[1], 10);
+    const month = MONTH_NAMES_MAP[esMatch[2].toLowerCase()];
+    const year = esMatch[3] ? parseInt(esMatch[3], 10) : now.getFullYear();
+    if (month !== undefined) {
+      return new Date(year, month, day, 12, 0, 0).getTime();
+    }
+  }
+
+  // Patrón inglés: 'October 15, 2026' o 'October 15'
+  const enMatch = str.match(/([a-z]+)\s+(\d{1,2})(?:,?\s+(\d{4}))?/i);
+  if (enMatch) {
+    const month = MONTH_NAMES_MAP[enMatch[1].toLowerCase()];
+    const day = parseInt(enMatch[2], 10);
+    const year = enMatch[3] ? parseInt(enMatch[3], 10) : now.getFullYear();
+    if (month !== undefined) {
+      return new Date(year, month, day, 12, 0, 0).getTime();
+    }
+  }
+
+  const parsed = Date.parse(dateStr);
+  if (!isNaN(parsed)) return parsed;
+
+  return -1;
+};
+
 const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: string[], convId?: string): Promise<CustomConfirmResult | null> => {
   const newStickers = deduplicateStickerUrls(rawNewStickers);
   const oldStickers = deduplicateStickerUrls(rawOldStickers);
@@ -863,7 +918,19 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
       groupsContainer.style.flexDirection = "column";
       groupsContainer.style.gap = isMobile ? s(18) : "22px";
 
-      dateGroups.forEach((groupUrls, dateKey) => {
+      // Ordenar grupos de fechas: el más nuevo arriba (descendente) y "Otras fechas" al final
+      const sortedDateEntries = Array.from(dateGroups.entries()).sort(([dateKeyA], [dateKeyB]) => {
+        const tsA = parseDateToTimestamp(dateKeyA);
+        const tsB = parseDateToTimestamp(dateKeyB);
+        if (tsA > 0 && tsB > 0) return tsB - tsA;
+        if (tsA > 0 && tsB <= 0) return -1;
+        if (tsB > 0 && tsA <= 0) return 1;
+        return dateKeyA.localeCompare(dateKeyB);
+      });
+
+      sortedDateEntries.forEach(([dateKey, rawGroupUrls]) => {
+        // En cada fecha, ordenar del más reciente al más antiguo
+        const groupUrls = rawGroupUrls.slice().reverse();
         const groupBlock = document.createElement("div");
         groupBlock.style.display = "flex";
         groupBlock.style.flexDirection = "column";
@@ -1676,7 +1743,7 @@ const registerStickersFromDOM = (convId: string): ConversationScanState => {
           existing.url = img.src;
           recChanged = true;
         }
-        if (!existing.dateKey && currentDateKey) {
+        if ((!existing.dateKey || existing.dateKey === t("otherDates")) && currentDateKey) {
           existing.dateKey = currentDateKey;
           if (currentRawTime && !existing.time) existing.time = currentRawTime;
           recChanged = true;
