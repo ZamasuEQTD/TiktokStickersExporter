@@ -1252,6 +1252,29 @@ const getDelay = () => {
   return stored ? parseFloat(stored) : 1.5;
 };
 
+// Actualiza dinámicamente todos los textos de la interfaz al cambiar de idioma en vivo
+const updateAllUITranslations = () => {
+  // 1. Botón Configuración (Settings) en la barra de mensajes
+  const settingsBtn = document.getElementById("tiktok-stickers-exporter-settings-btn");
+  if (settingsBtn) {
+    settingsBtn.innerText = t("settings");
+  }
+
+  // 2. Botón principal del header "Ver stickers"
+  const headerBtns = document.getElementById("tiktok-stickers-exporter-header-btns");
+  if (headerBtns) {
+    headerBtns.remove();
+  }
+  addDownloadAllButton();
+
+  // 3. Tooltips de los botones individuales de descarga en cada sticker
+  const indivBtns = document.querySelectorAll('.tiktok-sticker-indiv-btn') as NodeListOf<HTMLElement>;
+  indivBtns.forEach(btn => {
+    const isDone = btn.style.border.includes("2ed573");
+    btn.title = isDone ? t("alreadyDownloadedTooltip") : t("downloadThis");
+  });
+};
+
 const showSettingsModal = () => {
   const isMobile = isMobileDevice();
   ensureModalAnimationsStyle();
@@ -1397,8 +1420,25 @@ const showSettingsModal = () => {
     } else {
       localStorage.setItem("tiktok-stickers-exporter-lang", langSelect.value);
     }
-    close();
-    addDownloadAllButton();
+    // 1. Actualizar de inmediato todos los elementos visibles de la app
+    updateAllUITranslations();
+
+    // 2. Actualizar en vivo los textos del propio modal de Configuración
+    header.innerText = t("settings");
+    btnX.title = t("close");
+    langLabel.innerText = t("languageLabel");
+    delayLabel.innerText = t("delayLabel");
+    btnClear.innerText = t("clearHistory");
+    btnClearAll.innerText = t("clearAllData");
+    btnClose.innerText = t("close");
+
+    // Actualizar las etiquetas de las opciones del select de idioma
+    Array.from(langSelect.options).forEach(opt => {
+      const match = languages.find(l => l.code === opt.value);
+      if (match) {
+        opt.innerText = t(match.labelKey);
+      }
+    });
   };
 
   langContainer.appendChild(langLabel);
