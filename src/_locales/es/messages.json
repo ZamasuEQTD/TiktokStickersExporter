@@ -1,0 +1,254 @@
+{
+  "appName": {
+    "message": "Sticky: TikTok Stickers Exporter"
+  },
+  "appDesc": {
+    "message": "Exporta y descarga stickers de los mensajes directos de TikTok fácilmente."
+  },
+  "settings": {
+    "message": "Configuración"
+  },
+  "delayLabel": {
+    "message": "Retraso entre descargas (segundos):"
+  },
+  "clearHistory": {
+    "message": "Limpiar Historial de Descargas"
+  },
+  "historyCleared": {
+    "message": "Historial borrado. Recarga la página para ver los cambios."
+  },
+  "confirmClear": {
+    "message": "¿Estás seguro de borrar el historial? Todos los stickers volverán a aparecer como 'Nuevos'."
+  },
+  "close": {
+    "message": "Cerrar"
+  },
+  "download": {
+    "message": "Descargar"
+  },
+  "downloadZip": {
+    "message": "Descargar ZIP"
+  },
+  "confirmZipTitle": {
+    "message": "¿Comprimir stickers en un ZIP?"
+  },
+  "confirmSeqTitle": {
+    "message": "¿Descargar stickers?"
+  },
+  "noStickersOnScreen": {
+    "message": "¡No se encontraron stickers en este chat!"
+  },
+  "errorDownload": {
+    "message": "Error al descargar:"
+  },
+  "errorZip": {
+    "message": "Ocurrió un error al crear el archivo ZIP."
+  },
+  "downloadCount": {
+    "message": "Descargar ({count})"
+  },
+  "newStickers": {
+    "message": "Nuevos ({count})"
+  },
+  "oldStickers": {
+    "message": "En el dispositivo ({count})"
+  },
+  "noNewStickers": {
+    "message": "No hay stickers nuevos en la pantalla."
+  },
+  "noOldStickers": {
+    "message": "No hay stickers descargados aún."
+  },
+  "selectAll": {
+    "message": "Seleccionar todos"
+  },
+  "cancelSelection": {
+    "message": "Cancelar selección"
+  },
+  "cancel": {
+    "message": "Cancelar"
+  },
+  "downloadThis": {
+    "message": "Descargar este sticker"
+  },
+  "alreadyDownloadedTooltip": {
+    "message": "Ya descargado (clic para volver a descargar)"
+  },
+  "languageLabel": {
+    "message": "Idioma / Language:"
+  },
+  "langAuto": {
+    "message": "Automático"
+  },
+  "langEn": {
+    "message": "English"
+  },
+  "langEs": {
+    "message": "Español"
+  },
+  "langPt": {
+    "message": "Português"
+  },
+  "langFr": {
+    "message": "Français"
+  },
+  "langDe": {
+    "message": "Deutsch"
+  },
+  "langIt": {
+    "message": "Italiano"
+  },
+  "langJa": {
+    "message": "日本語"
+  },
+  "langKo": {
+    "message": "한국어"
+  },
+  "langZh": {
+    "message": "中文"
+  },
+  "compressingTitle": {
+    "message": "Comprimiendo stickers..."
+  },
+  "compressingProgress": {
+    "message": "Procesando sticker {current} de {total}..."
+  },
+  "generatingZip": {
+    "message": "Generando archivo ZIP..."
+  },
+  "downloadingTitle": {
+    "message": "Descargando stickers..."
+  },
+  "downloadingProgress": {
+    "message": "Descargando sticker {current} de {total}..."
+  },
+  "completedTitle": {
+    "message": "¡Completado!"
+  },
+  "completedZip": {
+    "message": "Archivo ZIP generado y descargado con éxito."
+  },
+  "completedSeq": {
+    "message": "Stickers descargados con éxito."
+  },
+  "scanChat": {
+    "message": "Escanear chat"
+  },
+  "scanningProgress": {
+    "message": "Analizando ({count})..."
+  },
+  "scanFinished": {
+    "message": "¡Análisis terminado! Se encontraron {count} stickers."
+  },
+  "stopScan": {
+    "message": "Detener"
+  },
+  "scanningTitle": {
+    "message": "Escaneando stickers..."
+  },
+  "scanningSubtitle": {
+    "message": "Buscando stickers en el historial del chat..."
+  },
+  "stickersFound": {
+    "message": "{count} stickers encontrados"
+  },
+  "chatFullyScanned": {
+    "message": "Historial completo"
+  },
+  "chatFullyScannedTooltip": {
+    "message": "Se ha analizado todo el historial del chat desde el inicio. Clic para volver a escanear."
+  },
+  "viewStickers": {
+    "message": "Ver stickers ({count})"
+  },
+  "viewStickersNoCount": {
+    "message": "Ver stickers"
+  },
+  "viewStickersTitle": {
+    "message": "Stickers de TikTok"
+  },
+  "downloadSelectedBtn": {
+    "message": "Descargar stickers ({count})"
+  },
+  "chooseDownloadFormat": {
+    "message": "Elige el formato de descarga"
+  },
+  "downloadZipOption": {
+    "message": "Archivo ZIP (.zip)"
+  },
+  "downloadZipOptionDesc": {
+    "message": "Empaqueta todos los stickers seleccionados en un único archivo"
+  },
+  "downloadSeqOption": {
+    "message": "Descarga individual"
+  },
+  "downloadSeqOptionDesc": {
+    "message": "Descarga cada sticker uno por uno directamente a tu dispositivo"
+  },
+  "downloadSeqBtn": {
+    "message": "Descargar ({count})"
+  },
+  "downloadZipBtn": {
+    "message": "Descargar ZIP ({count})"
+  },
+  "downloadSeqTooltip": {
+    "message": "Descargar los stickers seleccionados uno por uno"
+  },
+  "downloadZipTooltip": {
+    "message": "Comprimir y descargar todos los stickers seleccionados en un archivo ZIP"
+  },
+  "redirectTitle": {
+    "message": "Sticky: TikTok Stickers Exporter"
+  },
+  "redirectQuestion": {
+    "message": "¿Quieres descargar tus stickers?"
+  },
+  "redirectSubtitle": {
+    "message": "Entra a tus Mensajes de TikTok para ver, escanear y descargar todos tus stickers."
+  },
+  "goToMessages": {
+    "message": "Ir a Mensajes"
+  },
+  "notNow": {
+    "message": "Ahora no"
+  },
+  "cancelScanTitle": {
+    "message": "¿Cancelar escaneo?"
+  },
+  "cancelScanSubtitle": {
+    "message": "Hay un escaneo en curso. Si cambias de chat o sales, se cancelará el escaneo actual."
+  },
+  "cancelScanConfirm": {
+    "message": "Cancelar escaneo"
+  },
+  "continueScanning": {
+    "message": "Continuar escaneando"
+  },
+  "clearAllData": {
+    "message": "Borrar todos los datos de la app"
+  },
+  "confirmClearAllData": {
+    "message": "¿Estás seguro de que quieres borrar todos los datos de la app? Se eliminará el historial de stickers descargados, registros de escaneo e idioma/retraso guardados."
+  },
+  "allDataCleared": {
+    "message": "Se han restablecido todos los datos de la aplicación."
+  },
+  "otherDates": {
+    "message": "Otras fechas"
+  },
+  "today": {
+    "message": "Hoy"
+  },
+  "selectDay": {
+    "message": "Seleccionar día"
+  },
+  "deselectDay": {
+    "message": "Deseleccionar"
+  },
+  "cancelZip": {
+    "message": "Cancelar compresión"
+  },
+  "cancelSeq": {
+    "message": "Cancelar descarga"
+  }
+}

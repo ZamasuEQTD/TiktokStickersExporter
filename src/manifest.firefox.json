@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Sticky: TikTok Stickers Exporter",
+  "default_locale": "en",
+  "name": "__MSG_appName__",
   "version": "1.8.20",
-  "description": "Export TikTok Stickers easily",
+  "description": "__MSG_appDesc__",
   "browser_specific_settings": {
     "gecko": {
       "id": "tiktok-stickers-exporter@example.com",

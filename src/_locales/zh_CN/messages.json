@@ -1,0 +1,254 @@
+{
+  "appName": {
+    "message": "Sticky: TikTok Stickers Exporter"
+  },
+  "appDesc": {
+    "message": "轻松导出并批量下载 TikTok 私信聊天表情包与贴纸。"
+  },
+  "settings": {
+    "message": "设置"
+  },
+  "delayLabel": {
+    "message": "下载间隔时间（秒）："
+  },
+  "clearHistory": {
+    "message": "清除下载历史记录"
+  },
+  "historyCleared": {
+    "message": "历史记录已清除。刷新页面以查看更改。"
+  },
+  "confirmClear": {
+    "message": "确定要清除历史记录吗？所有表情贴纸将重新显示为“新”。"
+  },
+  "close": {
+    "message": "关闭"
+  },
+  "download": {
+    "message": "下载"
+  },
+  "downloadZip": {
+    "message": "下载 ZIP"
+  },
+  "confirmZipTitle": {
+    "message": "将表情压缩为 ZIP？"
+  },
+  "confirmSeqTitle": {
+    "message": "下载表情贴纸？"
+  },
+  "noStickersOnScreen": {
+    "message": "此聊天中未找到表情贴纸！"
+  },
+  "errorDownload": {
+    "message": "下载出错："
+  },
+  "errorZip": {
+    "message": "创建 ZIP 文件时出错。"
+  },
+  "downloadCount": {
+    "message": "下载 ({count})"
+  },
+  "newStickers": {
+    "message": "新表情 ({count})"
+  },
+  "oldStickers": {
+    "message": "已在设备中 ({count})"
+  },
+  "noNewStickers": {
+    "message": "屏幕上没有新表情贴纸。"
+  },
+  "noOldStickers": {
+    "message": "未找到已下载的表情贴纸。"
+  },
+  "selectAll": {
+    "message": "全选"
+  },
+  "cancelSelection": {
+    "message": "取消全选"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "downloadThis": {
+    "message": "下载此表情"
+  },
+  "alreadyDownloadedTooltip": {
+    "message": "已下载（点击重新下载）"
+  },
+  "languageLabel": {
+    "message": "语言 / Language:"
+  },
+  "langAuto": {
+    "message": "自动"
+  },
+  "langEn": {
+    "message": "English"
+  },
+  "langEs": {
+    "message": "Español"
+  },
+  "langPt": {
+    "message": "Português"
+  },
+  "langFr": {
+    "message": "Français"
+  },
+  "langDe": {
+    "message": "Deutsch"
+  },
+  "langIt": {
+    "message": "Italiano"
+  },
+  "langJa": {
+    "message": "日本語"
+  },
+  "langKo": {
+    "message": "한국어"
+  },
+  "langZh": {
+    "message": "中文"
+  },
+  "compressingTitle": {
+    "message": "正在压缩表情贴纸..."
+  },
+  "compressingProgress": {
+    "message": "正在处理第 {current} 个，共 {total} 个..."
+  },
+  "generatingZip": {
+    "message": "正在生成 ZIP 文件..."
+  },
+  "downloadingTitle": {
+    "message": "正在下载表情贴纸..."
+  },
+  "downloadingProgress": {
+    "message": "正在下载第 {current} 个，共 {total} 个..."
+  },
+  "completedTitle": {
+    "message": "完成！"
+  },
+  "completedZip": {
+    "message": "ZIP 文件已成功生成并下载。"
+  },
+  "completedSeq": {
+    "message": "表情贴纸已成功下载。"
+  },
+  "scanChat": {
+    "message": "扫描聊天"
+  },
+  "scanningProgress": {
+    "message": "扫描中 ({count})..."
+  },
+  "scanFinished": {
+    "message": "扫描完成！找到 {count} 个表情贴纸。"
+  },
+  "stopScan": {
+    "message": "停止扫描"
+  },
+  "scanningTitle": {
+    "message": "正在扫描表情贴纸..."
+  },
+  "scanningSubtitle": {
+    "message": "正在聊天记录中查找表情贴纸..."
+  },
+  "stickersFound": {
+    "message": "已找到 {count} 个表情贴纸"
+  },
+  "chatFullyScanned": {
+    "message": "完整历史记录"
+  },
+  "chatFullyScannedTooltip": {
+    "message": "整个聊天记录已从头开始扫描完成。点击重新扫描。"
+  },
+  "viewStickers": {
+    "message": "查看表情 ({count})"
+  },
+  "viewStickersNoCount": {
+    "message": "查看表情"
+  },
+  "viewStickersTitle": {
+    "message": "TikTok 表情贴纸"
+  },
+  "downloadSelectedBtn": {
+    "message": "下载选中的表情 ({count})"
+  },
+  "chooseDownloadFormat": {
+    "message": "选择下载格式"
+  },
+  "downloadZipOption": {
+    "message": "ZIP 压缩包 (.zip)"
+  },
+  "downloadZipOptionDesc": {
+    "message": "将所有选中的表情打包为一个压缩文件"
+  },
+  "downloadSeqOption": {
+    "message": "单张依次下载"
+  },
+  "downloadSeqOptionDesc": {
+    "message": "将每个表情逐个直接下载保存到您的设备中"
+  },
+  "downloadSeqBtn": {
+    "message": "下载 ({count})"
+  },
+  "downloadZipBtn": {
+    "message": "下载 ZIP ({count})"
+  },
+  "downloadSeqTooltip": {
+    "message": "逐个下载选中的表情贴纸"
+  },
+  "downloadZipTooltip": {
+    "message": "将所有选中的表情贴纸压缩为一个 ZIP 文件下载"
+  },
+  "redirectTitle": {
+    "message": "Sticky: TikTok Stickers Exporter"
+  },
+  "redirectQuestion": {
+    "message": "想要下载你的表情贴纸吗？"
+  },
+  "redirectSubtitle": {
+    "message": "前往 TikTok 消息页面查看、扫描并下载所有表情贴纸。"
+  },
+  "goToMessages": {
+    "message": "前往消息"
+  },
+  "notNow": {
+    "message": "稍后再说"
+  },
+  "cancelScanTitle": {
+    "message": "取消扫描？"
+  },
+  "cancelScanSubtitle": {
+    "message": "扫描正在进行中。切换聊天或离开将取消当前扫描。"
+  },
+  "cancelScanConfirm": {
+    "message": "取消扫描"
+  },
+  "continueScanning": {
+    "message": "继续扫描"
+  },
+  "clearAllData": {
+    "message": "重置所有应用数据"
+  },
+  "confirmClearAllData": {
+    "message": "确定要重置所有应用数据吗？这将清除下载历史记录、扫描记录和自定义设置。"
+  },
+  "allDataCleared": {
+    "message": "所有应用数据已恢复为默认值。"
+  },
+  "otherDates": {
+    "message": "其他日期"
+  },
+  "today": {
+    "message": "今天"
+  },
+  "selectDay": {
+    "message": "选择日期"
+  },
+  "deselectDay": {
+    "message": "取消选择日期"
+  },
+  "cancelZip": {
+    "message": "取消压缩"
+  },
+  "cancelSeq": {
+    "message": "取消下载"
+  }
+}

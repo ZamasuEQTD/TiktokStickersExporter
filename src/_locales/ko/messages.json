@@ -1,0 +1,254 @@
+{
+  "appName": {
+    "message": "Sticky: TikTok Stickers Exporter"
+  },
+  "appDesc": {
+    "message": "TikTok 다이렉트 메시지의 스티커를 손쉽게 내보내고 일괄 다운로드하세요."
+  },
+  "settings": {
+    "message": "설정"
+  },
+  "delayLabel": {
+    "message": "다운로드 간격 (초):"
+  },
+  "clearHistory": {
+    "message": "다운로드 기록 삭제"
+  },
+  "historyCleared": {
+    "message": "기록이 삭제되었습니다. 변경 사항을 확인하려면 페이지를 새로고침하세요."
+  },
+  "confirmClear": {
+    "message": "다운로드 기록을 삭제하시겠습니까? 모든 스티커가 '새 스티커'로 표시됩니다."
+  },
+  "close": {
+    "message": "닫기"
+  },
+  "download": {
+    "message": "다운로드"
+  },
+  "downloadZip": {
+    "message": "ZIP 다운로드"
+  },
+  "confirmZipTitle": {
+    "message": "스티커를 ZIP으로 압축할까요?"
+  },
+  "confirmSeqTitle": {
+    "message": "스티커를 다운로드할까요?"
+  },
+  "noStickersOnScreen": {
+    "message": "이 채팅에서 스티커를 찾을 수 없습니다!"
+  },
+  "errorDownload": {
+    "message": "다운로드 오류:"
+  },
+  "errorZip": {
+    "message": "ZIP 파일 생성 중 오류가 발생했습니다."
+  },
+  "downloadCount": {
+    "message": "다운로드 ({count})"
+  },
+  "newStickers": {
+    "message": "신규 ({count})"
+  },
+  "oldStickers": {
+    "message": "기기에 저장됨 ({count})"
+  },
+  "noNewStickers": {
+    "message": "화면에 새로운 스티커가 없습니다."
+  },
+  "noOldStickers": {
+    "message": "다운로드된 스티커가 없습니다."
+  },
+  "selectAll": {
+    "message": "전체 선택"
+  },
+  "cancelSelection": {
+    "message": "선택 취소"
+  },
+  "cancel": {
+    "message": "취소"
+  },
+  "downloadThis": {
+    "message": "이 스티커 다운로드"
+  },
+  "alreadyDownloadedTooltip": {
+    "message": "이미 다운로드됨 (다시 다운로드하려면 클릭)"
+  },
+  "languageLabel": {
+    "message": "언어 / Language:"
+  },
+  "langAuto": {
+    "message": "자동"
+  },
+  "langEn": {
+    "message": "English"
+  },
+  "langEs": {
+    "message": "Español"
+  },
+  "langPt": {
+    "message": "Português"
+  },
+  "langFr": {
+    "message": "Français"
+  },
+  "langDe": {
+    "message": "Deutsch"
+  },
+  "langIt": {
+    "message": "Italiano"
+  },
+  "langJa": {
+    "message": "日本語"
+  },
+  "langKo": {
+    "message": "한국어"
+  },
+  "langZh": {
+    "message": "中文"
+  },
+  "compressingTitle": {
+    "message": "스티커 압축 중..."
+  },
+  "compressingProgress": {
+    "message": "스티커 처리 중: {current} / {total}..."
+  },
+  "generatingZip": {
+    "message": "ZIP 파일 생성 중..."
+  },
+  "downloadingTitle": {
+    "message": "스티커 다운로드 중..."
+  },
+  "downloadingProgress": {
+    "message": "스티커 다운로드 중: {current} / {total}..."
+  },
+  "completedTitle": {
+    "message": "완료!"
+  },
+  "completedZip": {
+    "message": "ZIP 파일이 성공적으로 생성되어 다운로드되었습니다."
+  },
+  "completedSeq": {
+    "message": "스티커가 성공적으로 다운로드되었습니다."
+  },
+  "scanChat": {
+    "message": "채팅 스캔"
+  },
+  "scanningProgress": {
+    "message": "스캔 중 ({count})..."
+  },
+  "scanFinished": {
+    "message": "스캔 완료! {count}개의 스티커를 찾았습니다."
+  },
+  "stopScan": {
+    "message": "중지"
+  },
+  "scanningTitle": {
+    "message": "스티커 스캔 중..."
+  },
+  "scanningSubtitle": {
+    "message": "채팅 기록에서 스티커를 찾는 중..."
+  },
+  "stickersFound": {
+    "message": "{count}개 스티커 발견"
+  },
+  "chatFullyScanned": {
+    "message": "전체 기록 완료"
+  },
+  "chatFullyScannedTooltip": {
+    "message": "채팅의 처음부터 전체 기록이 스캔되었습니다. 다시 스캔하려면 클릭하세요."
+  },
+  "viewStickers": {
+    "message": "스티커 보기 ({count})"
+  },
+  "viewStickersNoCount": {
+    "message": "스티커 보기"
+  },
+  "viewStickersTitle": {
+    "message": "TikTok 스티커"
+  },
+  "downloadSelectedBtn": {
+    "message": "스티커 다운로드 ({count})"
+  },
+  "chooseDownloadFormat": {
+    "message": "다운로드 형식 선택"
+  },
+  "downloadZipOption": {
+    "message": "ZIP 파일 (.zip)"
+  },
+  "downloadZipOptionDesc": {
+    "message": "선택한 모든 스티커를 단일 압축 파일로 저장"
+  },
+  "downloadSeqOption": {
+    "message": "개별 다운로드"
+  },
+  "downloadSeqOptionDesc": {
+    "message": "각 스티커를 기기에 하나씩 직접 다운로드"
+  },
+  "downloadSeqBtn": {
+    "message": "다운로드 ({count})"
+  },
+  "downloadZipBtn": {
+    "message": "ZIP 다운로드 ({count})"
+  },
+  "downloadSeqTooltip": {
+    "message": "선택한 스티커를 하나씩 다운로드"
+  },
+  "downloadZipTooltip": {
+    "message": "선택한 스티커를 하나의 ZIP으로 묶어서 다운로드"
+  },
+  "redirectTitle": {
+    "message": "Sticky: TikTok Stickers Exporter"
+  },
+  "redirectQuestion": {
+    "message": "스티커를 다운로드하시겠습니까?"
+  },
+  "redirectSubtitle": {
+    "message": "TikTok 메시지로 이동하여 모든 스티커를 확인, 스캔 및 다운로드하세요."
+  },
+  "goToMessages": {
+    "message": "메시지로 이동"
+  },
+  "notNow": {
+    "message": "나중에"
+  },
+  "cancelScanTitle": {
+    "message": "스캔을 취소하시겠습니까?"
+  },
+  "cancelScanSubtitle": {
+    "message": "스캔이 진행 중입니다. 채팅을 변경하거나 이동하면 스캔이 취소됩니다."
+  },
+  "cancelScanConfirm": {
+    "message": "스캔 취소"
+  },
+  "continueScanning": {
+    "message": "스캔 계속"
+  },
+  "clearAllData": {
+    "message": "모든 앱 데이터 초기화"
+  },
+  "confirmClearAllData": {
+    "message": "모든 앱 데이터를 초기화하시겠습니까? 다운로드 기록, 스캔 정보 및 설정이 삭제됩니다."
+  },
+  "allDataCleared": {
+    "message": "모든 앱 데이터가 기본값으로 초기화되었습니다."
+  },
+  "otherDates": {
+    "message": "다른 날짜"
+  },
+  "today": {
+    "message": "오늘"
+  },
+  "selectDay": {
+    "message": "날짜 선택"
+  },
+  "deselectDay": {
+    "message": "날짜 선택 해제"
+  },
+  "cancelZip": {
+    "message": "압축 취소"
+  },
+  "cancelSeq": {
+    "message": "다운로드 취소"
+  }
+}

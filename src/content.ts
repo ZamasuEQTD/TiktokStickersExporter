@@ -1,178 +1,49 @@
 import JSZip from 'jszip';
 import browser from 'webextension-polyfill';
+import { translations } from './translations';
 
-const translations = {
-  en: {
-    settings: "Settings",
-    delayLabel: "Delay between downloads (seconds):",
-    clearHistory: "Clear Download History",
-    historyCleared: "History cleared. Reload the page to see changes.",
-    confirmClear: "Are you sure you want to clear the history? All stickers will appear as 'New'.",
-    close: "Close",
-    download: "Download",
-    downloadZip: "Download ZIP",
-    confirmZipTitle: "Compress stickers in a ZIP?",
-    confirmSeqTitle: "Download stickers?",
-    noStickersOnScreen: "No stickers found in this chat!",
-    errorDownload: "Error downloading:",
-    errorZip: "An error occurred while creating the ZIP file.",
-    downloadCount: "Download ({count})",
-    newStickers: "New ({count})",
-    oldStickers: "On device ({count})",
-    noNewStickers: "No new stickers on screen.",
-    noOldStickers: "No downloaded stickers found.",
-    selectAll: "Select all",
-    cancelSelection: "Cancel selection",
-    cancel: "Cancel",
-    downloadThis: "Download this sticker",
-    alreadyDownloadedTooltip: "Already downloaded (click to re-download)",
-    languageLabel: "Language / Idioma:",
-    langAuto: "Auto",
-    langEn: "English",
-    langEs: "Español",
-    compressingTitle: "Compressing stickers...",
-    compressingProgress: "Processing sticker {current} of {total}...",
-    generatingZip: "Generating ZIP file...",
-    downloadingTitle: "Downloading stickers...",
-    downloadingProgress: "Downloading sticker {current} of {total}...",
-    completedTitle: "Completed!",
-    completedZip: "ZIP file generated and downloaded successfully.",
-    completedSeq: "Stickers downloaded successfully.",
-    scanChat: "Scan chat",
-    scanningProgress: "Scanning ({count})...",
-    scanFinished: "Scan complete! Found {count} stickers.",
-    stopScan: "Stop scan",
-    scanningTitle: "Scanning stickers...",
-    scanningSubtitle: "Searching chat history for stickers...",
-    stickersFound: "{count} stickers found",
-    chatFullyScanned: "Full history",
-    chatFullyScannedTooltip: "Entire chat history has been scanned from the beginning. Click to re-scan.",
-    viewStickers: "View stickers ({count})",
-    viewStickersNoCount: "View stickers",
-    viewStickersTitle: "TikTok Stickers",
-    downloadSelectedBtn: "Download stickers ({count})",
-    chooseDownloadFormat: "Choose download format",
-    downloadZipOption: "ZIP File (.zip)",
-    downloadZipOptionDesc: "Package all selected stickers into a single archive",
-    downloadSeqOption: "Individual download",
-    downloadSeqOptionDesc: "Download each sticker one by one to your device",
-    downloadSeqBtn: "Download ({count})",
-    downloadZipBtn: "Download ZIP ({count})",
-    downloadSeqTooltip: "Download selected stickers one by one",
-    downloadZipTooltip: "Compress and download all selected stickers in a single ZIP",
-  
-    redirectTitle: "Sticky: TikTok Stickers Exporter",
-    redirectQuestion: "Do you want to download stickers?",
-    redirectSubtitle: "Go to your TikTok messages to view, scan, and download all your stickers.",
-    goToMessages: "Go to Messages",
-    notNow: "Not now",
-    cancelScanTitle: "Cancel scan?",
-    cancelScanSubtitle: "A scan is in progress. Switching chats or leaving will cancel the current scan.",
-    cancelScanConfirm: "Cancel scan",
-    continueScanning: "Keep scanning",
-    clearAllData: "Reset All App Data",
-    confirmClearAllData: "Are you sure you want to reset all app data? This will clear download history, scan records, and custom settings.",
-    allDataCleared: "All app data has been reset to defaults.",
-    otherDates: "Other dates",
-    today: "Today",
-    selectDay: "Select day",
-    deselectDay: "Deselect day",
-    cancelZip: "Cancel compression",
-    cancelSeq: "Cancel download",
-  },
-  es: {
-    settings: "Configuración",
-    delayLabel: "Retraso entre descargas (segundos):",
-    clearHistory: "Limpiar Historial de Descargas",
-    historyCleared: "Historial borrado. Recarga la página para ver los cambios.",
-    confirmClear: "¿Estás seguro de borrar el historial? Todos los stickers volverán a aparecer como 'Nuevos'.",
-    close: "Cerrar",
-    download: "Descargar",
-    downloadZip: "Descargar ZIP",
-    confirmZipTitle: "¿Comprimir stickers en un ZIP?",
-    confirmSeqTitle: "¿Descargar stickers?",
-    noStickersOnScreen: "¡No se encontraron stickers en este chat!",
-    errorDownload: "Error al descargar:",
-    errorZip: "Ocurrió un error al crear el archivo ZIP.",
-    downloadCount: "Descargar ({count})",
-    newStickers: "Nuevos ({count})",
-    oldStickers: "En el dispositivo ({count})",
-    noNewStickers: "No hay stickers nuevos en la pantalla.",
-    noOldStickers: "No hay stickers descargados aún.",
-    selectAll: "Seleccionar todos",
-    cancelSelection: "Cancelar selección",
-    cancel: "Cancelar",
-    downloadThis: "Descargar este sticker",
-    alreadyDownloadedTooltip: "Ya descargado (clic para volver a descargar)",
-    languageLabel: "Idioma / Language:",
-    langAuto: "Automático",
-    langEn: "English",
-    langEs: "Español",
-    compressingTitle: "Comprimiendo stickers...",
-    compressingProgress: "Procesando sticker {current} de {total}...",
-    generatingZip: "Generando archivo ZIP...",
-    downloadingTitle: "Descargando stickers...",
-    downloadingProgress: "Descargando sticker {current} de {total}...",
-    completedTitle: "¡Completado!",
-    completedZip: "Archivo ZIP generado y descargado con éxito.",
-    completedSeq: "Stickers descargados con éxito.",
-    scanChat: "Escanear chat",
-    scanningProgress: "Analizando ({count})...",
-    scanFinished: "¡Análisis terminado! Se encontraron {count} stickers.",
-    stopScan: "Detener",
-    scanningTitle: "Escaneando stickers...",
-    scanningSubtitle: "Buscando stickers en el historial del chat...",
-    stickersFound: "{count} stickers encontrados",
-    chatFullyScanned: "Historial completo",
-    chatFullyScannedTooltip: "Se ha analizado todo el historial del chat desde el inicio. Clic para volver a escanear.",
-    viewStickers: "Ver stickers ({count})",
-    viewStickersNoCount: "Ver stickers",
-    viewStickersTitle: "Stickers de TikTok",
-    downloadSelectedBtn: "Descargar stickers ({count})",
-    chooseDownloadFormat: "Elige el formato de descarga",
-    downloadZipOption: "Archivo ZIP (.zip)",
-    downloadZipOptionDesc: "Empaqueta todos los stickers seleccionados en un único archivo",
-    downloadSeqOption: "Descarga individual",
-    downloadSeqOptionDesc: "Descarga cada sticker uno por uno directamente a tu dispositivo",
-    downloadSeqBtn: "Descargar ({count})",
-    downloadZipBtn: "Descargar ZIP ({count})",
-    downloadSeqTooltip: "Descargar los stickers seleccionados uno por uno",
-    downloadZipTooltip: "Comprimir y descargar todos los stickers seleccionados en un archivo ZIP",
-  
-    redirectTitle: "Sticky: TikTok Stickers Exporter",
-    redirectQuestion: "¿Quieres descargar tus stickers?",
-    redirectSubtitle: "Entra a tus Mensajes de TikTok para ver, escanear y descargar todos tus stickers.",
-    goToMessages: "Ir a Mensajes",
-    notNow: "Ahora no",
-    cancelScanTitle: "¿Cancelar escaneo?",
-    cancelScanSubtitle: "Hay un escaneo en curso. Si cambias de chat o sales, se cancelará el escaneo actual.",
-    cancelScanConfirm: "Cancelar escaneo",
-    continueScanning: "Continuar escaneando",
-    clearAllData: "Borrar todos los datos de la app",
-    confirmClearAllData: "¿Estás seguro de que quieres borrar todos los datos de la app? Se eliminará el historial de stickers descargados, registros de escaneo e idioma/retraso guardados.",
-    allDataCleared: "Se han restablecido todos los datos de la aplicación.",
-    otherDates: "Otras fechas",
-    today: "Hoy",
-    selectDay: "Seleccionar día",
-    deselectDay: "Deseleccionar",
-    cancelZip: "Cancelar compresión",
-    cancelSeq: "Cancelar descarga",
+export type SupportedLang = 'en' | 'es' | 'pt_BR' | 'fr' | 'de' | 'it' | 'ja' | 'ko' | 'zh_CN';
+
+const getLang = (): SupportedLang => {
+  const forced = localStorage.getItem("tiktok-stickers-exporter-lang") as SupportedLang;
+  if (forced && translations[forced]) return forced;
+
+  // Try matching browser / page language
+  const nav = (navigator.language || navigator.languages?.[0] || 'en').toLowerCase();
+  if (nav.startsWith('es')) return 'es';
+  if (nav.startsWith('pt')) return 'pt_BR';
+  if (nav.startsWith('fr')) return 'fr';
+  if (nav.startsWith('de')) return 'de';
+  if (nav.startsWith('it')) return 'it';
+  if (nav.startsWith('ja')) return 'ja';
+  if (nav.startsWith('ko')) return 'ko';
+  if (nav.startsWith('zh')) return 'zh_CN';
+  return 'en';
+};
+
+declare const chrome: any;
+
+const t = (key: string, params?: Record<string, string | number>): string => {
+  // 1. Check native chrome/browser i18n
+  let text = '';
+  try {
+    if (typeof chrome !== 'undefined' && chrome.i18n && chrome.i18n.getMessage) {
+      const msg = chrome.i18n.getMessage(key);
+      if (msg) text = msg;
+    }
+  } catch (e) {
+    // Ignore and fallback
   }
-};
 
-const getLang = (): 'en' | 'es' => {
-  const forced = localStorage.getItem("tiktok-stickers-exporter-lang");
-  if (forced === "es" || forced === "en") return forced;
-  const lang = navigator.language.toLowerCase();
-  return lang.startsWith("es") ? "es" : "en";
-};
-
-const t = (key: keyof typeof translations['en'], params?: Record<string, string | number>) => {
+  // 2. If not found or if forced language is set, use bundled translations dictionary
   const lang = getLang();
-  let text = translations[lang][key] || translations['en'][key] || key;
+  if (!text || localStorage.getItem("tiktok-stickers-exporter-lang")) {
+    text = translations[lang]?.[key] || translations['en']?.[key] || text || key;
+  }
+
   if (params) {
     for (const [k, v] of Object.entries(params)) {
-      text = text.replace(`{${k}}`, String(v));
+      text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
     }
   }
   return text;
@@ -651,7 +522,7 @@ const MONTHS_EN = [
 ];
 
 // Formatea un objeto Date en cadena de fecha con calendario completo (ej. "20 de octubre de 2026" / "October 20, 2026")
-const formatDateToCalendarString = (date: Date, lang: 'es' | 'en'): string => {
+const formatDateToCalendarString = (date: Date, lang: SupportedLang): string => {
   const day = date.getDate();
   const year = date.getFullYear();
   if (lang === 'es') {
@@ -688,7 +559,7 @@ const normalizeDateKey = (rawKey?: string): string => {
 };
 
 // Devuelve el título amigable y dinámico para el encabezado de fecha en el diálogo
-const getDisplayDateTitle = (dateKey: string, lang: 'es' | 'en'): string => {
+const getDisplayDateTitle = (dateKey: string, lang: SupportedLang): string => {
   if (!dateKey || dateKey === t("otherDates")) return t("otherDates");
   const ts = parseDateToTimestamp(dateKey);
   if (ts <= 0) return dateKey;
@@ -1497,24 +1368,28 @@ const showSettingsModal = () => {
   langSelect.style.fontSize = s(14);
   langSelect.style.cursor = "pointer";
 
-  const optAuto = document.createElement("option");
-  optAuto.value = "auto";
-  optAuto.innerText = t("langAuto");
-  const optEs = document.createElement("option");
-  optEs.value = "es";
-  optEs.innerText = t("langEs");
-  const optEn = document.createElement("option");
-  optEn.value = "en";
-  optEn.innerText = t("langEn");
+  const languages: { code: string; labelKey: string }[] = [
+    { code: "auto", labelKey: "langAuto" },
+    { code: "en", labelKey: "langEn" },
+    { code: "es", labelKey: "langEs" },
+    { code: "pt_BR", labelKey: "langPt" },
+    { code: "fr", labelKey: "langFr" },
+    { code: "de", labelKey: "langDe" },
+    { code: "it", labelKey: "langIt" },
+    { code: "ja", labelKey: "langJa" },
+    { code: "ko", labelKey: "langKo" },
+    { code: "zh_CN", labelKey: "langZh" }
+  ];
 
-  const currentForced = localStorage.getItem("tiktok-stickers-exporter-lang");
-  if (currentForced === "es") optEs.selected = true;
-  else if (currentForced === "en") optEn.selected = true;
-  else optAuto.selected = true;
+  const currentForced = localStorage.getItem("tiktok-stickers-exporter-lang") || "auto";
 
-  langSelect.appendChild(optAuto);
-  langSelect.appendChild(optEs);
-  langSelect.appendChild(optEn);
+  languages.forEach(({ code, labelKey }) => {
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.innerText = t(labelKey);
+    if (code === currentForced) opt.selected = true;
+    langSelect.appendChild(opt);
+  });
 
   langSelect.onchange = () => {
     if (langSelect.value === "auto") {

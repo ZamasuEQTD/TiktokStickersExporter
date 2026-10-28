@@ -1,0 +1,254 @@
+{
+  "appName": {
+    "message": "Sticky: TikTok Stickers Exporter"
+  },
+  "appDesc": {
+    "message": "TikTokダイレクトメッセージのスタンプを簡単にエクスポート・一括ダウンロード。"
+  },
+  "settings": {
+    "message": "設定"
+  },
+  "delayLabel": {
+    "message": "ダウンロード間隔（秒）:"
+  },
+  "clearHistory": {
+    "message": "ダウンロード履歴を削除"
+  },
+  "historyCleared": {
+    "message": "履歴を消去しました。変更を適用するにはページを更新してください。"
+  },
+  "confirmClear": {
+    "message": "履歴を消去してもよろしいですか？すべてのスタンプが「新規」として表示されます。"
+  },
+  "close": {
+    "message": "閉じる"
+  },
+  "download": {
+    "message": "ダウンロード"
+  },
+  "downloadZip": {
+    "message": "ZIPでダウンロード"
+  },
+  "confirmZipTitle": {
+    "message": "スタンプをZIPに圧縮しますか？"
+  },
+  "confirmSeqTitle": {
+    "message": "スタンプをダウンロードしますか？"
+  },
+  "noStickersOnScreen": {
+    "message": "このチャットにスタンプが見つかりませんでした！"
+  },
+  "errorDownload": {
+    "message": "ダウンロードエラー:"
+  },
+  "errorZip": {
+    "message": "ZIPファイルの作成中にエラーが発生しました。"
+  },
+  "downloadCount": {
+    "message": "ダウンロード ({count})"
+  },
+  "newStickers": {
+    "message": "新規 ({count})"
+  },
+  "oldStickers": {
+    "message": "端末に保存済み ({count})"
+  },
+  "noNewStickers": {
+    "message": "画面上に新しいスタンプはありません。"
+  },
+  "noOldStickers": {
+    "message": "ダウンロード済みのスタンプはありません。"
+  },
+  "selectAll": {
+    "message": "すべて選択"
+  },
+  "cancelSelection": {
+    "message": "選択を解除"
+  },
+  "cancel": {
+    "message": "キャンセル"
+  },
+  "downloadThis": {
+    "message": "このスタンプをダウンロード"
+  },
+  "alreadyDownloadedTooltip": {
+    "message": "ダウンロード済み（再ダウンロードするにはクリック）"
+  },
+  "languageLabel": {
+    "message": "言語 / Language:"
+  },
+  "langAuto": {
+    "message": "自動"
+  },
+  "langEn": {
+    "message": "English"
+  },
+  "langEs": {
+    "message": "Español"
+  },
+  "langPt": {
+    "message": "Português"
+  },
+  "langFr": {
+    "message": "Français"
+  },
+  "langDe": {
+    "message": "Deutsch"
+  },
+  "langIt": {
+    "message": "Italiano"
+  },
+  "langJa": {
+    "message": "日本語"
+  },
+  "langKo": {
+    "message": "한국어"
+  },
+  "langZh": {
+    "message": "中文"
+  },
+  "compressingTitle": {
+    "message": "スタンプを圧縮中..."
+  },
+  "compressingProgress": {
+    "message": "スタンプを処理中: {current} / {total}..."
+  },
+  "generatingZip": {
+    "message": "ZIPファイルを生成中..."
+  },
+  "downloadingTitle": {
+    "message": "スタンプをダウンロード中..."
+  },
+  "downloadingProgress": {
+    "message": "スタンプをダウンロード中: {current} / {total}..."
+  },
+  "completedTitle": {
+    "message": "完了！"
+  },
+  "completedZip": {
+    "message": "ZIPファイルが正常に生成され、ダウンロードされました。"
+  },
+  "completedSeq": {
+    "message": "スタンプのダウンロードが完了しました。"
+  },
+  "scanChat": {
+    "message": "チャットをスキャン"
+  },
+  "scanningProgress": {
+    "message": "スキャン中 ({count})..."
+  },
+  "scanFinished": {
+    "message": "スキャン完了！ {count} 個のスタンプが見つかりました。"
+  },
+  "stopScan": {
+    "message": "停止"
+  },
+  "scanningTitle": {
+    "message": "スタンプをスキャン中..."
+  },
+  "scanningSubtitle": {
+    "message": "チャット履歴からスタンプを検索しています..."
+  },
+  "stickersFound": {
+    "message": "{count} 個のスタンプが見つかりました"
+  },
+  "chatFullyScanned": {
+    "message": "全履歴完了"
+  },
+  "chatFullyScannedTooltip": {
+    "message": "チャットの最初から全履歴がスキャンされました。再スキャンするにはクリックしてください。"
+  },
+  "viewStickers": {
+    "message": "スタンプ一覧 ({count})"
+  },
+  "viewStickersNoCount": {
+    "message": "スタンプ一覧"
+  },
+  "viewStickersTitle": {
+    "message": "TikTok スタンプ"
+  },
+  "downloadSelectedBtn": {
+    "message": "スタンプをダウンロード ({count})"
+  },
+  "chooseDownloadFormat": {
+    "message": "ダウンロード形式を選択"
+  },
+  "downloadZipOption": {
+    "message": "ZIPファイル (.zip)"
+  },
+  "downloadZipOptionDesc": {
+    "message": "選択したすべてのスタンプを1つのZIPにまとめて保存"
+  },
+  "downloadSeqOption": {
+    "message": "個別ダウンロード"
+  },
+  "downloadSeqOptionDesc": {
+    "message": "各スタンプを端末に1つずつ直接保存"
+  },
+  "downloadSeqBtn": {
+    "message": "ダウンロード ({count})"
+  },
+  "downloadZipBtn": {
+    "message": "ZIPダウンロード ({count})"
+  },
+  "downloadSeqTooltip": {
+    "message": "選択したスタンプを1枚ずつダウンロード"
+  },
+  "downloadZipTooltip": {
+    "message": "選択したスタンプを1つのZIPにまとめてダウンロード"
+  },
+  "redirectTitle": {
+    "message": "Sticky: TikTok Stickers Exporter"
+  },
+  "redirectQuestion": {
+    "message": "スタンプをダウンロードしますか？"
+  },
+  "redirectSubtitle": {
+    "message": "TikTokのメッセージにアクセスして、スタンプの確認、スキャン、ダウンロードを行えます。"
+  },
+  "goToMessages": {
+    "message": "メッセージへ移動"
+  },
+  "notNow": {
+    "message": "後で"
+  },
+  "cancelScanTitle": {
+    "message": "スキャンをキャンセルしますか？"
+  },
+  "cancelScanSubtitle": {
+    "message": "スキャンが進行中です。チャットを切り替えるか移動するとキャンセルされます。"
+  },
+  "cancelScanConfirm": {
+    "message": "スキャンをキャンセル"
+  },
+  "continueScanning": {
+    "message": "スキャンを継続"
+  },
+  "clearAllData": {
+    "message": "すべてのアプリデータを初期化"
+  },
+  "confirmClearAllData": {
+    "message": "アプリのすべてのデータをリセットしてもよろしいですか？ダウンロード履歴や設定が初期化されます。"
+  },
+  "allDataCleared": {
+    "message": "すべてのアプリデータがリセットされました。"
+  },
+  "otherDates": {
+    "message": "その他の日付"
+  },
+  "today": {
+    "message": "今日"
+  },
+  "selectDay": {
+    "message": "日を選択"
+  },
+  "deselectDay": {
+    "message": "日の選択解除"
+  },
+  "cancelZip": {
+    "message": "圧縮をキャンセル"
+  },
+  "cancelSeq": {
+    "message": "ダウンロードをキャンセル"
+  }
+}
