@@ -1,6 +1,6 @@
 {
   "name": "sticky-tiktok-stickers-exporter",
-  "version": "1.8.20",
+  "version": "1.8.21",
   "description": "Sticky: TikTok Stickers Exporter",
   "scripts": {
     "build": "npm run build:all",
