@@ -3457,45 +3457,64 @@ const updateMobileLayout = () => {
 };
 
 /**
- * Detecta si el usuario tiene una sesión iniciada en TikTok.
- * Prioriza el DOM y cookies en tiempo real para reaccionar de inmediato
- * cuando el usuario inicia o cierra sesión dinámicamente en la web.
+ * Detecta de forma 100% fiable si el usuario tiene sesión iniciada,
+ * distinguiendo con precisión la versión móvil de TikTok de la versión de escritorio.
  */
 const isTikTokUserLoggedIn = (): boolean => {
-  // 1. DOM en tiempo real: Si existe botón de login, definitivamente NO hay sesión iniciada
-  const loginIndicator = document.querySelector(
-    '[data-e2e="nav-login-button"], [data-e2e="top-login-button"], [data-e2e="login-button"], a[href*="/login"]'
-  );
-  if (loginIndicator) {
-    return false;
-  }
+  // 1. Detección en la versión móvil de TikTok:
+  if (isMobileDevice()) {
+    // A) En la barra inferior móvil, la pestaña "Perfil" (data-e2e="profile-icon")
+    // cuando NO hay sesión solo contiene un icono <svg> genérico sin avatar.
+    // Cuando SÍ hay sesión iniciada, TikTok reemplaza ese SVG con la foto de avatar del usuario (<img>)
+    // o el enlace pasa a ser directamente su perfil personal (/@username).
+    const mobileProfileTab = document.querySelector('a[data-e2e="profile-icon"]');
+    if (mobileProfileTab) {
+      const hasAvatarImg = !!mobileProfileTab.querySelector('img');
+      const href = mobileProfileTab.getAttribute('href') || '';
+      const isPersonalProfileLink = href.startsWith('/@');
+      if (hasAvatarImg || isPersonalProfileLink) {
+        return true;
+      }
+    }
 
-  // 2. DOM en tiempo real: Si existe avatar de perfil o icono de inbox/mensajes, SÍ hay sesión activa
-  const loggedInIndicator = document.querySelector(
-    '[data-e2e="profile-icon"], [data-e2e="nav-profile"], [data-e2e="inbox-icon"], [data-e2e="message-icon"], a[href*="/messages"], [data-e2e="user-avatar"], [data-e2e="nav-user-profile"]'
-  );
-  if (loggedInIndicator) {
-    return true;
-  }
+    // B) Si en pantalla hay un aviso o modal explícito de iniciar sesión / registrarse:
+    const hasLoginPrompt = Array.from(document.querySelectorAll('button, a, div[role="button"]')).some(el => {
+      const txt = (el.textContent || '').trim().toLowerCase();
+      return txt === 'iniciar sesión' || txt === 'log in' || txt === 'inicia sesión';
+    });
+    if (hasLoginPrompt) {
+      return false;
+    }
+  } else {
+    // 2. Detección en la versión de escritorio de TikTok:
+    const loginIndicator = document.querySelector(
+      '[data-e2e="nav-login-button"], [data-e2e="top-login-button"], [data-e2e="login-button"], a[href*="/login"]'
+    );
+    if (loginIndicator) {
+      return false;
+    }
 
-  // 3. Cookies del cliente: Tokens de sesión o usuario
-  if (typeof document !== 'undefined' && document.cookie) {
-    if (/(?:^|;\s*)(?:uid_tt|uid_tt_ss|sessionid|sid_tt|login_status=1)\b/.test(document.cookie)) {
+    const desktopProfile = document.querySelector(
+      '[data-e2e="nav-profile"], [data-e2e="user-avatar"], [data-e2e="nav-user-profile"]'
+    );
+    if (desktopProfile) {
       return true;
     }
   }
 
-  // 4. Datos de hidratación SSR de TikTok (__UNIVERSAL_DATA_FOR_REHYDRATION__ y SIGI_STATE)
+  // 3. Verificación de datos de hidratación SSR de TikTok (__UNIVERSAL_DATA_FOR_REHYDRATION__ y SIGI_STATE)
   try {
     const universalScript = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
     if (universalScript && universalScript.textContent) {
       const data = JSON.parse(universalScript.textContent);
-      const appContext = data?.['__DEFAULT_SCOPE__']?.['webapp.app-context'];
-      if (appContext) {
-        if (appContext.isLoggedIn === true) return true;
-        if (appContext.user && (appContext.user.secUid || appContext.user.id || appContext.user.uid || appContext.user.uniqueId)) {
-          return true;
-        }
+      const scope = data?.['__DEFAULT_SCOPE__'] || {};
+      const userObj = scope['webapp.user-info'] || scope['webapp.app-context']?.user;
+      if (userObj && (userObj.id || userObj.secUid || userObj.uniqueId || userObj.uid)) {
+        return true;
+      }
+      const appCtx = scope['webapp.app-context'];
+      if (appCtx && !userObj && appCtx.isLoggedIn === false) {
+        return false;
       }
     }
   } catch (e) {}
@@ -3505,13 +3524,20 @@ const isTikTokUserLoggedIn = (): boolean => {
     if (sigiScript && sigiScript.textContent) {
       const data = JSON.parse(sigiScript.textContent);
       const user = data?.AppContext?.user || data?.UserModule?.currentUser;
-      if (user) {
-        if (user.isLoggedIn === true) return true;
-        if (user.secUid || user.id || user.uid || user.uniqueId) return true;
+      if (user && (user.secUid || user.id || user.uid || user.uniqueId)) {
+        return true;
       }
     }
   } catch (e) {}
 
+  // 4. Verificación de cookies reales de autenticación activa (excluyendo rastreo uid_tt)
+  if (typeof document !== 'undefined' && document.cookie) {
+    if (/(?:^|;\s*)(?:sessionid|sid_tt|login_status=1)/.test(document.cookie)) {
+      return true;
+    }
+  }
+
+  // Ante la menor duda o mientras la página carga, asumir falso para no incomodar
   return false;
 };
 
