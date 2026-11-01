@@ -3458,87 +3458,77 @@ const updateMobileLayout = () => {
 
 /**
  * Detecta si el usuario tiene una sesión iniciada en TikTok.
- * Inspecciona los datos de hidratación SSR (__UNIVERSAL_DATA_FOR_REHYDRATION__ y SIGI_STATE),
- * elementos del DOM (botones de login vs. avatar/inbox), y cookies de sesión.
+ * Prioriza el DOM y cookies en tiempo real para reaccionar de inmediato
+ * cuando el usuario inicia o cierra sesión dinámicamente en la web.
  */
 const isTikTokUserLoggedIn = (): boolean => {
-  // 1. Verificar datos de hidratación SSR oficial de TikTok (__UNIVERSAL_DATA_FOR_REHYDRATION__)
+  // 1. DOM en tiempo real: Si existe botón de login, definitivamente NO hay sesión iniciada
+  const loginIndicator = document.querySelector(
+    '[data-e2e="nav-login-button"], [data-e2e="top-login-button"], [data-e2e="login-button"], a[href*="/login"]'
+  );
+  if (loginIndicator) {
+    return false;
+  }
+
+  // 2. DOM en tiempo real: Si existe avatar de perfil o icono de inbox/mensajes, SÍ hay sesión activa
+  const loggedInIndicator = document.querySelector(
+    '[data-e2e="profile-icon"], [data-e2e="nav-profile"], [data-e2e="inbox-icon"], [data-e2e="message-icon"], a[href*="/messages"], [data-e2e="user-avatar"], [data-e2e="nav-user-profile"]'
+  );
+  if (loggedInIndicator) {
+    return true;
+  }
+
+  // 3. Cookies del cliente: Tokens de sesión o usuario
+  if (typeof document !== 'undefined' && document.cookie) {
+    if (/(?:^|;\s*)(?:uid_tt|uid_tt_ss|sessionid|sid_tt|login_status=1)\b/.test(document.cookie)) {
+      return true;
+    }
+  }
+
+  // 4. Datos de hidratación SSR de TikTok (__UNIVERSAL_DATA_FOR_REHYDRATION__ y SIGI_STATE)
   try {
     const universalScript = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
     if (universalScript && universalScript.textContent) {
       const data = JSON.parse(universalScript.textContent);
       const appContext = data?.['__DEFAULT_SCOPE__']?.['webapp.app-context'];
       if (appContext) {
-        if (typeof appContext.isLoggedIn === 'boolean') {
-          return appContext.isLoggedIn;
+        if (appContext.isLoggedIn === true) return true;
+        if (appContext.user && (appContext.user.secUid || appContext.user.id || appContext.user.uid || appContext.user.uniqueId)) {
+          return true;
         }
-        if (appContext.user) {
-          if (typeof appContext.user.isLoggedIn === 'boolean') {
-            return appContext.user.isLoggedIn;
-          }
-          if (appContext.user.secUid || appContext.user.id || appContext.user.uid || appContext.user.uniqueId) {
-            return true;
-          }
-        }
-        // Si app-context está definido pero no contiene usuario autenticado
-        return false;
       }
     }
   } catch (e) {}
 
-  // 2. Verificar datos de hidratación alternativos / legacy (SIGI_STATE)
   try {
     const sigiScript = document.getElementById('SIGI_STATE');
     if (sigiScript && sigiScript.textContent) {
       const data = JSON.parse(sigiScript.textContent);
       const user = data?.AppContext?.user || data?.UserModule?.currentUser;
       if (user) {
-        if (typeof user.isLoggedIn === 'boolean') return user.isLoggedIn;
+        if (user.isLoggedIn === true) return true;
         if (user.secUid || user.id || user.uid || user.uniqueId) return true;
-        return false;
       }
     }
   } catch (e) {}
 
-  // 3. Indicadores claros en el DOM de que NO hay sesión:
-  // Botones de "Iniciar sesión", "Log in", o enlaces hacia /login
-  const loginIndicator = document.querySelector(
-    '[data-e2e="nav-login-button"], [data-e2e="top-login-button"], [data-e2e="login-button"], a[href*="/login"], button[id*="login"]'
-  );
-  if (loginIndicator) {
-    return false;
-  }
-
-  // 4. Indicadores claros en el DOM de que SÍ hay sesión iniciada:
-  // Icono de perfil de usuario, bandeja de entrada (inbox/messages), avatar personal
-  const loggedInIndicator = document.querySelector(
-    '[data-e2e="profile-icon"], [data-e2e="nav-profile"], [data-e2e="inbox-icon"], [data-e2e="message-icon"], a[href*="/messages"], [data-e2e="user-avatar"]'
-  );
-  if (loggedInIndicator) {
-    return true;
-  }
-
-  // 5. Verificación por cookies de cliente
-  if (typeof document !== 'undefined' && document.cookie) {
-    if (/(?:^|;\s*)(?:uid_tt|uid_tt_ss|login_status=1)\b/.test(document.cookie)) {
-      return true;
-    }
-  }
-
-  // Por seguridad y para no molestar, si no confirmamos que hay sesión, asumimos false
   return false;
 };
 
-// Claves de almacenamiento para garantizar que el diálogo aparezca como máximo UNA sola vez
-const REDIRECT_SHOWN_SESSION_KEY = 'tt_stickers_redirect_dialog_shown';
-const REDIRECT_DISMISSED_LOCAL_KEY = 'tt_stickers_redirect_dialog_dismissed_at';
-
-// Muestra un diálogo flotante al entrar a TikTok si no estamos en /messages (solo usuarios con sesión y una sola vez)
+// Control para mostrar el diálogo como máximo UNA SOLA VEZ por visita / recarga de página
+let redirectDialogShownThisPage = false;
 let userDismissedRedirectDialog = false;
 
+// Limpiar posibles bloqueos anteriores de localStorage / sessionStorage
+try {
+  localStorage.removeItem('tt_stickers_redirect_dialog_dismissed_at');
+  sessionStorage.removeItem('tt_stickers_redirect_dialog_shown');
+} catch (e) {}
+
+// Muestra un diálogo flotante al entrar a TikTok si no estamos en /messages (solo usuarios con sesión y una sola vez)
 const checkAndShowMessagesRedirectDialog = () => {
-  // 1. Si el usuario ya lo descartó en memoria
-  if (userDismissedRedirectDialog) return;
+  // 1. Si ya se mostró una vez en esta carga de página, o el usuario lo descartó
+  if (redirectDialogShownThisPage || userDismissedRedirectDialog) return;
 
   // 2. Solo aplica a pantallas / dispositivos móviles
   if (!isMobileDevice()) return;
@@ -3546,43 +3536,23 @@ const checkAndShowMessagesRedirectDialog = () => {
   // 3. Nunca mostrar si ya nos encontramos en /messages
   if (window.location.pathname.startsWith('/messages')) return;
 
-  // 4. Verificar si ya se mostró una vez en esta sesión de navegación (sessionStorage)
-  try {
-    if (sessionStorage.getItem(REDIRECT_SHOWN_SESSION_KEY) === 'true') {
-      return;
-    }
-    // 5. Verificar si el usuario lo cerró en las últimas 24 horas (localStorage)
-    const dismissedAt = localStorage.getItem(REDIRECT_DISMISSED_LOCAL_KEY);
-    if (dismissedAt) {
-      const elapsed = Date.now() - parseInt(dismissedAt, 10);
-      if (elapsed < 24 * 60 * 60 * 1000) {
-        return;
-      }
-    }
-  } catch (e) {}
-
-  // 6. ¡REQUISITO CRÍTICO!: Detectar si el usuario tiene sesión iniciada. Si no hay sesión, no mostrarlo.
+  // 4. ¡REQUISITO CRÍTICO!: Detectar si el usuario tiene sesión iniciada. Si no hay sesión, NO mostrar nunca.
   if (!isTikTokUserLoggedIn()) return;
 
-  // 7. Si ya existe en el DOM, no volver a crearlo
+  // 5. Si ya existe en el DOM, no volver a crearlo
   if (document.getElementById('tt-stickers-redirect-dialog')) return;
   if (!document.body) return;
 
-  // 8. Marcar de inmediato como mostrado en esta sesión para que no se duplique por mutaciones o navegación SPA
-  try {
-    sessionStorage.setItem(REDIRECT_SHOWN_SESSION_KEY, 'true');
-  } catch (e) {}
+  // 6. Marcar de inmediato como mostrado en esta página para que no vuelva a aparecer mientras navega
+  redirectDialogShownThisPage = true;
 
   const isMobile = isMobileDevice();
   ensureModalAnimationsStyle();
 
-  // Función unificada para cerrar y descartar definitivamente el diálogo
+  // Función unificada para cerrar y descartar el diálogo
   const dismissDialog = () => {
     userDismissedRedirectDialog = true;
-    try {
-      sessionStorage.setItem(REDIRECT_SHOWN_SESSION_KEY, 'true');
-      localStorage.setItem(REDIRECT_DISMISSED_LOCAL_KEY, Date.now().toString());
-    } catch (e) {}
+    redirectDialogShownThisPage = true;
     const dialog = document.getElementById('tt-stickers-redirect-dialog');
     if (dialog) {
       dialog.remove();
