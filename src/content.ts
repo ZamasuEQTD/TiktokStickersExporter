@@ -2379,6 +2379,37 @@ executeChatScan = async () => {
     return;
   }
 
+  // Guardar la posición de scroll antes de comenzar a escanear hacia arriba
+  const initialScrollTop = container.scrollTop;
+  const initialScrollHeight = container.scrollHeight;
+  const initialDistanceFromBottom = container.scrollHeight - container.scrollTop;
+  const wasAtOrNearBottom = (initialDistanceFromBottom - container.clientHeight) <= 250;
+
+  // Localizar el mensaje o sticker que estaba visible en pantalla para restaurar con máxima precisión
+  let initialVisibleElement: HTMLElement | null = null;
+  try {
+    const cRect = container.getBoundingClientRect();
+    const candidates = Array.from(container.querySelectorAll('div[class*="Message"], div[class*="Chat"], div[data-e2e*="chat-item"], img[alt="sticker"]'));
+    for (const el of candidates) {
+      const r = el.getBoundingClientRect();
+      if (r.top >= cRect.top && r.bottom <= cRect.bottom) {
+        initialVisibleElement = el as HTMLElement;
+        break;
+      }
+    }
+  } catch (e) {}
+
+  // Guardar también la posición de scroll de los contenedores padres
+  const parentScrollMap = new Map<HTMLElement, number>();
+  let pScroll = container.parentElement;
+  while (pScroll && pScroll !== document.body) {
+    const style = window.getComputedStyle(pScroll);
+    if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && pScroll.scrollHeight > pScroll.clientHeight) {
+      parentScrollMap.set(pScroll, pScroll.scrollTop);
+    }
+    pScroll = pScroll.parentElement;
+  }
+
   const scanConvId = getActiveConversationId();
   let scanState = registerStickersFromDOM(scanConvId);
 
@@ -2631,6 +2662,36 @@ executeChatScan = async () => {
 
     addDownloadAllButton();
     addIndividualDownloadButtons();
+
+    // Restaurar la posición de scroll original donde estaba el usuario antes del escaneo
+    const restoreScroll = () => {
+      try {
+        if (wasAtOrNearBottom) {
+          container.scrollTop = container.scrollHeight;
+          try {
+            container.scrollTo({ top: container.scrollHeight, behavior: 'instant' });
+          } catch (e) {}
+        } else if (initialVisibleElement && container.contains(initialVisibleElement)) {
+          initialVisibleElement.scrollIntoView({ block: 'center', behavior: 'instant' });
+        } else {
+          container.scrollTop = Math.max(0, container.scrollHeight - initialDistanceFromBottom);
+        }
+
+        parentScrollMap.forEach((savedTop, parentEl) => {
+          if (parentEl && parentEl.isConnected) {
+            parentEl.scrollTop = savedTop;
+          }
+        });
+
+        container.dispatchEvent(new Event('scroll', { bubbles: true }));
+        container.dispatchEvent(new UIEvent('scroll', { bubbles: true }));
+      } catch (e) {
+        console.warn("[TiktokStickersExporter] Error al restaurar posición de scroll:", e);
+      }
+    };
+
+    restoreScroll();
+    setTimeout(restoreScroll, 50);
 
     if (!wasScanAbortedByUser) {
       if (scanState.stickers.length > 0) {
