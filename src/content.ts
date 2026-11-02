@@ -3560,7 +3560,7 @@ const checkAndShowMessagesRedirectDialog = () => {
   if (!isMobileDevice()) return;
 
   // 3. Nunca mostrar si ya nos encontramos en /messages
-  if (window.location.pathname.startsWith('/messages')) return;
+  if (window.location.pathname.startsWith('/messages') || window.location.pathname.startsWith('/inbox')) return;
 
   // 4. ¡REQUISITO CRÍTICO!: Detectar si el usuario tiene sesión iniciada. Si no hay sesión, NO mostrar nunca.
   if (!isTikTokUserLoggedIn()) return;
@@ -3759,7 +3759,89 @@ const checkAndShowMessagesRedirectDialog = () => {
   document.body.appendChild(overlay);
 };
 
-// Limpieza completa del modo móvil al volver al tamaño de PC
+/**
+ * Agrega un botón de ancho completo (banner nativo sin brillos ni sombras)
+ * para ir a /messages dentro de /inbox en dispositivos móviles.
+ * Se ubica debajo de los chips con etiquetas y arriba de las notificaciones.
+ */
+const syncInboxMobileMessagesBanner = () => {
+  if (!isMobileDevice()) {
+    const existing = document.getElementById('tt-inbox-messages-banner');
+    if (existing) existing.remove();
+    return;
+  }
+
+  if (!window.location.pathname.startsWith('/inbox')) {
+    const existing = document.getElementById('tt-inbox-messages-banner');
+    if (existing) existing.remove();
+    return;
+  }
+
+  if (document.getElementById('tt-inbox-messages-banner')) return;
+
+  const tabChips = document.querySelector('div[class*="DivInboxTab"]');
+  const contentContainer = document.querySelector('div[class*="DivInboxContentContainer"]');
+  const parent = tabChips ? tabChips.parentElement : (contentContainer ? contentContainer.parentElement : null);
+
+  if (!parent) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.id = 'tt-inbox-messages-banner';
+  wrapper.style.width = '100%';
+  wrapper.style.padding = '8px 16px 12px 16px';
+  wrapper.style.boxSizing = 'border-box';
+
+  const btn = document.createElement('a');
+  btn.href = 'https://www.tiktok.com/messages';
+  btn.target = '_blank';
+  btn.rel = 'noopener noreferrer';
+  btn.setAttribute('role', 'button');
+  btn.style.width = '100%';
+  btn.style.height = '42px';
+  btn.style.boxSizing = 'border-box';
+  btn.style.backgroundColor = '#FE2C55';
+  btn.style.color = '#ffffff';
+  btn.style.borderRadius = '8px';
+  btn.style.display = 'flex';
+  btn.style.alignItems = 'center';
+  btn.style.justifyContent = 'center';
+  btn.style.gap = '8px';
+  btn.style.textDecoration = 'none';
+  btn.style.fontSize = '14px';
+  btn.style.fontWeight = '700';
+  btn.style.boxShadow = 'none';
+  btn.style.border = 'none';
+  btn.style.outline = 'none';
+  btn.style.transition = 'opacity 0.15s';
+  btn.style.cursor = 'pointer';
+
+  btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+  </svg><span>${t("goToMessages")}</span>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;">
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>`;
+
+  btn.onclick = () => {
+    try {
+      if (typeof browser !== 'undefined' && browser.runtime) {
+        browser.runtime.sendMessage({ action: 'openMessagesTab' });
+      }
+    } catch (e) {}
+  };
+
+  wrapper.appendChild(btn);
+
+  if (contentContainer) {
+    parent.insertBefore(wrapper, contentContainer);
+  } else if (tabChips && tabChips.nextSibling) {
+    parent.insertBefore(wrapper, tabChips.nextSibling);
+  } else {
+    parent.appendChild(wrapper);
+  }
+};
+
+// Limpieza completa del modo móvil
 const cleanupMobileEnhancements = () => {
   const dialog = document.getElementById('tt-stickers-redirect-dialog');
   if (dialog) {
@@ -3788,6 +3870,11 @@ const cleanupMobileEnhancements = () => {
   if (meta) {
     meta.remove();
   }
+
+  const inboxBanner = document.getElementById('tt-inbox-messages-banner');
+  if (inboxBanner) {
+    inboxBanner.remove();
+  }
 };
 
 // Sincronización dinámica según tamaño de pantalla / dispositivo
@@ -3798,6 +3885,7 @@ const syncResponsiveMode = () => {
     enforceDesktopViewport();
     setupMobileEnhancements();
     checkAndShowMessagesRedirectDialog();
+    syncInboxMobileMessagesBanner();
     updateMobileLayout();
   } else {
     cleanupMobileEnhancements();
@@ -3823,6 +3911,7 @@ const observer = new MutationObserver(() => {
     enforceDesktopViewport();
     setupMobileEnhancements();
     checkAndShowMessagesRedirectDialog();
+    syncInboxMobileMessagesBanner();
     updateMobileLayout();
   } else {
     if (document.getElementById('tt-mobile-enhancement-styles') || document.body.classList.contains('tt-chat-active')) {
