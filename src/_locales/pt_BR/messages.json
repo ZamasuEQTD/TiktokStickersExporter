@@ -153,10 +153,10 @@
     "message": "{count} figurinhas encontradas"
   },
   "chatFullyScanned": {
-    "message": "Histórico completo"
+    "message": "Reescanear chat"
   },
   "chatFullyScannedTooltip": {
-    "message": "Todo o histórico do chat foi escaneado desde o início. Clique para escanear novamente."
+    "message": "Escanear o chat novamente para detectar novas figurinhas."
   },
   "viewStickers": {
     "message": "Ver figurinhas ({count})"

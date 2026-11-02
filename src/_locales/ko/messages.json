@@ -153,10 +153,10 @@
     "message": "{count}개 스티커 발견"
   },
   "chatFullyScanned": {
-    "message": "전체 기록 완료"
+    "message": "다시 스캔"
   },
   "chatFullyScannedTooltip": {
-    "message": "채팅의 처음부터 전체 기록이 스캔되었습니다. 다시 스캔하려면 클릭하세요."
+    "message": "새로운 스티커를 감지하기 위해 채팅을 다시 스캔합니다。"
   },
   "viewStickers": {
     "message": "스티커 보기 ({count})"

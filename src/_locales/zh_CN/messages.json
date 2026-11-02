@@ -153,10 +153,10 @@
     "message": "已找到 {count} 个表情贴纸"
   },
   "chatFullyScanned": {
-    "message": "完整历史记录"
+    "message": "重新扫描"
   },
   "chatFullyScannedTooltip": {
-    "message": "整个聊天记录已从头开始扫描完成。点击重新扫描。"
+    "message": "重新扫描聊天以检测新的表情贴纸。"
   },
   "viewStickers": {
     "message": "查看表情 ({count})"

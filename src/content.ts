@@ -1085,11 +1085,11 @@ const showCustomConfirm = async (rawNewStickers: string[], rawOldStickers: strin
     btnScanInModal.style.transition = "background-color 0.2s, transform 0.15s, opacity 0.2s";
 
     const svgSearchModal = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; display: inline-block;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-    const svgCheckModal = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2ed573" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; display: inline-block;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    const svgRefreshModal = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2ed573" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; display: inline-block;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`;
 
     if (isAlreadyAtBeginning) {
       btnScanInModal.disabled = false;
-      btnScanInModal.innerHTML = `${svgCheckModal}<span>${t("chatFullyScanned")}</span>`;
+      btnScanInModal.innerHTML = `${svgRefreshModal}<span>${t("chatFullyScanned")}</span>`;
       btnScanInModal.title = t("chatFullyScannedTooltip");
       btnScanInModal.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
       btnScanInModal.style.color = "rgba(255, 255, 255, 0.75)";

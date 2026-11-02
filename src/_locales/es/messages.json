@@ -153,10 +153,10 @@
     "message": "{count} stickers encontrados"
   },
   "chatFullyScanned": {
-    "message": "Historial completo"
+    "message": "Volver a escanear"
   },
   "chatFullyScannedTooltip": {
-    "message": "Se ha analizado todo el historial del chat desde el inicio. Clic para volver a escanear."
+    "message": "Escanear el chat nuevamente para detectar nuevos stickers."
   },
   "viewStickers": {
     "message": "Ver stickers ({count})"

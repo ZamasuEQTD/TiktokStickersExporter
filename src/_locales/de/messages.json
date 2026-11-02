@@ -153,10 +153,10 @@
     "message": "{count} Sticker gefunden"
   },
   "chatFullyScanned": {
-    "message": "Vollständiger Verlauf"
+    "message": "Erneut scannen"
   },
   "chatFullyScannedTooltip": {
-    "message": "Der gesamte Chatverlauf wurde von Beginn an gescannt. Klicken zum erneuten Scannen."
+    "message": "Chat erneut scannen, um neue Sticker zu erfassen."
   },
   "viewStickers": {
     "message": "Sticker anzeigen ({count})"

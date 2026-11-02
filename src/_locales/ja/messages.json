@@ -153,10 +153,10 @@
     "message": "{count} 個のスタンプが見つかりました"
   },
   "chatFullyScanned": {
-    "message": "全履歴完了"
+    "message": "再スキャン"
   },
   "chatFullyScannedTooltip": {
-    "message": "チャットの最初から全履歴がスキャンされました。再スキャンするにはクリックしてください。"
+    "message": "チャットを再度スキャンして新しいステッカーを検出します。"
   },
   "viewStickers": {
     "message": "スタンプ一覧 ({count})"
