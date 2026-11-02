@@ -11,3 +11,5 @@ web-ext-artifacts
 source-code.zip
 
 versions
+chrome-auth.json
+get_refresh_token.js
