@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "en",
   "name": "__MSG_appName__",
-  "version": "1.8.22",
+  "version": "1.8.23",
   "description": "__MSG_appDesc__",
   "browser_specific_settings": {
     "gecko": {
@@ -16,10 +16,6 @@
     }
   },
   "permissions": [
-    "tabs",
-    "activeTab",
-    "storage",
-    "scripting",
     "downloads",
     "webRequest",
     "webRequestBlocking"
