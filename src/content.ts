@@ -1703,6 +1703,7 @@ interface ConversationScanState {
   hasReachedBeginning: boolean; // ¿Se llegó alguna vez al mensaje #1 de la historia del chat?
   lastScanTimestamp: number;
   newestKnownStickerId: string | null;
+  guaranteedUntilTimestamp?: number; // Timestamp (inicio del día) hasta el cual se garantiza el historial completo
   stickers: ScannedStickerRecord[];
 }
 
@@ -2598,6 +2599,17 @@ executeChatScan = async () => {
 
   document.body.appendChild(scanOverlay);
 
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  // Determinar la fecha límite hasta la cual el historial ya está 100% garantizado
+  let guaranteedBoundaryTs = scanState.guaranteedUntilTimestamp;
+  if (!guaranteedBoundaryTs && scanState.hasReachedBeginning && scanState.lastScanTimestamp > 0) {
+    const d = new Date(scanState.lastScanTimestamp);
+    d.setHours(0, 0, 0, 0);
+    guaranteedBoundaryTs = d.getTime();
+  }
+
   let lastScrollHeight = container.scrollHeight;
   let lastChildCount = container.childElementCount;
   let lastFirstChildText = container.firstElementChild?.textContent || "";
@@ -2613,6 +2625,46 @@ executeChatScan = async () => {
       scanState = registerStickersFromDOM(scanConvId);
       const totalDiscovered = scanState.stickers.length;
       counterEl.innerText = t("stickersFound", { count: totalDiscovered });
+
+      // Verificación de frontera de fecha garantizada:
+      // Si el historial previo ya fue analizado por completo hasta una fecha pasada, nos detenemos
+      // en cuanto encontremos en el DOM un separador de fecha que sea anterior a hoy y <= fecha garantizada.
+      if (guaranteedBoundaryTs && guaranteedBoundaryTs > 0) {
+        const separators = Array.from(container.querySelectorAll('[data-e2e="dm-new-time-separator"]'));
+        let reachedGuaranteedBoundary = false;
+        let matchedDateLabel = "";
+
+        for (const sep of separators) {
+          const rawText = sep.textContent?.trim() || "";
+          if (!rawText || isPureTime(rawText)) continue;
+
+          // Si el texto dice 'hoy' o 'today', pertenece al día de hoy, no es una frontera pasada
+          const lower = rawText.toLowerCase();
+          if (lower.startsWith("hoy") || lower.startsWith("today")) continue;
+
+          const sepTs = parseDateToTimestamp(rawText);
+          if (sepTs > 0) {
+            const sepDay = new Date(sepTs);
+            sepDay.setHours(0, 0, 0, 0);
+
+            // Debe ser estrictamente anterior a hoy y menor o igual a la fecha garantizada
+            if (sepDay.getTime() < startOfToday.getTime() && sepDay.getTime() <= guaranteedBoundaryTs) {
+              reachedGuaranteedBoundary = true;
+              matchedDateLabel = rawText;
+              break;
+            }
+          }
+        }
+
+        if (reachedGuaranteedBoundary) {
+          console.log(`[TiktokStickersExporter] Frontera garantizada alcanzada ("${matchedDateLabel}"). Historial previo ya cubierto. Deteniendo escaneo optimizado.`);
+          scanState.hasReachedBeginning = true;
+          scanState.guaranteedUntilTimestamp = startOfToday.getTime();
+          scanState.lastScanTimestamp = Date.now();
+          saveConversationScanState(scanState);
+          break;
+        }
+      }
 
       triggerScrollToTop(container);
 
@@ -2630,6 +2682,7 @@ executeChatScan = async () => {
         unchangedTries++;
         if (unchangedTries >= maxUnchanged) {
           scanState.hasReachedBeginning = true;
+          scanState.guaranteedUntilTimestamp = startOfToday.getTime();
           scanState.lastScanTimestamp = Date.now();
           saveConversationScanState(scanState);
           console.log("[TiktokStickersExporter] Se alcanzó el inicio real de la conversación.");
@@ -2658,6 +2711,9 @@ executeChatScan = async () => {
 
     scanState = registerStickersFromDOM(scanConvId);
     scanState.lastScanTimestamp = Date.now();
+    if (scanState.hasReachedBeginning) {
+      scanState.guaranteedUntilTimestamp = startOfToday.getTime();
+    }
     saveConversationScanState(scanState);
 
     addDownloadAllButton();
